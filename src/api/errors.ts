@@ -24,8 +24,8 @@ export class ApiError extends Error {
 
     Object.setPrototypeOf(this, new.target.prototype);
 
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, ApiError);
+    if ((Error as any).captureStackTrace) {
+      (Error as any).captureStackTrace(this, ApiError);
     }
   }
 }
@@ -38,7 +38,7 @@ export class ApiAuthError extends ApiError {
     super(message, { status: opts?.status ?? 401, code: opts?.code ?? "AUTH_REQUIRED", payload: opts?.payload, cause: opts?.cause });
     this.name = "ApiAuthError";
     Object.setPrototypeOf(this, new.target.prototype);
-    if (Error.captureStackTrace) Error.captureStackTrace(this, ApiAuthError);
+    if ((Error as any).captureStackTrace) (Error as any).captureStackTrace(this, ApiAuthError);
   }
 }
 
@@ -53,9 +53,9 @@ export function getApiMessage(err: unknown, fallback = "Something went wrong") {
 
   const any = err as any;
   return (
-    any?.response?.data?.message || 
-    any?.data?.message ||           
-    any?.message ||                 
+    any?.response?.data?.message ||
+    any?.data?.message ||
+    any?.message ||
     fallback
   );
 }
