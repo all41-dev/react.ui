@@ -10,7 +10,7 @@ type Props<TRow extends object> = {
   style?: React.CSSProperties;
 };
 
-function toTooltipText(value: unknown): string {
+export function toTooltipText(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (typeof value === "string") return value;
   if (typeof value === "number") return String(value);

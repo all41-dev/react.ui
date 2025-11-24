@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
             }
           }
         },
-        emptyOutDir: true,
+        emptyOutDir: false,
         sourcemap: false,
         cssCodeSplit: false
       }

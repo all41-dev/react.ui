@@ -5,9 +5,10 @@
   "description": "React UI component library with DataGrid, Tooltip, and Toast components",
   "main": "./dist/react-ui.cjs",
   "module": "./dist/react-ui.js",
-  "types": "./dist/types/index.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/react-ui.js",
       "require": "./dist/react-ui.cjs"
     },

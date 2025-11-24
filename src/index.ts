@@ -6,6 +6,7 @@ export type { DataGridProps, } from "./components/datagrid/DataGrid";
 
 export type { WithMeta, ColumnMeta, EditorKind, Option, SelectOption, ColumnFilterMeta } from "./components/datagrid/types/column";
 export type { CrudAdapter, IdLike } from "./components/datagrid/types/crud";
+export type { UseTQAdapterParams } from "./components/datagrid/hooks/useTanstackQueryAdapter";
 
 export { useColumnPrefs } from "./components/datagrid/hooks/useColumnPrefs";
 export { useCrudAdapter } from "./components/datagrid/hooks/useCrudAdapter";
@@ -16,3 +17,5 @@ export type { ActionColumnOpts } from "./components/datagrid/ui/makeActionColumn
 export type { EditContainerKind } from "./components/datagrid/ui/containers/EditContainers";
 
 export { DataGridContext } from "./components/datagrid/DataGridContext";
+
+export { toTooltipText } from "./components/datagrid/ui/table/CellWithTooltip";
