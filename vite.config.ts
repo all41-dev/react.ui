@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
           fileName: (format) => `react-ui.${format === 'es' ? 'js' : 'cjs'}`
         },
         rollupOptions: {
-          external: ['react', 'react-dom'],
+          external: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
           output: {
             globals: {
               react: 'React',
