@@ -409,7 +409,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             renderExpandedRow={renderExpandedRow}
           />
 
-          <TableMobileView
+          {/* <TableMobileView
             table={table}
             getId={getId}
             isLoading={isLoading ?? false}
@@ -417,7 +417,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             error={error ?? null}
             selectedRowId={selectedRowId}
             onRowClick={onRowClick ? handleRowClick : undefined}
-          />
+          /> */}
         </div>
         {paginationEnabled && (
           <DataGridPagination

@@ -12,7 +12,10 @@
       "import": "./dist/react-ui.js",
       "require": "./dist/react-ui.cjs"
     },
-    "./styles": "./dist/react.ui.css"
+    "./styles": {
+      "types": "./dist/react.ui.css.d.ts",
+      "default": "./dist/react.ui.css"
+    }
   },
   "files": [
     "dist"
@@ -20,7 +23,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:lib": "tsc -p tsconfig.build.json && vite build --mode lib",
+    "build:lib": "tsc -p tsconfig.build.json && vite build --mode lib && echo declare const _default: void; export default _default; > dist/react.ui.css.d.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "preversion": "npm run build:lib --prod",
