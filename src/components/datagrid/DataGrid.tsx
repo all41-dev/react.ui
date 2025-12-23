@@ -26,8 +26,7 @@ import { toast } from "sonner";
 import { getApiMessage } from "../../api/errors";
 import { useConfirm } from "./hooks/useConfirm";
 import { Spinner } from "./ui/GridStates";
-import { TableDesktopView } from "./ui/TableDesktopView";
-import { TableMobileView } from "./ui/TableMobileView";
+import { TableView } from "./ui/TableView";
 import { DataGridToolbar } from "./ui/DataGridToolbar";
 import { useColumnPrefs } from "./hooks/useColumnPrefs";
 import {
@@ -369,7 +368,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             </div>
           )}
 
-          <TableDesktopView
+          <TableView
             table={table}
             getId={getId}
             isLoading={isLoading ?? false}
@@ -408,16 +407,6 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             expandedRowIds={expandedRowIds}
             renderExpandedRow={renderExpandedRow}
           />
-
-          {/* <TableMobileView
-            table={table}
-            getId={getId}
-            isLoading={isLoading ?? false}
-            rows={rows}
-            error={error ?? null}
-            selectedRowId={selectedRowId}
-            onRowClick={onRowClick ? handleRowClick : undefined}
-          /> */}
         </div>
         {paginationEnabled && (
           <DataGridPagination

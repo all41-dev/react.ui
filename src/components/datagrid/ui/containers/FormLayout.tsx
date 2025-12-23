@@ -18,7 +18,6 @@ export function FormLayout<TForm extends object>({
   gap = "gap-4",
   className = "",
 }: FormLayoutProps<TForm>) {
-  // Sort fields by order if specified
   const sortedFields = useMemo(() => {
     return [...fields].sort((a, b) => {
       const orderA = a.meta?.formLayout?.order ?? 999;
@@ -27,7 +26,6 @@ export function FormLayout<TForm extends object>({
     });
   }, [fields]);
 
-  // Group fields by their layout requirements
   const { regularFields, fullWidthFields } = useMemo(() => {
     const regular: typeof sortedFields = [];
     const full: typeof sortedFields = [];
@@ -60,14 +58,13 @@ export function FormLayout<TForm extends object>({
   const gridColsClass =
     {
       1: "grid-cols-1",
-      2: "grid-cols-2",
-      3: "grid-cols-3",
-      4: "grid-cols-4",
-    }[columns] || "grid-cols-2";
+      2: "grid-cols-1 md:grid-cols-2",
+      3: "grid-cols-1 md:grid-cols-3",
+      4: "grid-cols-1 md:grid-cols-4",
+    }[columns] || "grid-cols-1 md:grid-cols-2";
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Regular fields in grid */}
       {regularFields.length > 0 && (
         <div className={`grid ${gridColsClass} ${gap}`}>
           {regularFields.map((c) => {
@@ -87,7 +84,6 @@ export function FormLayout<TForm extends object>({
         </div>
       )}
 
-      {/* Full-width fields */}
       {fullWidthFields.length > 0 && (
         <div className={`space-y-4 ${gap.replace("gap-", "space-y-")}`}>
           {fullWidthFields.map((c: WithMeta<any, TForm>) => {

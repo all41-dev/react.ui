@@ -25,7 +25,7 @@ export type ActionColumnOpts<T> = {
 
 export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
   const btnBase =
-    "inline-flex h-8 w-8 items-center justify-center rounded cursor-pointer " +
+    "inline-flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded cursor-pointer " +
     "bg-white hover:bg-gray-100 border border-gray-200 hover:border-gray-300 transition-colors";
 
   const EditButton: FC<{ row: T }> = ({ row }) => (
@@ -34,7 +34,10 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
       aria-label={opts.editAriaLabel ?? "Edit"}
       title={typeof opts.labels?.edit === "string" ? opts.labels?.edit : "Edit"}
       className={btnBase}
-      onClick={(e) => { e.stopPropagation(); opts.onEdit?.(row); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        opts.onEdit?.(row);
+      }}
     >
       {opts.labels?.edit ?? "Edit"}
     </button>
@@ -44,11 +47,17 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
     <button
       type="button"
       aria-label={opts.deleteAriaLabel ?? "Delete"}
-      title={typeof opts.labels?.delete === "string" ? opts.labels?.delete : "Delete"}
+      title={
+        typeof opts.labels?.delete === "string" ? opts.labels?.delete : "Delete"
+      }
       className={`${btnBase} text-red-600 hover:text-red-700 hover:bg-red-50`}
       onClick={async (e) => {
         e.stopPropagation();
-        try { await opts.onDelete?.(row); } catch (err) { opts.onError?.(err); }
+        try {
+          await opts.onDelete?.(row);
+        } catch (err) {
+          opts.onError?.(err);
+        }
       }}
     >
       {opts.labels?.delete ?? "Delete"}
@@ -59,23 +68,29 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
 
   const content = ({ row }: CellContext<T, unknown>) => {
     const id = opts.getId(row.original);
-    const inner = opts.renderActions
-      ? opts.renderActions({ row: row.original, id, defaults: { EditButton, DeleteButton } })
-      : (<>
-           {opts.onEdit && <EditButton row={row.original} />}
-           {opts.onDelete && <DeleteButton row={row.original} />}
-         </>);
+    const inner = opts.renderActions ? (
+      opts.renderActions({
+        row: row.original,
+        id,
+        defaults: { EditButton, DeleteButton },
+      })
+    ) : (
+      <>
+        {opts.onEdit && <EditButton row={row.original} />}
+        {opts.onDelete && <DeleteButton row={row.original} />}
+      </>
+    );
 
     if (isOverlay) {
-      // Gmail-style: absolute positioned to the right edge of the row
       return (
         <div
           className="
-            absolute top-0 right-0 h-full
+            static md:absolute top-0 right-0 h-full
             flex items-center gap-1
             transition-opacity duration-150
             pointer-events-none
             bg-inherit
+            mt-2 md:mt-0 justify-end md:justify-start w-full md:w-auto
           "
         >
           <div className="pointer-events-auto flex items-center gap-1 ">
@@ -85,12 +100,7 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
       );
     }
 
-    // inline variant
-    return (
-      <div className="flex items-center gap-2">
-        {inner}
-      </div>
-    );
+    return <div className="flex items-center gap-2">{inner}</div>;
   };
 
   return {
@@ -106,7 +116,3 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
     cell: content,
   };
 }
-
-
-
-
