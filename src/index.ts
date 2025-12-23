@@ -2,7 +2,7 @@ export { DataGrid } from "./components/datagrid/DataGrid";
 export { Tooltip } from "./components/Tooltip";
 export { toast } from "./components/toaster/toast";
 
-export type { DataGridProps, } from "./components/datagrid/DataGrid";
+export type { DataGridProps } from "./components/datagrid/DataGrid";
 
 export type { WithMeta, ColumnMeta, EditorKind, Option, SelectOption, ColumnFilterMeta } from "./components/datagrid/types/column";
 export type { CrudAdapter, IdLike } from "./components/datagrid/types/crud";
@@ -17,6 +17,10 @@ export type { ActionColumnOpts } from "./components/datagrid/ui/makeActionColumn
 export type { EditContainerKind } from "./components/datagrid/ui/containers/EditContainers";
 
 export { DataGridContext } from "./components/datagrid/DataGridContext";
+
+export type { LoadingScreenProps } from "./components/LoadingScreen";
+
+export { LoadingScreen } from "./components/LoadingScreen";
 
 export { toTooltipText } from "./components/datagrid/ui/table/CellWithTooltip";
 

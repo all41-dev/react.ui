@@ -1,6 +1,6 @@
 import { type FC } from "react";
 
-interface LoadingScreenProps {
+export interface LoadingScreenProps {
   message?: string;
   gradientStart?: string;
   gradientEnd?: string;
