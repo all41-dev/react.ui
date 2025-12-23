@@ -1,11 +1,13 @@
-import { toast } from "../../components/toaster/toast";
+import { toast } from "../../utils/toast";
 
 export function ToasterDemo() {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">Toaster Demo</h2>
-      <p className="mb-4 text-gray-600">Click the buttons below to trigger different toast notifications.</p>
-      
+      <p className="mb-4 text-gray-600">
+        Click the buttons below to trigger different toast notifications.
+      </p>
+
       <div className="flex flex-wrap gap-3">
         <button
           onClick={() => toast.success("Success! Operation completed.")}
@@ -13,14 +15,14 @@ export function ToasterDemo() {
         >
           Success Toast
         </button>
-        
+
         <button
           onClick={() => toast.error("Error! Something went wrong.")}
           className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
         >
           Error Toast
         </button>
-        
+
         <button
           onClick={() => {
             const id = toast.loading("Loading...");
@@ -32,7 +34,7 @@ export function ToasterDemo() {
         >
           Loading → Success
         </button>
-        
+
         <button
           onClick={() => {
             const id = toast.loading("Processing...");

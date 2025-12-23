@@ -1,6 +1,7 @@
 export { DataGrid } from "./components/datagrid/DataGrid";
 export { Tooltip } from "./components/Tooltip";
-export { toast } from "./components/toaster/toast";
+export { LoadingScreen } from "./components/LoadingScreen";
+export { toast } from "./utils/toast";
 
 export type { DataGridProps } from "./components/datagrid/DataGrid";
 
@@ -19,8 +20,6 @@ export type { EditContainerKind } from "./components/datagrid/ui/containers/Edit
 export { DataGridContext } from "./components/datagrid/DataGridContext";
 
 export type { LoadingScreenProps } from "./components/LoadingScreen";
-
-export { LoadingScreen } from "./components/LoadingScreen";
 
 export { toTooltipText } from "./components/datagrid/ui/table/CellWithTooltip";
 

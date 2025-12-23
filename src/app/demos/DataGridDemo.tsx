@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { DataGrid } from "../../components/datagrid/DataGrid";
-import { getUsers, type User } from "../../mocks/fakeData";
-import { mockApi } from "../../mocks/mockApi";
+import { getUsers, type User } from "./mocks/fakeData";
+import { mockApi } from "./mocks/mockApi";
 import { z } from "zod";
-import { toast } from "../../components/toaster/toast";
+import { toast } from "../../utils/toast";
 
 const userSchema = z.object({
   id: z.string().optional(),
@@ -23,7 +23,9 @@ export function DataGridDemo() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [containerType, setContainerType] = useState<"right" | "modal" | "inline">("right");
+  const [containerType, setContainerType] = useState<
+    "right" | "modal" | "inline"
+  >("right");
   const [dataSource, setDataSource] = useState<DataSource>("mock-data");
 
   // Load data based on selected source
@@ -56,93 +58,101 @@ export function DataGridDemo() {
     { accessorKey: "email", header: "Email", meta: { editor: "text" } },
     { accessorKey: "phone", header: "Phone", meta: { editor: "text" } },
     { accessorKey: "website", header: "Website", meta: { editor: "text" } },
-    { 
-      accessorKey: "role", 
-      header: "Role", 
-      meta: { 
-        editor: "select", 
+    {
+      accessorKey: "role",
+      header: "Role",
+      meta: {
+        editor: "select",
         options: [
-          { label: "Admin", value: "Admin" }, 
-          { label: "User", value: "User" }, 
-          { label: "Editor", value: "Editor" }
-        ] 
-      } 
+          { label: "Admin", value: "Admin" },
+          { label: "User", value: "User" },
+          { label: "Editor", value: "Editor" },
+        ],
+      },
     },
-    { 
-      accessorKey: "status", 
-      header: "Status", 
-      meta: { 
-        editor: "select", 
+    {
+      accessorKey: "status",
+      header: "Status",
+      meta: {
+        editor: "select",
         options: [
-          { label: "Active", value: "active" }, 
-          { label: "Inactive", value: "inactive" }, 
-          { label: "Pending", value: "pending" }
-        ] 
-      } 
+          { label: "Active", value: "active" },
+          { label: "Inactive", value: "inactive" },
+          { label: "Pending", value: "pending" },
+        ],
+      },
     },
-    { 
-      accessorKey: "lastLogin", 
+    {
+      accessorKey: "lastLogin",
       header: "Last Login",
       cell: ({ getValue }: any) => {
         const value = getValue() as string;
         if (!value) return "";
         const date = new Date(value);
-        return date.toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
+        return date.toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
         });
       },
-      meta: { 
+      meta: {
         editor: "datetime-local",
         format: (value: string) => {
           if (!value) return "";
           const date = new Date(value);
-          return date.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
+          return date.toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
           });
-        }
-      } 
+        },
+      },
     },
   ] as any;
 
-  const handlePersist = async (mode: "create" | "edit", data: any, prev?: User) => {
+  const handlePersist = async (
+    mode: "create" | "edit",
+    data: any,
+    prev?: User
+  ) => {
     try {
       if (dataSource === "mock-data") {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         if (mode === "create") {
           const newUser: User = {
             ...data,
             id: String(Date.now()),
           };
-          setUsers(prev => [...prev, newUser]);
+          setUsers((prev) => [...prev, newUser]);
           toast.success("User created successfully!");
           return newUser;
         } else {
           const updatedUser = { ...prev, ...data } as User;
-          setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+          setUsers((prev) =>
+            prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+          );
           toast.success("User updated successfully!");
           return updatedUser;
         }
       } else {
         if (mode === "create") {
           const newUser = await mockApi.createUser(data);
-          setUsers(prev => [...prev, newUser]);
+          setUsers((prev) => [...prev, newUser]);
           toast.success("User created via API!");
           return newUser;
         } else {
           const updatedUser = { ...prev, ...data } as User;
           await mockApi.updateUser(updatedUser);
-          setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+          setUsers((prev) =>
+            prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+          );
           toast.success("User updated via API!");
           return updatedUser;
         }
@@ -156,12 +166,12 @@ export function DataGridDemo() {
   const handleDelete = async (row: User) => {
     try {
       if (dataSource === "mock-data") {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        setUsers(prev => prev.filter(u => u.id !== row.id));
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        setUsers((prev) => prev.filter((u) => u.id !== row.id));
         toast.success("User deleted successfully!");
       } else {
         await mockApi.deleteUser(row.id);
-        setUsers(prev => prev.filter(u => u.id !== row.id));
+        setUsers((prev) => prev.filter((u) => u.id !== row.id));
         toast.success("User deleted via API!");
       }
     } catch (err) {
@@ -175,7 +185,8 @@ export function DataGridDemo() {
       <div>
         <h2 className="text-2xl font-bold mb-2">DataGrid Demo</h2>
         <p className="text-gray-600 mb-4">
-          Test adding, editing, and deleting users with different edit container styles and data sources.
+          Test adding, editing, and deleting users with different edit container
+          styles and data sources.
         </p>
       </div>
 
@@ -204,8 +215,8 @@ export function DataGridDemo() {
           </button>
         </div>
         <p className="text-sm text-gray-500 mt-2">
-          {dataSource === "mock-data" 
-            ? "Using local fake data with simulated delays" 
+          {dataSource === "mock-data"
+            ? "Using local fake data with simulated delays"
             : "Using real HTTP calls to JSONPlaceholder API"}
         </p>
       </div>
