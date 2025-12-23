@@ -1,5 +1,5 @@
 export { DataGrid } from "./components/datagrid/DataGrid";
-export { Tooltip } from "./components/tooltip/Tooltip";
+export { Tooltip } from "./components/Tooltip";
 export { toast } from "./components/toaster/toast";
 
 export type { DataGridProps, } from "./components/datagrid/DataGrid";

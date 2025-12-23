@@ -3,8 +3,9 @@ import { Providers } from "./providers/providers";
 import { DataGridDemo } from "./demos/DataGridDemo";
 import { ToasterDemo } from "./demos/ToasterDemo";
 import { TooltipDemo } from "./demos/TooltipDemo";
+import { LoadingScreenDemo } from "./demos/LoadingScreenDemo";
 
-type DemoTab = "datagrid" | "toaster" | "tooltip";
+type DemoTab = "datagrid" | "toaster" | "tooltip" | "loading";
 
 function App() {
   const [activeTab, setActiveTab] = useState<DemoTab>("datagrid");
@@ -14,8 +15,12 @@ function App() {
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b shadow-sm">
           <div className="max-w-7xl mx-auto px-4 py-4">
-            <h1 className="text-3xl font-bold text-gray-900">React UI Sandbox</h1>
-            <p className="text-gray-600 mt-1">Component showcase and testing environment</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              React UI Sandbox
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Component showcase and testing environment
+            </p>
           </div>
         </header>
 
@@ -40,6 +45,12 @@ function App() {
               >
                 Tooltip
               </TabButton>
+              <TabButton
+                active={activeTab === "loading"}
+                onClick={() => setActiveTab("loading")}
+              >
+                Loading Screen
+              </TabButton>
             </nav>
           </div>
         </div>
@@ -49,13 +60,22 @@ function App() {
           {activeTab === "datagrid" && <DataGridDemo />}
           {activeTab === "toaster" && <ToasterDemo />}
           {activeTab === "tooltip" && <TooltipDemo />}
+          {activeTab === "loading" && <LoadingScreenDemo />}
         </main>
       </div>
     </Providers>
   );
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
