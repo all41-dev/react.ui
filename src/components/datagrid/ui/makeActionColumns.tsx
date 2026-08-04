@@ -1,5 +1,5 @@
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
-import type { FC, ReactNode } from "react";
+import { type FC, type ReactNode, useState } from "react";
 
 export type ActionColumnOpts<T> = {
   getId: (r: T) => string | number | undefined;
@@ -23,10 +23,39 @@ export type ActionColumnOpts<T> = {
   presentation?: "inline" | "overlay";
 };
 
+/** Small inline spinner for action buttons. */
+function ActionSpinner() {
+  return (
+    <svg
+      className="h-4 w-4 animate-spin"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="3"
+        fill="none"
+      />
+      <path
+        className="opacity-75"
+        d="M4 12a8 8 0 018-8"
+        stroke="currentColor"
+        strokeWidth="3"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
 export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
   const btnBase =
     "inline-flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded cursor-pointer " +
-    "bg-white hover:bg-gray-100 border border-gray-200 hover:border-gray-300 transition-colors";
+    "bg-white hover:bg-gray-100 border border-gray-200 hover:border-gray-300 transition-colors " +
+    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white";
 
   const EditButton: FC<{ row: T }> = ({ row }) => (
     <button
@@ -43,26 +72,40 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
     </button>
   );
 
-  const DeleteButton: FC<{ row: T }> = ({ row }) => (
-    <button
-      type="button"
-      aria-label={opts.deleteAriaLabel ?? "Delete"}
-      title={
-        typeof opts.labels?.delete === "string" ? opts.labels?.delete : "Delete"
-      }
-      className={`${btnBase} text-red-600 hover:text-red-700 hover:bg-red-50`}
-      onClick={async (e) => {
-        e.stopPropagation();
-        try {
-          await opts.onDelete?.(row);
-        } catch (err) {
-          opts.onError?.(err);
+  /** Delete button with loading state to prevent double-clicks and provide visual feedback. */
+  const DeleteButtonWithState: FC<{ row: T }> = ({ row }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    return (
+      <button
+        type="button"
+        aria-label={opts.deleteAriaLabel ?? "Delete"}
+        title={
+          typeof opts.labels?.delete === "string"
+            ? opts.labels?.delete
+            : "Delete"
         }
-      }}
-    >
-      {opts.labels?.delete ?? "Delete"}
-    </button>
-  );
+        className={`${btnBase} text-red-600 hover:text-red-700 hover:bg-red-50`}
+        disabled={isDeleting}
+        onClick={async (e) => {
+          e.stopPropagation();
+          setIsDeleting(true);
+          try {
+            await opts.onDelete?.(row);
+          } catch (err) {
+            opts.onError?.(err);
+          } finally {
+            setIsDeleting(false);
+          }
+        }}
+      >
+        {isDeleting ? <ActionSpinner /> : (opts.labels?.delete ?? "Delete")}
+      </button>
+    );
+  };
+
+  // Keep a stateless version for the renderActions defaults
+  const DeleteButton: FC<{ row: T }> = DeleteButtonWithState;
 
   const isOverlay = (opts.presentation ?? "overlay") === "overlay";
 
@@ -77,7 +120,7 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
     ) : (
       <>
         {opts.onEdit && <EditButton row={row.original} />}
-        {opts.onDelete && <DeleteButton row={row.original} />}
+        {opts.onDelete && <DeleteButtonWithState row={row.original} />}
       </>
     );
 

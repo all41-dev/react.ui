@@ -1,5 +1,5 @@
-import { Plus } from "lucide-react";
-import { memo } from "react";
+import { Plus, X } from "lucide-react";
+import { memo, useState, useEffect } from "react";
 
 type DataGridToolbarProps = {
   title: string;
@@ -18,6 +18,15 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   onAddClick,
   onRetry,
 }: DataGridToolbarProps) {
+  const [dismissed, setDismissed] = useState(false);
+
+  // Reset dismiss state when a new/different error arrives
+  useEffect(() => {
+    if (error) setDismissed(false);
+  }, [error]);
+
+  const showError = error && !dismissed;
+
   return (
     <>
       <div className="flex items-center justify-between gap-2 border-b p-3 relative z-10">
@@ -48,7 +57,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
         </div>
       </div>
 
-      {error && (
+      {showError && (
         <div
           className="mx-3 mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
           role="alert"
@@ -57,14 +66,25 @@ export const DataGridToolbar = memo(function DataGridToolbar({
             <span className="truncate">
               {typeof error === "string" ? error : error.message}
             </span>
-            {onRetry && (
+            <div className="flex items-center gap-1 shrink-0">
+              {onRetry && (
+                <button
+                  onClick={onRetry}
+                  className="rounded border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                >
+                  Retry
+                </button>
+              )}
               <button
-                onClick={onRetry}
-                className="shrink-0 rounded border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                type="button"
+                onClick={() => setDismissed(true)}
+                className="rounded p-1 text-red-400 hover:text-red-600 hover:bg-red-100 transition-colors"
+                aria-label="Dismiss error"
+                title="Dismiss"
               >
-                Retry
+                <X className="h-4 w-4" />
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}

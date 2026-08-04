@@ -1,6 +1,6 @@
 import { flexRender, type Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { SkeletonRow } from "./GridStates";
+import { SkeletonRow, EmptyState } from "./GridStates";
 import { useContainerWidth } from "../hooks/useContainerWidth";
 import { useColumnLayout } from "../hooks/useColumnLayout";
 import { Colgroup } from "./table/Colgroup";
@@ -92,17 +92,17 @@ export function TableView<TRow extends object>({
             ))}
           </thead>
 
-          <tbody className="bg-white">
-            {isLoading && rows.length === 0 && (
-              <>
-                <SkeletonRow cols={leafColCount} />
-                <SkeletonRow cols={leafColCount} />
-                <SkeletonRow cols={leafColCount} />
-              </>
-            )}
+          {isLoading && rows.length === 0 && (
+            <tbody className="bg-white">
+              <SkeletonRow cols={leafColCount} />
+              <SkeletonRow cols={leafColCount} />
+              <SkeletonRow cols={leafColCount} />
+            </tbody>
+          )}
 
-            {isCreating && inlineEditor && (
-              <tr className="bg-white border-b border-gray-200">
+          {isCreating && inlineEditor && (
+            <tbody className="bg-white border-b border-gray-200">
+              <tr>
                 <td colSpan={leafColCount} className="p-0 overflow-hidden">
                   <div className="animate-slide-down">
                     <div className="border-l-2 border-blue-400 bg-linear-to-r from-blue-50/50 to-white shadow-sm">
@@ -111,31 +111,39 @@ export function TableView<TRow extends object>({
                   </div>
                 </td>
               </tr>
-            )}
+            </tbody>
+          )}
 
-            {paddingTop > 0 && (
+          {paddingTop > 0 && (
+            <tbody>
               <tr>
-                <td colSpan={leafColCount} style={{ height: paddingTop }} />
+                <td colSpan={leafColCount} style={{ height: `${paddingTop}px` }} />
               </tr>
-            )}
+            </tbody>
+          )}
 
-            {!isLoading &&
-              virtualItems.map((virtualRow) => {
-                const r = allRows[virtualRow.index];
-                const key = getId(r.original) ?? r.id;
-                const rowBgClass =
-                  r.index % 2 === 0 ? "bg-white" : "bg-gray-50";
-                const isEditing =
-                  editingRowId !== undefined &&
-                  String(key) === String(editingRowId);
-                const isSelected =
-                  selectedRowId !== undefined &&
-                  String(selectedRowId) === String(key);
-                const isExpanded = expandedRowIds?.has(key) ?? false;
+          {!isLoading &&
+            virtualItems.map((virtualRow) => {
+              const r = allRows[virtualRow.index];
+              const key = getId(r.original) ?? r.id;
+              const rowBgClass =
+                r.index % 2 === 0 ? "bg-white" : "bg-gray-50";
+              const isEditing =
+                editingRowId !== undefined &&
+                String(key) === String(editingRowId);
+              const isSelected =
+                selectedRowId !== undefined &&
+                String(selectedRowId) === String(key);
+              const isExpanded = expandedRowIds?.has(key) ?? false;
 
-                return (
+              return (
+                <tbody
+                  key={String(key)}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className={rowBgClass}
+                >
                   <DataRowFragment
-                    key={String(key)}
                     row={r}
                     leafColCount={leafColCount}
                     rowBgClass={rowBgClass}
@@ -146,26 +154,30 @@ export function TableView<TRow extends object>({
                     renderExpandedRow={renderExpandedRow}
                     onRowClick={onRowClick}
                   />
-                );
-              })}
+                </tbody>
+              );
+            })}
 
-            {paddingBottom > 0 && (
+          {paddingBottom > 0 && (
+            <tbody>
               <tr>
-                <td colSpan={leafColCount} style={{ height: paddingBottom }} />
+                <td colSpan={leafColCount} style={{ height: `${paddingBottom}px` }} />
               </tr>
-            )}
+            </tbody>
+          )}
 
-            {!isLoading && rows.length === 0 && !error && (
+          {!isLoading && rows.length === 0 && !error && (
+            <tbody className="bg-white">
               <tr>
-                <td
-                  colSpan={leafColCount}
-                  className="text-center text-gray-500 py-8"
-                >
-                  No data
+                <td colSpan={leafColCount}>
+                  <EmptyState
+                    title="No data"
+                    description="There are no items to display yet."
+                  />
                 </td>
               </tr>
-            )}
-          </tbody>
+            </tbody>
+          )}
         </table>
       </div>
 
@@ -298,7 +310,10 @@ export function TableView<TRow extends object>({
           })}
 
         {!isLoading && rows.length === 0 && !error && (
-          <div className="text-center py-12 text-sm text-gray-500">No data</div>
+          <EmptyState
+            title="No data"
+            description="There are no items to display yet."
+          />
         )}
       </div>
     </>

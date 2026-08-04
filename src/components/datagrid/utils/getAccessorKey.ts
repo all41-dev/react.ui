@@ -9,13 +9,18 @@ export function computeDefaults<T extends FieldValues>(
   row?: T,
   columns?: WithMeta<T>[]
 ): DefaultValues<T> {
-  if (!row || !columns) return {} as DefaultValues<T>;
-  const d: any = {};
-  for (const c of columns) {
-    const key = getAccessorKey<T>(c);
-    if (!key) continue;
-    const raw = (row as any)[key];
-    d[key] = c.meta?.format ? c.meta.format(raw, row) : raw;
+  const d: any = row ? { ...row } : {};
+  if (columns) {
+    for (const c of columns) {
+      const key = getAccessorKey<T>(c);
+      if (!key) continue;
+      const raw = (row as any)?.[key];
+      if (c.meta?.format) {
+        d[key] = c.meta.format(raw, row ?? ({} as T));
+      } else if (raw !== undefined) {
+        d[key] = raw;
+      }
+    }
   }
   return d as DefaultValues<T>;
 }

@@ -16,6 +16,7 @@ export { useConfirm } from "./components/datagrid/hooks/useConfirm";
 
 export type { ActionColumnOpts } from "./components/datagrid/ui/makeActionColumns";
 export type { EditContainerKind } from "./components/datagrid/ui/containers/EditContainers";
+export type { FormLayoutConfig } from "./components/datagrid/ui/containers/EditFormBody";
 
 export { DataGridContext } from "./components/datagrid/DataGridContext";
 
@@ -24,4 +25,6 @@ export type { LoadingScreenProps } from "./components/LoadingScreen";
 export { toTooltipText } from "./components/datagrid/ui/table/CellWithTooltip";
 
 export { FormLayout } from "./components/datagrid/ui/containers/FormLayout";
+export { EditFormBody, getRowId } from "./components/datagrid/ui/containers/EditFormBody";
+export { EmptyState } from "./components/datagrid/ui/GridStates";
 export { computeDefaults } from "./components/datagrid/utils/getAccessorKey";

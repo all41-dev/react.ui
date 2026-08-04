@@ -38,5 +38,9 @@ export function useCrudAdapter<TRow extends object, TForm extends object = TRow>
     onPersist,
     onDelete,
     getId: tq.getId,
+    /** True when any mutation (create/update/delete) is in-flight. */
+    isMutating: tq.isMutating,
+    /** The most recent mutation error, or null. */
+    mutationError: tq.mutationError,
   };
 }

@@ -42,6 +42,13 @@ export function useTanstackQueryAdapter<TRow, TForm = TRow>(
     [mUpdate]
   );
 
+  const isMutating =
+    mCreate.isPending || mUpdate.isPending || mDelete.isPending;
+
+  // Surface the most recent mutation error (cleared on next success automatically by TanStack)
+  const mutationError =
+    mCreate.error ?? mUpdate.error ?? mDelete.error ?? null;
+
   return useMemo(
     () => ({
       rows: (q.data ?? []) as TRow[],
@@ -53,6 +60,10 @@ export function useTanstackQueryAdapter<TRow, TForm = TRow>(
       updateAsync,
       deleteAsync: mDelete.mutateAsync,
       getId,
+      /** True when any mutation (create/update/delete) is in-flight. */
+      isMutating,
+      /** The most recent mutation error, or null if no mutation has failed. */
+      mutationError,
     }),
     [
       q.data,
@@ -64,7 +75,8 @@ export function useTanstackQueryAdapter<TRow, TForm = TRow>(
       updateAsync,
       mDelete.mutateAsync,
       getId,
+      isMutating,
+      mutationError,
     ]
   );
 }
-

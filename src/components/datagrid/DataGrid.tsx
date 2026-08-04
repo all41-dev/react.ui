@@ -209,17 +209,12 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         isDestructive: true,
       });
       if (!ok) return;
-
-      try {
-        await onDelete(row);
-      } catch (e) {
-        throw e;
-      }
+      await onDelete(row);
     },
     [onDelete, getId, confirm]
   );
 
-  const processedColumns = useMemo(() => columns, [columns]);
+
 
   const actionCol = useMemo(
     () =>
@@ -241,8 +236,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   const userKey =
     storageKey ?? `dg:${title.toLowerCase().replace(/\s+/g, "-")}`;
   const baseCols = useMemo(
-    () => processedColumns.filter((c) => getColId(c) !== "__actions__"),
-    [processedColumns]
+    () => columns.filter((c) => getColId(c) !== "__actions__"),
+    [columns]
   );
   const allColumnIds = useMemo(
     () => [...baseCols.map(getColId), "__actions__"],
@@ -302,9 +297,6 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setSorting,
     ...(paginationEnabled ? { onPaginationChange: setPagination } : {}),
-    debugTable: true,
-    debugHeaders: true,
-    debugColumns: true,
   });
   useEffect(() => {
     if (!paginationEnabled) return;
@@ -313,8 +305,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
   const handleSubmit = useCallback(
     async (values: TForm) => {
+      if (!onPersist) return;
       try {
-        if (!onPersist) return;
         if (editing?.mode === "edit" && editing.row) {
           const prevRow = editing.row;
           await onPersist("edit", values, prevRow);
@@ -325,6 +317,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         setEditing(null);
         onCancelEdit?.();
       } catch (e) {
+        toast.error(getApiMessage(e, "Save failed"));
         throw e;
       }
     },

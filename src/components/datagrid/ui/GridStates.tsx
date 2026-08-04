@@ -1,3 +1,5 @@
+import { Inbox } from "lucide-react";
+
 export function Spinner({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-2 text-sm text-gray-700" role="status" aria-live="polite">
@@ -23,5 +25,26 @@ export function SkeletonRow({ cols }: { cols: number }) {
         </div>
       </td>
     </tr>
+  );
+}
+
+/** Polished empty state shown when the grid has no data. */
+export function EmptyState({
+  title = "No data",
+  description,
+}: {
+  title?: string;
+  description?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+        <Inbox className="h-6 w-6 text-gray-400" aria-hidden="true" />
+      </div>
+      <p className="text-sm font-medium text-gray-500">{title}</p>
+      {description && (
+        <p className="mt-1 text-xs text-gray-400">{description}</p>
+      )}
+    </div>
   );
 }

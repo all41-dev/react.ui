@@ -32,8 +32,8 @@ function DataRowFragmentInner<TRow extends object>({
   return (
     <>
       <tr
-        className={`group transition-all duration-200 hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-gray-200 cursor-pointer ${
-          isEditing ? "bg-blue-50/70 ring-1 ring-blue-200/50" : ""
+        className={`group transition-colors duration-150 hover:bg-gray-100/70 cursor-pointer ${
+          isEditing ? "bg-blue-50/70" : ""
         } ${isSelected ? "bg-blue-50" : ""}`}
         style={
           isSelected

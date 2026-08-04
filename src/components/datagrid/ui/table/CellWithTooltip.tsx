@@ -1,5 +1,4 @@
 import type { ColumnMeta } from "../../types/column";
-import { useIsTruncated } from "../../hooks/useIsTruncated";
 import { useDataGridContext } from "../../DataGridContext";
 
 type Props<TRow extends object> = {
@@ -26,28 +25,41 @@ export function CellWithTooltip<TRow extends object>({
   className = "",
   style,
 }: Props<TRow>) {
-  const { onMouseEnter, truncated } = useIsTruncated();
   const { tooltipId } = useDataGridContext();
 
-  // Logic:
-  // 1. If meta.tooltip is explicitly true -> always show
-  // 2. If meta.tooltip is explicitly false -> never show
-  // 3. Default -> show if truncated
-  const shouldShow =
-    meta?.tooltip === true ? true : meta?.tooltip === false ? false : truncated;
+  if (meta?.tooltip === false || value === null || value === undefined) {
+    return (
+      <span
+        className={`${className} dg-cell-content truncate block w-full`}
+        style={style}
+      >
+        {rendered}
+      </span>
+    );
+  }
 
   const tooltipText =
     (meta?.tooltipContent &&
       meta.tooltipContent({ value, row: undefined as any })) ??
     toTooltipText(value);
 
+  if (!tooltipText) {
+    return (
+      <span
+        className={`${className} dg-cell-content truncate block w-full`}
+        style={style}
+      >
+        {rendered}
+      </span>
+    );
+  }
+
   return (
     <span
       className={`${className} dg-cell-content truncate block w-full`}
       style={style}
-      onMouseEnter={onMouseEnter}
-      data-tooltip-id={shouldShow ? tooltipId : undefined}
-      data-tooltip-content={shouldShow ? tooltipText : undefined}
+      data-tooltip-id={tooltipId}
+      data-tooltip-content={tooltipText}
     >
       {rendered}
     </span>
