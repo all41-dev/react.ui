@@ -258,7 +258,7 @@ export function DataGridDemo() {
         {
           accessorKey: "website",
           header: "Website",
-          meta: { editor: "text", hideOnMobile: true, formLayout: { order: 7 } },
+          meta: { editor: "text", cellEdit: true, hideOnMobile: true, formLayout: { order: 7 } },
         },
         {
           accessorKey: "lastLogin",
@@ -286,12 +286,13 @@ export function DataGridDemo() {
         {
           accessorKey: "title",
           header: "Title",
-          meta: { editor: "text", required: true, formLayout: { order: 2, colSpan: "full" } },
+          meta: { editor: "text", required: true, cellEdit: true, formLayout: { order: 2, colSpan: "full" } },
         },
         {
           accessorKey: "body",
           header: "Body Content",
-          meta: { editor: "textarea", required: true, formLayout: { order: 3, colSpan: "full" } },
+          // Markdown editor demo — rich fields default to full width.
+          meta: { editor: "markdown", required: true, editorProps: { rows: 8 }, formLayout: { order: 3 } },
         },
         {
           accessorKey: "userId",
@@ -317,7 +318,8 @@ export function DataGridDemo() {
         {
           accessorKey: "body",
           header: "Comment",
-          meta: { editor: "textarea", required: true, formLayout: { order: 3, colSpan: "full" } },
+          // Code editor demo — gutter, Tab-inserts-spaces, Ln/Col footer.
+          meta: { editor: "code", required: true, editorProps: { language: "text", rows: 8 }, formLayout: { order: 3 } },
         },
         {
           accessorKey: "postId",
@@ -421,7 +423,8 @@ export function DataGridDemo() {
   }, [activeResource]);
 
   // Persist Handler
-  const handlePersist = async (mode: "create" | "edit", itemData: any, prev?: any) => {
+  // "cell" saves flow through the same update path as "edit".
+  const handlePersist = async (mode: "create" | "edit" | "cell", itemData: any, prev?: any) => {
     if (simDelay > 0) {
       await new Promise((resolve) => setTimeout(resolve, simDelay));
     }

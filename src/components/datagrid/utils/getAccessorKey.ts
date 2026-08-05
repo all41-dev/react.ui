@@ -19,6 +19,9 @@ export function computeDefaults<T extends FieldValues>(
         d[key] = c.meta.format(raw, row ?? ({} as T));
       } else if (raw !== undefined) {
         d[key] = raw;
+      } else if (!row && c.meta?.editor) {
+        // Creating: seed per spec — editor default, else false for switches, else "".
+        d[key] = c.meta.default ?? (c.meta.editor === "switch" ? false : "");
       }
     }
   }

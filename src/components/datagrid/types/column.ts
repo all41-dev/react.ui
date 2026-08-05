@@ -8,7 +8,10 @@ export type EditorKind =
   | "select"
   | "switch"
   | "date"
-  | "textarea";
+  | "time"
+  | "textarea"
+  | "markdown"
+  | "code";
 
 // TRow = what the table displays
 // TForm = what the form edits (editable-only zod shape)
@@ -25,8 +28,13 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   editor?: EditorKind;
   required?: boolean;
   visibleInForm?: boolean;
+  /** For markdown/code: `language`, `rows` are understood; the rest is forwarded. */
   editorProps?: Record<string, unknown>;
   options?: Option[];
+  /** Click-to-edit popover on the cell itself; needs `editor` to be set too. */
+  cellEdit?: boolean;
+  /** Seed value when creating a new row (defaults to "" / false for switches). */
+  default?: unknown;
 
   parse?: (value: unknown, formValues: TForm) => unknown;
   format?: (value: unknown, row: TRow) => unknown;

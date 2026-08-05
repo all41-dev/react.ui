@@ -10,7 +10,10 @@ import { NumberInput } from "../inputs/NumberInput";
 import { SelectInput } from "../inputs/SelectInput";
 import { SwitchInput } from "../inputs/SwitchInput";
 import { DateInput } from "../inputs/DateInput";
+import { TimeInput } from "../inputs/TimeInput";
 import { TextArea } from "../inputs/TextArea";
+import { MarkdownEditor } from "./MarkdownEditor";
+import { CodeEditor } from "./CodeEditor";
 
 function getAccessorKey<T extends FieldValues>(
   c: WithMeta<T>
@@ -42,11 +45,21 @@ export function renderEditor<T extends FieldValues>(opts: {
       ? SwitchInput
       : editor === "date"
       ? DateInput
+      : editor === "time"
+      ? TimeInput
       : editor === "textarea"
       ? TextArea
+      : editor === "markdown"
+      ? MarkdownEditor
+      : editor === "code"
+      ? CodeEditor
       : null;
 
   if (!Comp) return null;
+
+  // Rich editors carry their own chrome — the plain-input border/focus classes
+  // must not be layered on top of them.
+  const isRich = editor === "markdown" || editor === "code";
 
   return (
     <div
@@ -67,13 +80,11 @@ export function renderEditor<T extends FieldValues>(opts: {
 
           const forwarded: any = {
             id: String(name),
-            className: [
-              baseClass,
-              invalidClass,
-              (meta.editorProps as any)?.className,
-            ]
-              .filter(Boolean)
-              .join(" "),
+            className: isRich
+              ? (meta.editorProps as any)?.className
+              : [baseClass, invalidClass, (meta.editorProps as any)?.className]
+                  .filter(Boolean)
+                  .join(" "),
             ...meta.editorProps,
           };
 

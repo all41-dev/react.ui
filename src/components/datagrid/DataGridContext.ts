@@ -2,6 +2,8 @@ import { createContext, useContext } from "react";
 
 type DataGridContextValue = {
   tooltipId: string;
+  /** Set by DataGrid when cell editing is possible; cells with `cellEdit` meta call it. */
+  startCellEdit?: (row: unknown, columnId: string, cellEl: HTMLElement) => void;
 };
 
 export const DataGridContext = createContext<DataGridContextValue | null>(null);

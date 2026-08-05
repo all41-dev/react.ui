@@ -40,6 +40,10 @@ import {
 } from "react";
 import { DataGridPagination } from "./ui/DataGridPagination";
 import { FacetChips, type FacetChip } from "./ui/FacetChips";
+import {
+  CellEditPopover,
+  type CellEditState,
+} from "./ui/table/CellEditPopover";
 import { Pencil, Trash2 } from "lucide-react";
 import { Tooltip } from "react-tooltip";
 import { DataGridContext } from "./DataGridContext";
@@ -63,7 +67,7 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   idAccessor?: (r: TRow) => string | number | undefined;
   editContainer?: EditContainerKind;
   onPersist?: (
-    mode: "create" | "edit",
+    mode: "create" | "edit" | "cell",
     values: TForm,
     prev?: TRow
   ) => Promise<TRow> | TRow;
@@ -152,6 +156,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   >(undefined);
   // Checkbox selection (multi), ids stored as strings. Survives paging and filtering.
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
+  // Single-cell edit popover (columns with `cellEdit` meta).
+  const [cellEdit, setCellEdit] = useState<CellEditState<TRow> | null>(null);
 
   // Use external expandedRowIds if provided, otherwise use empty set
   // (Internal state management removed since expansion is controlled from column buttons)
@@ -480,6 +486,59 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     [editing, onPersist, getId, onCancelEdit]
   );
 
+  const startCellEdit = useCallback(
+    (row: unknown, columnId: string, cellEl: HTMLElement) => {
+      const r = cellEl.getBoundingClientRect();
+      setCellEdit({
+        row: row as TRow,
+        columnId,
+        anchor: { top: r.top, bottom: r.bottom, left: r.left, width: r.width },
+      });
+    },
+    []
+  );
+
+  const cellEditColumn = useMemo(
+    () =>
+      cellEdit
+        ? columns.find((c) => getColId(c) === cellEdit.columnId)
+        : undefined,
+    [cellEdit, columns]
+  );
+
+  const handleCellSave = useCallback(
+    async (value: unknown) => {
+      if (!onPersist || !cellEdit || !cellEditColumn) return;
+      const key = cellEdit.columnId;
+      const meta = cellEditColumn.meta;
+      const prevRow = cellEdit.row;
+      const parsed = meta?.parse
+        ? meta.parse(value, { ...(prevRow as any), [key]: value })
+        : value;
+      const candidate = { ...(prevRow as any), [key]: parsed };
+
+      // Validate just this field: a full-schema failure on some OTHER field must not
+      // block editing this one.
+      const result = (zodSchema as any).safeParse?.(candidate);
+      if (result && !result.success) {
+        const own = result.error.issues.find(
+          (i: { path: (string | number)[] }) => String(i.path[0]) === key
+        );
+        if (own) throw new Error(own.message);
+      }
+
+      const saved = await onPersist("cell", candidate as TForm, prevRow);
+      const prevId = getId(prevRow);
+      if (saved) {
+        setRows((prev) =>
+          prev.map((r) => (sameRowId(getId(r), prevId) ? saved : r))
+        );
+      }
+      setCellEdit(null);
+    },
+    [onPersist, cellEdit, cellEditColumn, zodSchema, getId]
+  );
+
   const leafColCount = useMemo(() => {
     const cols = [...columns, actionCol];
     return cols.length + (selectable ? 1 : 0);
@@ -529,7 +588,13 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
   const tooltipId = useId().replace(/:/g, "_");
 
-  const contextValue = useMemo(() => ({ tooltipId }), [tooltipId]);
+  const contextValue = useMemo(
+    () => ({
+      tooltipId,
+      startCellEdit: onPersist ? startCellEdit : undefined,
+    }),
+    [tooltipId, startCellEdit, onPersist]
+  );
 
   return (
     <DataGridContext.Provider value={contextValue}>
@@ -641,6 +706,14 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
               setEditing(null);
             }}
             onSubmit={handleSubmit}
+          />
+        )}
+        {cellEdit && cellEditColumn && (
+          <CellEditPopover<TRow, TForm>
+            state={cellEdit}
+            column={cellEditColumn}
+            onCancel={() => setCellEdit(null)}
+            onSave={handleCellSave}
           />
         )}
         {ConfirmDialog}
