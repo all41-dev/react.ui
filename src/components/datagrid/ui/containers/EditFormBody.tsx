@@ -30,6 +30,10 @@ type EditFormBodyProps<TRow extends object, TForm extends object> = {
   onSubmit: (values: TForm) => void | Promise<void>;
   /** Visual variant – controls minor styling differences between containers. */
   variant?: "inline" | "drawer" | "modal";
+  /** Id for the form heading, so the overlay shell's aria-labelledby points at a real element. */
+  titleId?: string;
+  /** Reports react-hook-form's isSubmitting up, so the shell can refuse Esc/scrim mid-save. */
+  onSubmittingChange?: (isSubmitting: boolean) => void;
 };
 
 function EditFormBodyInner<TRow extends object, TForm extends object>({
@@ -41,6 +45,8 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
   onCancel,
   onSubmit,
   variant = "drawer",
+  titleId,
+  onSubmittingChange,
 }: EditFormBodyProps<TRow, TForm>) {
   const initialDefaults = useMemo(
     () => (computeDefaults as any)(row, columns) as TForm,
@@ -66,6 +72,10 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
   );
 
   const { isSubmitting, errors } = form.formState;
+
+  React.useEffect(() => {
+    onSubmittingChange?.(isSubmitting);
+  }, [isSubmitting, onSubmittingChange]);
 
   const formError = useMemo(() => {
     const serverMsg = (errors as any)?.root?.server?.message as
@@ -271,8 +281,8 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
   return (
     <FormProvider {...(form as unknown as UseFormReturn)}>
       <div className="flex h-full flex-col">
-        <div className="border-b p-4">
-          <h3 className="text-lg font-semibold">
+        <div className="border-b border-border-default p-4">
+          <h3 id={titleId} className="text-lg font-semibold text-body">
             {mode === "edit" ? "Edit" : "Create"}
           </h3>
         </div>

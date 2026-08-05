@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import type { WithMeta } from "../../types/column";
+import { EditDrawerBottom } from "./EditDrawerBottom";
 import { EditDrawerRight } from "./EditDrawerRight";
 import { EditModal } from "./EditModal";
 
@@ -53,7 +54,7 @@ export function EditContainer<
 
   if (kind === "right") return <EditDrawerRight<TRow, TForm> {...props} />;
   if (kind === "modal") return <EditModal<TRow, TForm> {...props} />;
-  // if (kind === "bottom") return <EditDrawerBottom<TRow, TForm> {...props} />;
+  if (kind === "bottom") return <EditDrawerBottom<TRow, TForm> {...props} />;
 
   return null;
 }

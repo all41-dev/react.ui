@@ -84,7 +84,7 @@ export function DataGridDemo() {
   const [error, setError] = useState<string | null>(null);
 
   // Config State
-  const [containerType, setContainerType] = useState<"right" | "modal" | "inline">("right");
+  const [containerType, setContainerType] = useState<"right" | "bottom" | "modal" | "inline">("right");
   const [dataSource, setDataSource] = useState<DataSource>("mock-api");
   const [formCols, setFormCols] = useState<1 | 2 | 3>(2);
   const [enableExpandable, setEnableExpandable] = useState(true);
@@ -633,7 +633,7 @@ export function DataGridDemo() {
             <div>
               <span className="block text-muted font-medium mb-1">Edit Container:</span>
               <div className="grid grid-cols-3 gap-1">
-                {(["right", "modal", "inline"] as const).map((type) => (
+                {(["right", "bottom", "modal", "inline"] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setContainerType(type)}

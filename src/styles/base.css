@@ -99,3 +99,57 @@
 .animate-slide-down {
   animation: slideDown 0.15s ease-out forwards;
 }
+
+/* Overlay motion per the design spec: drawer slide-in 22px, modal pop .97→1,
+   backdrop fade 150ms. Entry only — containers unmount on close. */
+@keyframes ruiSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ruiSlideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ruiPop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ruiFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-drawer-in {
+  animation: ruiSlideInRight 0.22s ease-out;
+}
+.animate-sheet-in {
+  animation: ruiSlideInUp 0.22s ease-out;
+}
+.animate-pop-in {
+  animation: ruiPop 0.18s ease-out;
+}
+.animate-backdrop-in {
+  animation: ruiFadeIn 0.15s ease-out;
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "./useFocusTrap";
 
 type ConfirmState = {
   open: boolean;
@@ -74,15 +75,23 @@ export function useConfirm() {
     if (e.key === "Escape") close(false);
   };
 
+  // Same trap as the edit overlays: focus moves in on open (Cancel first) and
+  // returns to the triggering control on close.
+  const trapRef = useFocusTrap<HTMLDivElement>(s.open);
+
   const Dialog = s.open
     ? createPortal(
         <div
-          className="fixed inset-0 z-1000 grid place-items-center bg-black/40"
+          className="fixed inset-0 z-1000 grid place-items-center bg-black/40 animate-backdrop-in"
           onKeyDown={onKeyDown}
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-sm rounded-xl bg-surface-card p-4 shadow-2xl outline-none">
+          <div
+            ref={trapRef}
+            tabIndex={-1}
+            className="w-full max-w-sm rounded-xl bg-surface-card p-4 shadow-2xl outline-none animate-pop-in"
+          >
             <h3 className="text-base font-semibold">{s.title}</h3>
             {s.description && (
               <p className="mt-1 text-sm text-muted">{s.description}</p>
