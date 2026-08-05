@@ -40,6 +40,7 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
             <CellWithTooltip
               meta={m}
               value={value}
+              row={c.row.original}
               rendered={rendered}
               className="block whitespace-nowrap overflow-hidden text-ellipsis"
             />
@@ -53,6 +54,7 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
         <CellWithTooltip
           meta={m}
           value={value}
+          row={c.row.original}
           rendered={rendered}
           className="block whitespace-nowrap overflow-hidden text-ellipsis"
         />

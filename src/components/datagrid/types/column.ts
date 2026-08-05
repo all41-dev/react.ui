@@ -33,6 +33,11 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   options?: Option[];
   /** Click-to-edit popover on the cell itself; needs `editor` to be set too. */
   cellEdit?: boolean;
+  /** Aggregate shown on group header rows (and as subtree roll-ups in tree mode). */
+  agg?: "sum";
+  /** Render the cell in the mono font — IDs, numbers. */
+  mono?: boolean;
+  align?: "left" | "center" | "right";
   /** Seed value when creating a new row (defaults to "" / false for switches). */
   default?: unknown;
 

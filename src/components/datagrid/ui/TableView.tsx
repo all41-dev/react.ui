@@ -1,4 +1,4 @@
-import { type Table } from "@tanstack/react-table";
+import { type Row, type Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { SkeletonRow, EmptyState } from "./GridStates";
 import { useContainerWidth } from "../hooks/useContainerWidth";
@@ -6,8 +6,10 @@ import { useColumnLayout } from "../hooks/useColumnLayout";
 import { Colgroup } from "./table/Colgroup";
 import { HeaderCell } from "./table/HeaderCell";
 import { HeaderFilter } from "./table/HeaderFilter";
-import { type ReactNode } from "react";
+import { GroupHeaderRow } from "./table/GroupHeaderRow";
+import { useMemo, type ReactNode } from "react";
 import { DataRowFragment } from "./table/DataRowFragment";
+import type { GroupBucket } from "../types/grouping";
 
 type TableViewProps<TRow extends object> = {
   table: Table<TRow>;
@@ -21,6 +23,10 @@ type TableViewProps<TRow extends object> = {
   emptyLabel?: string;
   /** Checkbox-selected row ids (multi). Merged into the selected-row styling. */
   selectedRowIds?: ReadonlySet<string>;
+  /** When present the body is grouped: header rows interleaved with each group's rows. */
+  groups?: GroupBucket<Row<TRow>>[];
+  collapsedGroups?: ReadonlySet<string>;
+  onToggleGroup?: (key: string) => void;
   editingRowId?: string | number | undefined;
   inlineEditor?: ReactNode;
   isCreating?: boolean;
@@ -40,6 +46,9 @@ export function TableView<TRow extends object>({
   showFilters,
   emptyLabel,
   selectedRowIds,
+  groups,
+  collapsedGroups,
+  onToggleGroup,
   editingRowId,
   inlineEditor,
   isCreating,
@@ -58,10 +67,30 @@ export function TableView<TRow extends object>({
 
   const allRows = table.getRowModel().rows;
 
+  /*
+   * One flat list so a single virtualizer covers both grouped and ungrouped bodies.
+   * Grouped: a header item per bucket, followed by that bucket's rows unless collapsed.
+   */
+  type BodyItem =
+    | { kind: "group"; group: GroupBucket<Row<TRow>> }
+    | { kind: "row"; row: Row<TRow> };
+
+  const items = useMemo<BodyItem[]>(() => {
+    if (!groups) return allRows.map((row) => ({ kind: "row" as const, row }));
+    const out: BodyItem[] = [];
+    for (const group of groups) {
+      out.push({ kind: "group", group });
+      if (!collapsedGroups?.has(group.key)) {
+        for (const row of group.rows) out.push({ kind: "row", row });
+      }
+    }
+    return out;
+  }, [groups, collapsedGroups, allRows]);
+
   const rowVirtualizer = useVirtualizer({
-    count: allRows.length,
+    count: items.length,
     getScrollElement: () => wrapperRef.current,
-    estimateSize: () => 44,
+    estimateSize: (i) => (items[i]?.kind === "group" ? 36 : 44),
     overscan: 10,
   });
 
@@ -161,7 +190,27 @@ export function TableView<TRow extends object>({
 
           {!isLoading &&
             virtualItems.map((virtualRow) => {
-              const r = allRows[virtualRow.index];
+              const item = items[virtualRow.index];
+              if (!item) return null;
+
+              if (item.kind === "group") {
+                return (
+                  <tbody
+                    key={`g:${item.group.key}`}
+                    ref={rowVirtualizer.measureElement}
+                    data-index={virtualRow.index}
+                  >
+                    <GroupHeaderRow
+                      group={item.group}
+                      leafColumns={table.getVisibleLeafColumns()}
+                      collapsed={collapsedGroups?.has(item.group.key) ?? false}
+                      onToggle={() => onToggleGroup?.(item.group.key)}
+                    />
+                  </tbody>
+                );
+              }
+
+              const r = item.row;
               const key = getId(r.original) ?? r.id;
               const rowBgClass =
                 r.index % 2 === 0 ? "bg-surface-card" : "bg-surface-inset";

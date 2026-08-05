@@ -9,14 +9,19 @@ export const apiClient: AxiosInstance = axios.create({
   headers: { "Content-Type": "application/json", Accept: "application/json" },
 });
 
-apiClient.interceptors.request.use((config) => {
-  return config;
-});
-
 apiClient.interceptors.response.use(
   (res) => res,
   (error: AxiosError | ApiError) => {
     if (error instanceof ApiError) {
+      return Promise.reject(error);
+    }
+
+    /*
+     * Cancellations must pass through untouched. Wrapping them in ApiError made the
+     * exported `isCancel` return false for them, so a deliberately aborted request
+     * surfaced to callers as a real failure — and as an error toast. (#21)
+     */
+    if (axios.isCancel(error)) {
       return Promise.reject(error);
     }
 

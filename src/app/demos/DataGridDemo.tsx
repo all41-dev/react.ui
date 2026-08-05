@@ -160,6 +160,50 @@ export function DataGridDemo() {
     });
   };
 
+  /** Group-by options per resource. Declared `values` fix bucket order and colour. */
+  const currentGroupOptions = useMemo(() => {
+    if (activeResource === "users") {
+      return [
+        {
+          key: "role",
+          label: "Role",
+          values: [
+            { value: "Admin", label: "Admin", color: "#8b5cf6" },
+            { value: "Editor", label: "Editor", color: "#0ea5e9" },
+            { value: "User", label: "User", color: "#64748b" },
+          ],
+        },
+        {
+          key: "status",
+          label: "Status",
+          values: [
+            { value: "active", label: "Active", color: "#16a34a" },
+            { value: "pending", label: "Pending", color: "#d97706" },
+            { value: "inactive", label: "Inactive", color: "#dc2626" },
+          ],
+        },
+      ];
+    }
+    if (activeResource === "posts" || activeResource === "albums") {
+      return [{ key: "userId", label: "User" }];
+    }
+    if (activeResource === "comments") return [{ key: "postId", label: "Post" }];
+    if (activeResource === "todos") {
+      return [
+        {
+          key: "completed",
+          label: "Done",
+          values: [
+            { value: "true", label: "Completed", color: "#16a34a" },
+            { value: "false", label: "Open", color: "#d97706" },
+          ],
+        },
+        { key: "userId", label: "User" },
+      ];
+    }
+    return undefined;
+  }, [activeResource]);
+
   /** Card body for the cards view — the primary label plus a couple of details. */
   const renderCard = useCallback(
     (row: any) => {
@@ -330,7 +374,8 @@ export function DataGridDemo() {
         {
           accessorKey: "userId",
           header: "User ID",
-          meta: { editor: "number", formLayout: { order: 4 } },
+          // agg:"sum" -> per-group totals on the group header row.
+          meta: { editor: "number", agg: "sum", align: "right", mono: true, formLayout: { order: 4 } },
         },
       ] as WithMeta<any>[];
     }
@@ -840,6 +885,7 @@ export function DataGridDemo() {
         idAccessor={(row) => row.id}
         selectable
         card={renderCard}
+        groupOptions={currentGroupOptions}
         editContainer={containerType}
         onPersist={handlePersist}
         onDelete={handleDelete}

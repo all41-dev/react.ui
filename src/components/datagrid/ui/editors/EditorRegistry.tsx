@@ -78,8 +78,19 @@ export function renderEditor<T extends FieldValues>(opts: {
             ? "border-danger focus:border-danger focus:ring-[var(--rui-focus-ring)]"
             : "";
 
+          // Ids for the hint and error text so the control can point at whichever is
+          // showing. Without these, assistive tech reads the input with no indication
+          // that it is invalid or why.
+          const describedBy =
+            [hasError ? `${String(name)}-error` : null, description ? `${String(name)}-desc` : null]
+              .filter(Boolean)
+              .join(" ") || undefined;
+
           const forwarded: any = {
             id: String(name),
+            "aria-invalid": hasError || undefined,
+            "aria-describedby": describedBy,
+            "aria-required": meta.required || undefined,
             className: isRich
               ? (meta.editorProps as any)?.className
               : [baseClass, invalidClass, (meta.editorProps as any)?.className]
@@ -102,6 +113,8 @@ export function renderEditor<T extends FieldValues>(opts: {
                       id={String(name)}
                       checked={Boolean(field.value)}
                       onChange={(e) => field.onChange(e.target.checked)}
+                      aria-invalid={hasError || undefined}
+                      aria-describedby={hasError ? `${String(name)}-error` : undefined}
                       className="sr-only peer"
                       {...(meta.editorProps as any)}
                     />
@@ -121,7 +134,11 @@ export function renderEditor<T extends FieldValues>(opts: {
                   </div>
                 </label>
                 {hasError && (
-                  <p className="text-xs text-danger mt-1.5 ml-14">
+                  <p
+                    id={`${String(name)}-error`}
+                    role="alert"
+                    className="text-xs text-danger mt-1.5 ml-14"
+                  >
                     {errorMsg}
                   </p>
                 )}
@@ -143,7 +160,10 @@ export function renderEditor<T extends FieldValues>(opts: {
                 >
                   {label}
                   {meta.required && (
-                    <span className="text-danger ml-1">*</span>
+                    // The asterisk was visual only; give it a text equivalent.
+                    <span className="text-danger ml-1">
+                      *<span className="sr-only"> required</span>
+                    </span>
                   )}
                 </label>
               )}
@@ -154,10 +174,16 @@ export function renderEditor<T extends FieldValues>(opts: {
                   onChange={field.onChange}
                 />
                 {description && (
-                  <p className="text-xs text-muted mt-1.5">{description}</p>
+                  <p id={`${String(name)}-desc`} className="text-xs text-muted mt-1.5">
+                    {description}
+                  </p>
                 )}
                 {hasError && (
-                  <p className="text-xs text-danger mt-1.5 font-medium">
+                  <p
+                    id={`${String(name)}-error`}
+                    role="alert"
+                    className="text-xs text-danger mt-1.5 font-medium"
+                  >
                     {errorMsg}
                   </p>
                 )}

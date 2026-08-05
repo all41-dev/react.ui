@@ -41,6 +41,9 @@ import {
 import { DataGridPagination } from "./ui/DataGridPagination";
 import { FacetChips, type FacetChip } from "./ui/FacetChips";
 import { CardsView } from "./ui/CardsView";
+import { KanbanView } from "./ui/KanbanView";
+import { useAggColumnIds, useGroupBuckets } from "./hooks/useGrouping";
+import type { GroupOption } from "./types/grouping";
 import {
   CellEditPopover,
   type CellEditState,
@@ -61,6 +64,9 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   /** Supplying this enables the list/cards segment toggle in the toolbar. */
   card?: (row: TRow) => ReactNode;
   defaultView?: "list" | "cards";
+  /** Supplying these enables the toolbar Group-by select. */
+  groupOptions?: GroupOption[];
+  defaultGroupBy?: string;
   /** Leading checkbox column with page-scoped select-all and a bulk footer pill. */
   selectable?: boolean;
   /** Fires with the currently selected row objects whenever the selection changes. */
@@ -121,6 +127,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   emptyLabel,
   card,
   defaultView = "list",
+  groupOptions,
+  defaultGroupBy = "",
   selectable = false,
   onSelectionChange,
   columns,
@@ -157,6 +165,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   const [globalFilter, setGlobalFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<"list" | "cards">(defaultView);
+  const [groupBy, setGroupBy] = useState(defaultGroupBy);
+  const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(new Set());
   const [sorting, setSorting] = useState<SortingState>(initialSorting ?? []);
   const [selectedRowId, setSelectedRowId] = useState<
     string | number | undefined
@@ -553,6 +563,31 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
   const showCards = !!card && view === "cards";
 
+  const activeGroupOption = useMemo(
+    () => groupOptions?.find((g) => g.key === groupBy),
+    [groupOptions, groupBy]
+  );
+  const aggColumnIds = useAggColumnIds(table);
+  /*
+   * Grouping partitions the SORTED model, not `getRowModel()` — the latter is
+   * page-sliced, and grouping replaces pagination. Sorting therefore still applies,
+   * but within each group.
+   */
+  const groups = useGroupBuckets(
+    table.getSortedRowModel().rows,
+    activeGroupOption,
+    aggColumnIds
+  );
+
+  const toggleGroup = useCallback((key: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   const hasFilterableColumns = useMemo(
     () => baseCols.some((c) => (c as any).meta?.filter),
     [baseCols]
@@ -583,6 +618,14 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         onClear: () => setGlobalFilter(""),
       });
     }
+    if (activeGroupOption) {
+      chips.push({
+        id: "__group__",
+        label: "Group",
+        value: activeGroupOption.label,
+        onClear: () => setGroupBy(""),
+      });
+    }
     for (const f of columnFilters) {
       chips.push({
         id: f.id,
@@ -593,7 +636,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       });
     }
     return chips;
-  }, [globalFilter, columnFilters, baseCols]);
+  }, [globalFilter, columnFilters, baseCols, activeGroupOption]);
 
   const tooltipId = useId().replace(/:/g, "_");
 
@@ -630,6 +673,14 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
           onToggleFilters={() => setShowFilters((v) => !v)}
           view={card ? view : undefined}
           onViewChange={card ? setView : undefined}
+          groupOptions={groupOptions}
+          groupBy={groupBy}
+          onGroupByChange={(key) => {
+            setGroupBy(key);
+            // Collapse state is keyed by group value, which means nothing once the
+            // grouping criterion changes.
+            setCollapsedGroups(new Set());
+          }}
         />
 
         <FacetChips chips={facetChips} />
@@ -646,7 +697,16 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             </div>
           )}
 
-          {showCards ? (
+          {showCards && groups ? (
+            // Cards + group-by renders as kanban columns, per spec.
+            <KanbanView
+              groups={groups}
+              getId={getId}
+              card={card!}
+              selectedRowIds={selectable ? selectedIds : undefined}
+              onRowClick={onRowClick ? handleRowClick : undefined}
+            />
+          ) : showCards ? (
             <CardsView
               table={table}
               getId={getId}
@@ -668,6 +728,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             showFilters={showFilters && hasFilterableColumns}
             emptyLabel={emptyLabel}
             selectedRowIds={selectable ? selectedIds : undefined}
+            groups={groups}
+            collapsedGroups={collapsedGroups}
+            onToggleGroup={toggleGroup}
             editingRowId={
               editContainer === "inline" &&
               editing?.mode === "edit" &&
@@ -702,8 +765,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
           />
           )}
         </div>
-        {/* Pagination applies to the list view only — the cards grid shows the whole
-            filtered set, so a pager under it would be lying. */}
+        {/* Pagination applies to the ungrouped list view only. The cards grid shows the
+            whole filtered set and grouping replaces pagination outright, so a pager under
+            either would be lying — grouping keeps the footer for the total. */}
         {paginationEnabled && !showCards && (
           <DataGridPagination
             table={table}
@@ -712,6 +776,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             totalCount={table.getFilteredRowModel().rows.length}
             selectedCount={selectable ? selectedIds.size : 0}
             onClearSelection={selectable ? clearSelection : undefined}
+            totalOnly={!!groups}
             pageSizeOptions={
               paginationProp?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS
             }

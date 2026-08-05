@@ -203,7 +203,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
             )}
 
             {formError && (
-              <div className={serverErrorClass}>
+              <div className={serverErrorClass} role="alert">
                 <div className="flex items-start gap-2">
                   <svg
                     className="h-5 w-5 shrink-0 mt-0.5"
@@ -315,7 +315,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
           )}
 
           {formError && (
-            <div className={serverErrorClass}>
+            <div className={serverErrorClass} role="alert">
               {formError}
             </div>
           )}

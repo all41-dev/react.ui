@@ -24,6 +24,10 @@ type DataGridToolbarProps = {
   /** Rendered only when the consumer supplies a `card` renderer. */
   view?: GridView;
   onViewChange?: (v: GridView) => void;
+  /** Group-by select; rendered only when the consumer supplies `groupOptions`. */
+  groupOptions?: { key: string; label: string }[];
+  groupBy?: string;
+  onGroupByChange?: (key: string) => void;
 };
 
 export const DataGridToolbar = memo(function DataGridToolbar({
@@ -44,6 +48,9 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   onToggleFilters,
   view,
   onViewChange,
+  groupOptions,
+  groupBy = "",
+  onGroupByChange,
 }: DataGridToolbarProps) {
   /*
    * Dismissal is tracked by message rather than by a boolean reset from an effect.
@@ -103,6 +110,29 @@ export const DataGridToolbar = memo(function DataGridToolbar({
                 </span>
               )}
             </button>
+          )}
+
+          {groupOptions && groupOptions.length > 0 && onGroupByChange && (
+            <label className="flex items-center gap-1.5 text-[.8125rem] text-muted">
+              <span className="hidden sm:inline">Group</span>
+              <select
+                value={groupBy}
+                onChange={(e) => onGroupByChange(e.target.value)}
+                aria-label="Group by"
+                className={`h-[30px] cursor-pointer rounded-control border bg-surface-card px-1.5 text-[.8125rem] outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] ${
+                  groupBy
+                    ? "border-accent/40 bg-accent-subtle font-semibold text-accent"
+                    : "border-border-default text-body"
+                }`}
+              >
+                <option value="">None</option>
+                {groupOptions.map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
 
           {view && onViewChange && (

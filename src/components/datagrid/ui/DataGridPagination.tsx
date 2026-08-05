@@ -11,6 +11,11 @@ type Props<TRow extends object> = {
   /** Checkbox-selection size for the bulk pill; 0 hides it. */
   selectedCount?: number;
   onClearSelection?: () => void;
+  /**
+   * Grouping replaces pagination — the footer then reports the total only, with no
+   * page controls (there are no pages to move between).
+   */
+  totalOnly?: boolean;
   /** Not read directly — passing table.getState() busts the memo when table state changes. */
   tableState?: TableState;
 };
@@ -41,6 +46,7 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
   sticky = true,
   selectedCount = 0,
   onClearSelection,
+  totalOnly = false,
 }: Props<TRow>) {
   const { pageIndex, pageSize } = table.getState().pagination ?? {
     pageIndex: 0,
@@ -61,7 +67,12 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
   const current = pageIndex + 1;
   const from = filteredTotal === 0 ? 0 : pageIndex * pageSize + 1;
   const to = Math.min(current * pageSize, filteredTotal);
-  const rangeMsg = filteredTotal === 0 ? "No results" : `${from}–${to} of ${filteredTotal}`;
+  const rangeMsg =
+    filteredTotal === 0
+      ? "No results"
+      : totalOnly
+        ? `${filteredTotal} ${filteredTotal === 1 ? "item" : "items"}`
+        : `${from}–${to} of ${filteredTotal}`;
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     // Never steal keys from the page-size select (or any future form control here) —
@@ -122,8 +133,8 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
         </span>
       </div>
 
-      {/* RIGHT: page size + windowed pages */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* RIGHT: page size + windowed pages (absent while grouping) */}
+      <div className={`flex flex-wrap items-center gap-3 ${totalOnly ? "hidden" : ""}`}>
         <label className="flex items-center gap-1.5 text-xs text-muted">
           Rows
           <select
