@@ -1,0 +1,101 @@
+@import "./tokens.css";
+
+/*
+ * `inline` is load-bearing: it makes each utility emit `var(--rui-*)` directly instead
+ * of baking the default value in at build time. Without it a consumer overriding
+ * --rui-accent would see nothing change.
+ */
+@theme inline {
+  --color-accent: var(--rui-accent);
+  --color-accent-hover: var(--rui-accent-hover);
+  --color-accent-subtle: var(--rui-accent-subtle);
+  --color-accent-contrast: var(--rui-accent-contrast);
+
+  --color-surface-page: var(--rui-surface-page);
+  --color-surface-card: var(--rui-surface-card);
+  --color-surface-raised: var(--rui-surface-raised);
+  --color-surface-inset: var(--rui-surface-inset);
+
+  --color-body: var(--rui-text-body);
+  --color-muted: var(--rui-text-muted);
+  --color-faint: var(--rui-text-faint);
+
+  --color-border-default: var(--rui-border-default);
+  --color-border-translucent: var(--rui-border-translucent);
+
+  --color-link: var(--rui-link);
+  --color-link-hover: var(--rui-link-hover);
+
+  --color-success: var(--rui-success);
+  --color-danger: var(--rui-danger);
+  --color-warning: var(--rui-warning);
+  --color-info: var(--rui-info);
+
+  --font-sans: var(--rui-font-sans);
+  --font-mono: var(--rui-font-mono);
+
+  --radius-control: var(--rui-radius-control);
+  --radius-surface: var(--rui-radius-surface);
+}
+
+@theme {
+  --elev-1: 0 6px 20px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --elev-2: 0 14px 36px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --elev-3: 0 24px 56px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+
+  --inset-1: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 -10px 22px rgba(0, 0, 0, 0.38);
+  --inset-2: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 -18px 34px rgba(0, 0, 0, 0.5);
+  --inset-3: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 -26px 48px rgba(0, 0, 0, 0.6);
+
+  --scrollbar-thumb: rgb(70 70 80 / 0.6);
+  --scrollbar-track: transparent;
+  --scrollbar-thumb-hover: rgb(120 120 130 / 0.7);
+}
+
+@layer utilities {
+  .scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  .scroll-momentum {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+  }
+
+  .scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.15s ease-out forwards;
+}

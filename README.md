@@ -38,8 +38,50 @@ pnpm add react.ui
 Import the CSS in your main entry file:
 
 ```tsx
-import 'react.ui/styles';
+import '@all41-dev/react.ui/styles';
 ```
+
+The stylesheet is prebuilt — **you do not need Tailwind** in your application.
+
+### Theming
+
+Every colour, font and radius the library paints with comes from a CSS custom property.
+Override any of them and the components follow; there is no build step, config file or
+provider involved.
+
+```css
+@import "@all41-dev/react.ui/styles";
+
+:root {
+  --rui-accent: #7c3aed;
+  --rui-surface-card: #ffffff;
+}
+
+[data-theme="dark"] {
+  --rui-accent: #a78bfa;
+  --rui-surface-card: #161b22;
+}
+```
+
+Defaults are neutral (greys with a blue accent). Dark values are defined under
+`[data-theme="dark"]`; set that attribute on `<html>` to switch, or re-scope the
+variables under any selector you prefer — they are ordinary custom properties.
+
+#### Token reference
+
+| Group | Tokens |
+|---|---|
+| Accent | `--rui-accent`, `--rui-accent-hover`, `--rui-accent-subtle`, `--rui-accent-contrast` |
+| Surfaces | `--rui-surface-page`, `--rui-surface-card`, `--rui-surface-raised`, `--rui-surface-inset` |
+| Text | `--rui-text-body`, `--rui-text-muted`, `--rui-text-faint` |
+| Borders | `--rui-border-default`, `--rui-border-translucent` |
+| Interaction | `--rui-focus-ring`, `--rui-link`, `--rui-link-hover` |
+| Status | `--rui-success`, `--rui-danger`, `--rui-warning`, `--rui-info` |
+| Type | `--rui-font-sans`, `--rui-font-mono` |
+| Radius | `--rui-radius-control`, `--rui-radius-surface` |
+
+These names are public API and follow semver. Sizing, spacing and motion are intentionally
+not tokens — they are part of the component design rather than your brand.
 
 ### Basic Usage
 

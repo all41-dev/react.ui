@@ -1,3 +1,7 @@
+// Emitted to dist/react.ui.css and exposed as `@all41-dev/react.ui/styles`.
+// Consumers import that stylesheet explicitly; nothing here injects styles at runtime.
+import "./styles/library.css";
+
 export { DataGrid } from "./components/datagrid/DataGrid";
 export { Tooltip } from "./components/Tooltip";
 export { LoadingScreen } from "./components/LoadingScreen";

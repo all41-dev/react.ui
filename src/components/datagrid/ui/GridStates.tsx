@@ -2,7 +2,7 @@ import { Inbox } from "lucide-react";
 
 export function Spinner({ label }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-700" role="status" aria-live="polite">
+    <div className="flex items-center gap-2 text-sm text-muted" role="status" aria-live="polite">
       <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" aria-hidden="true">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none"/>
         <path className="opacity-75" d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="3" fill="none"/>
@@ -17,11 +17,11 @@ export function SkeletonRow({ cols }: { cols: number }) {
     <tr>
       <td colSpan={cols} className="px-3 py-2">
         <div className="grid grid-cols-12 gap-2">
-          <div className="col-span-3 h-4 animate-pulse rounded bg-gray-200" />
-          <div className="col-span-2 h-4 animate-pulse rounded bg-gray-200" />
-          <div className="col-span-4 h-4 animate-pulse rounded bg-gray-200" />
-          <div className="col-span-1 h-4 animate-pulse rounded bg-gray-200" />
-          <div className="col-span-2 h-4 animate-pulse rounded bg-gray-200" />
+          <div className="col-span-3 h-4 animate-pulse rounded bg-surface-inset" />
+          <div className="col-span-2 h-4 animate-pulse rounded bg-surface-inset" />
+          <div className="col-span-4 h-4 animate-pulse rounded bg-surface-inset" />
+          <div className="col-span-1 h-4 animate-pulse rounded bg-surface-inset" />
+          <div className="col-span-2 h-4 animate-pulse rounded bg-surface-inset" />
         </div>
       </td>
     </tr>
@@ -38,13 +38,11 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-        <Inbox className="h-6 w-6 text-gray-400" aria-hidden="true" />
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-inset">
+        <Inbox className="h-6 w-6 text-faint" aria-hidden="true" />
       </div>
-      <p className="text-sm font-medium text-gray-500">{title}</p>
-      {description && (
-        <p className="mt-1 text-xs text-gray-400">{description}</p>
-      )}
+      <p className="text-sm font-medium text-muted">{title}</p>
+      {description && <p className="mt-1 text-xs text-faint">{description}</p>}
     </div>
   );
 }

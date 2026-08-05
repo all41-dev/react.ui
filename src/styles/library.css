@@ -1,0 +1,12 @@
+/*
+ * Stylesheet published as `@all41-dev/react.ui/styles` (-> dist/react.ui.css).
+ *
+ * `source(none)` disables Tailwind's automatic content detection, and the @source rules
+ * below opt in only to library code. Without this the published stylesheet would also
+ * carry every utility used by the sandbox in src/app.
+ */
+@import "tailwindcss" source(none);
+@import "./base.css";
+
+@source "../components";
+@source "../utils";
