@@ -802,6 +802,7 @@ export function DataGridDemo() {
         error={error}
         onRetry={loadData}
         idAccessor={(row) => row.id}
+        selectable
         editContainer={containerType}
         onPersist={handlePersist}
         onDelete={handleDelete}

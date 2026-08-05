@@ -19,6 +19,8 @@ type TableViewProps<TRow extends object> = {
   /** Renders the per-column filter row under the header (toolbar Filters toggle). */
   showFilters?: boolean;
   emptyLabel?: string;
+  /** Checkbox-selected row ids (multi). Merged into the selected-row styling. */
+  selectedRowIds?: ReadonlySet<string>;
   editingRowId?: string | number | undefined;
   inlineEditor?: ReactNode;
   isCreating?: boolean;
@@ -37,6 +39,7 @@ export function TableView<TRow extends object>({
   leafColCount,
   showFilters,
   emptyLabel,
+  selectedRowIds,
   editingRowId,
   inlineEditor,
   isCreating,
@@ -158,8 +161,9 @@ export function TableView<TRow extends object>({
                 editingRowId !== undefined &&
                 String(key) === String(editingRowId);
               const isSelected =
-                selectedRowId !== undefined &&
-                String(selectedRowId) === String(key);
+                (selectedRowId !== undefined &&
+                  String(selectedRowId) === String(key)) ||
+                (selectedRowIds?.has(String(key)) ?? false);
               const isExpanded = expandedRowIds?.has(key) ?? false;
 
               return (
@@ -235,7 +239,8 @@ export function TableView<TRow extends object>({
             const key = getId(r.original) ?? r.id;
             const cells = r.getVisibleCells();
             const visibleCells = cells.filter((c) => {
-              if (c.column.id === "__actions__") return false;
+              if (c.column.id === "__actions__" || c.column.id === "__select__")
+                return false;
               const meta = (c.column.columnDef as any).meta;
               return !meta?.hideOnMobile;
             });

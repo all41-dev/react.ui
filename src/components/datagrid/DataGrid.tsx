@@ -22,6 +22,7 @@ import {
 } from "./ui/containers/EditContainers";
 import { EditInline } from "./ui/containers/EditInline";
 import { getRowKey } from "./utils/getRowKey";
+import { makeSelectColumn } from "./ui/table/SelectionCells";
 import { toast } from "sonner";
 import { getApiMessage } from "../../api/errors";
 import { useConfirm } from "./hooks/useConfirm";
@@ -52,6 +53,10 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   searchable?: boolean;
   /** Title of the empty state ("No data" when omitted). */
   emptyLabel?: string;
+  /** Leading checkbox column with page-scoped select-all and a bulk footer pill. */
+  selectable?: boolean;
+  /** Fires with the currently selected row objects whenever the selection changes. */
+  onSelectionChange?: (rows: TRow[]) => void;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   initialData: TRow[];
@@ -106,6 +111,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   subtitle,
   searchable = true,
   emptyLabel,
+  selectable = false,
+  onSelectionChange,
   columns,
   zodSchema,
   initialData,
@@ -143,6 +150,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   const [selectedRowId, setSelectedRowId] = useState<
     string | number | undefined
   >(undefined);
+  // Checkbox selection (multi), ids stored as strings. Survives paging and filtering.
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
 
   // Use external expandedRowIds if provided, otherwise use empty set
   // (Internal state management removed since expansion is controlled from column buttons)
@@ -173,6 +182,16 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   if (initialData !== syncedData) {
     setSyncedData(initialData);
     setRows(initialData ?? []);
+    // Prune the checkbox selection to ids that still exist: a refetch keeps the
+    // selection, a dataset swap effectively clears it.
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const alive = new Set(
+        (initialData ?? []).map((r) => String(getRowKey(r, idAccessor)))
+      );
+      const next = new Set([...prev].filter((id) => alive.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
   }
 
   /*
@@ -214,6 +233,45 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     [getId, onRowClick]
   );
 
+  const toggleRowSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const setPageSelected = useCallback((pageIds: string[], selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of pageIds) {
+        if (selected) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+
+  // Notify the consumer with row objects (not ids). Refs keep this effect off the
+  // rows/callback identities; the initial empty selection is not announced.
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  onSelectionChangeRef.current = onSelectionChange;
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const selectionAnnouncedRef = useRef(false);
+  useEffect(() => {
+    if (!selectionAnnouncedRef.current) {
+      selectionAnnouncedRef.current = true;
+      if (selectedIds.size === 0) return;
+    }
+    onSelectionChangeRef.current?.(
+      rowsRef.current.filter((r) => selectedIds.has(String(getId(r))))
+    );
+  }, [selectedIds, getId]);
+
   const handleCreate = useCallback(() => {
     setEditing({ mode: "create" });
     if (editContainer !== "none" && editContainer !== "inline") setOpen(true);
@@ -251,6 +309,14 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       // its own spinner state.
       const deletedId = getId(row);
       setRows((prev) => prev.filter((r) => !sameRowId(getId(r), deletedId)));
+      if (deletedId !== undefined) {
+        setSelectedIds((prev) => {
+          if (!prev.has(String(deletedId))) return prev;
+          const next = new Set(prev);
+          next.delete(String(deletedId));
+          return next;
+        });
+      }
     },
     [onDelete, getId, confirm]
   );
@@ -280,9 +346,26 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     () => columns.filter((c) => getColId(c) !== "__actions__"),
     [columns]
   );
+  const selectCol = useMemo(
+    () =>
+      selectable
+        ? makeSelectColumn<TRow>({
+            getId,
+            selectedIds,
+            onToggleRow: toggleRowSelected,
+            onSetPage: setPageSelected,
+          })
+        : null,
+    [selectable, getId, selectedIds, toggleRowSelected, setPageSelected]
+  );
+
   const allColumnIds = useMemo(
-    () => [...baseCols.map(getColId), "__actions__"],
-    [baseCols]
+    () => [
+      ...(selectable ? ["__select__"] : []),
+      ...baseCols.map(getColId),
+      "__actions__",
+    ],
+    [baseCols, selectable]
   );
 
   const { state: colState, handlers: colHandlers } = useColumnPrefs(
@@ -294,10 +377,11 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     const byId = new Map<string, any>();
     for (const c of baseCols) byId.set(getColId(c), c);
     byId.set("__actions__", actionCol);
+    if (selectCol) byId.set("__select__", selectCol);
     return colState.columnOrder
       .map((id) => byId.get(id))
       .filter(Boolean) as typeof columns;
-  }, [baseCols, actionCol, colState.columnOrder]);
+  }, [baseCols, actionCol, selectCol, colState.columnOrder]);
 
   const defaultColumn = useMemo(
     () => ({
@@ -398,8 +482,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
   const leafColCount = useMemo(() => {
     const cols = [...columns, actionCol];
-    return cols.length;
-  }, [columns, actionCol]);
+    return cols.length + (selectable ? 1 : 0);
+  }, [columns, actionCol, selectable]);
 
   const hasFilterableColumns = useMemo(
     () => baseCols.some((c) => (c as any).meta?.filter),
@@ -495,6 +579,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             leafColCount={leafColCount}
             showFilters={showFilters && hasFilterableColumns}
             emptyLabel={emptyLabel}
+            selectedRowIds={selectable ? selectedIds : undefined}
             editingRowId={
               editContainer === "inline" &&
               editing?.mode === "edit" &&
@@ -534,6 +619,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             /* The FILTERED count, not rows.length — otherwise page counts and the
                "X to Y of Z" range ignore any active column filter. */
             totalCount={table.getFilteredRowModel().rows.length}
+            selectedCount={selectable ? selectedIds.size : 0}
+            onClearSelection={selectable ? clearSelection : undefined}
             pageSizeOptions={
               paginationProp?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS
             }

@@ -1,4 +1,4 @@
-import type { Row } from "@tanstack/react-table";
+import { flexRender, type Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import { ActionsOverlayCell } from "./ActionsOverlayCell";
 import { BodyDataCell } from "./BodyDataCell";
@@ -37,7 +37,7 @@ function DataRowFragmentInner<TRow extends object>({
         } ${isSelected ? "bg-accent-subtle" : ""}`}
         style={
           isSelected
-            ? { boxShadow: "inset 4px 0 0 0 rgb(59 130 246)" }
+            ? { boxShadow: "inset 3px 0 0 0 var(--rui-accent)" }
             : undefined
         }
         onClick={() => onRowClick?.(row.original)}
@@ -47,6 +47,18 @@ function DataRowFragmentInner<TRow extends object>({
           if (c.column.id === "__actions__") {
             return (
               <ActionsOverlayCell key={c.id} c={c} rowBgClass={rowBgClass} />
+            );
+          }
+          if (c.column.id === "__select__") {
+            return (
+              <td
+                key={c.id}
+                className="w-[36px] border-b border-border-default px-2.5 align-middle"
+                // Checkbox clicks must never double as row clicks.
+                onClick={(e) => e.stopPropagation()}
+              >
+                {flexRender(c.column.columnDef.cell, c.getContext())}
+              </td>
             );
           }
           return <BodyDataCell key={c.id} c={c} />;

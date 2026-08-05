@@ -8,6 +8,9 @@ type Props<TRow extends object> = {
   pageSizeOptions?: number[];
   className?: string;
   sticky?: boolean;
+  /** Checkbox-selection size for the bulk pill; 0 hides it. */
+  selectedCount?: number;
+  onClearSelection?: () => void;
   /** Not read directly — passing table.getState() busts the memo when table state changes. */
   tableState?: TableState;
 };
@@ -36,6 +39,8 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
   pageSizeOptions = [10, 20, 50, 100],
   className = "",
   sticky = true,
+  selectedCount = 0,
+  onClearSelection,
 }: Props<TRow>) {
   const { pageIndex, pageSize } = table.getState().pagination ?? {
     pageIndex: 0,
@@ -96,10 +101,26 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
         className,
       ].join(" ")}
     >
-      {/* LEFT: range of the FILTERED set */}
-      <span aria-live="polite" className="text-xs text-muted">
-        {rangeMsg}
-      </span>
+      {/* LEFT: bulk-selection pill + range of the FILTERED set */}
+      <div className="flex items-center gap-2">
+        {selectedCount > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent py-0.5 pl-2.5 pr-1 text-[.6875rem] font-semibold text-accent-contrast">
+            {selectedCount} selected
+            {onClearSelection && (
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="cursor-pointer rounded-full px-1.5 font-medium underline-offset-2 transition-opacity hover:underline hover:opacity-90"
+              >
+                Clear
+              </button>
+            )}
+          </span>
+        )}
+        <span aria-live="polite" className="text-xs text-muted">
+          {rangeMsg}
+        </span>
+      </div>
 
       {/* RIGHT: page size + windowed pages */}
       <div className="flex flex-wrap items-center gap-3">

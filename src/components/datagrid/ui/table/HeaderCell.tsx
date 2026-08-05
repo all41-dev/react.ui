@@ -49,6 +49,16 @@ function HeaderCellInner<TRow extends object>({
   if (isActions) {
     return <th className="!w-0 !p-0 border-none" aria-hidden="true" />;
   }
+  if (h.column.id === "__select__") {
+    return (
+      <th
+        data-col-id="__select__"
+        className="w-[36px] border-b px-2.5 py-2 text-left align-middle"
+      >
+        {flexRender(h.column.columnDef.header, h.getContext())}
+      </th>
+    );
+  }
 
   const canResize = h.column.getCanResize();
 
@@ -79,6 +89,10 @@ function HeaderCellInner<TRow extends object>({
 }
 
 export const HeaderCell = memo(HeaderCellInner, (prev, next) => {
+  // The select-all checkbox derives its checked/indeterminate state from the CURRENT
+  // page's rows, which this comparator cannot see — skipping its re-render leaves the
+  // header checkbox acting on a stale page. Always re-render it; it's one checkbox.
+  if (next.h.column.id === "__select__") return false;
   if (prev.h.id !== next.h.id) return false;
   if (prev.h.column.getSize() !== next.h.column.getSize()) return false;
   if (prev.h.column.getIsSorted() !== next.h.column.getIsSorted()) return false;
