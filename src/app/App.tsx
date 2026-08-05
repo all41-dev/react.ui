@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { Providers } from "./providers/providers";
+import { useTheme } from "./providers/theme-context";
 import { DataGridDemo } from "./demos/DataGridDemo";
 import { ToasterDemo } from "./demos/ToasterDemo";
 import { TooltipDemo } from "./demos/TooltipDemo";
@@ -7,56 +9,51 @@ import { LoadingScreenDemo } from "./demos/LoadingScreenDemo";
 
 type DemoTab = "datagrid" | "toaster" | "tooltip" | "loading";
 
+const TABS: { id: DemoTab; label: string }[] = [
+  { id: "datagrid", label: "DataGrid" },
+  { id: "toaster", label: "Toaster" },
+  { id: "tooltip", label: "Tooltip" },
+  { id: "loading", label: "Loading screen" },
+];
+
 function App() {
   const [activeTab, setActiveTab] = useState<DemoTab>("datagrid");
 
   return (
     <Providers>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <h1 className="text-3xl font-bold text-gray-900">
-              React UI Sandbox
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Component showcase and testing environment
-            </p>
+      <div className="min-h-screen bg-surface-page text-body font-sans">
+        <header className="px-9 pt-8 pb-0">
+          <div className="mx-auto flex max-w-7xl items-start justify-between gap-4">
+            <div>
+              <p className="text-[.6875rem] font-medium uppercase tracking-[.06em] text-faint">
+                Component workbench
+              </p>
+              <h1 className="mt-1 text-2xl font-medium tracking-[-.01em]">
+                React UI Sandbox
+              </h1>
+              <p className="mt-1 text-[.8125rem] text-muted">
+                Component showcase and testing environment
+              </p>
+            </div>
+            <ThemeToggle />
           </div>
         </header>
 
-        <div className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4">
-            <nav className="flex gap-1">
+        <div className="px-9">
+          <nav className="mx-auto flex max-w-7xl gap-1 border-b border-border-default">
+            {TABS.map((tab) => (
               <TabButton
-                active={activeTab === "datagrid"}
-                onClick={() => setActiveTab("datagrid")}
+                key={tab.id}
+                active={activeTab === tab.id}
+                onClick={() => setActiveTab(tab.id)}
               >
-                DataGrid
+                {tab.label}
               </TabButton>
-              <TabButton
-                active={activeTab === "toaster"}
-                onClick={() => setActiveTab("toaster")}
-              >
-                Toaster
-              </TabButton>
-              <TabButton
-                active={activeTab === "tooltip"}
-                onClick={() => setActiveTab("tooltip")}
-              >
-                Tooltip
-              </TabButton>
-              <TabButton
-                active={activeTab === "loading"}
-                onClick={() => setActiveTab("loading")}
-              >
-                Loading Screen
-              </TabButton>
-            </nav>
-          </div>
+            ))}
+          </nav>
         </div>
 
-        {/* Content */}
-        <main className="max-w-7xl mx-auto py-6">
+        <main className="mx-auto max-w-7xl px-9 py-6">
           {activeTab === "datagrid" && <DataGridDemo />}
           {activeTab === "toaster" && <ToasterDemo />}
           {activeTab === "tooltip" && <TooltipDemo />}
@@ -64,6 +61,28 @@ function App() {
         </main>
       </div>
     </Providers>
+  );
+}
+
+/** Label names the theme it switches TO, not the one currently active. */
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  const Icon = next === "dark" ? Moon : Sun;
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={`Switch to ${next} theme`}
+      className="flex h-8 shrink-0 items-center gap-2 rounded-control border border-border-default
+                 bg-transparent px-3 text-[.8125rem] text-muted transition-colors
+                 hover:border-accent hover:text-body
+                 focus-visible:outline-none focus-visible:shadow-[0_0_0_2px_var(--rui-focus-ring)]"
+    >
+      <Icon size={15} strokeWidth={1.75} aria-hidden />
+      {next === "dark" ? "Dark theme" : "Light theme"}
+    </button>
   );
 }
 
@@ -78,11 +97,13 @@ function TabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+      aria-current={active ? "page" : undefined}
+      className={`-mb-px border-b-2 px-4 py-3 text-[.8125rem] transition-colors ${
         active
-          ? "text-blue-700 border-blue-700"
-          : "text-gray-600 border-transparent hover:text-gray-900 hover:border-gray-300"
+          ? "border-accent font-semibold text-accent"
+          : "border-transparent text-muted hover:border-border-translucent hover:text-body"
       }`}
     >
       {children}

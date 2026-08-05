@@ -69,14 +69,14 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
       tabIndex={0}
       aria-label="Pagination"
       className={[
-        "bg-white border-t p-3",
+        "bg-surface-card border-t p-3",
         "flex flex-col gap-3 md:flex-row md:items-center md:justify-between",
         sticky ? "sticky bottom-0 z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" : "",
         className,
       ].join(" ")}
     >
       {/* LEFT: status */}
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+      <div className="flex items-center gap-2 text-sm text-muted">
         <span aria-live="polite">{liveMsg}</span>
       </div>
 
@@ -144,7 +144,7 @@ function IconButton({
   return (
     <button
       type="button"
-      className="h-8 w-8 rounded-lg border border-gray-300 text-sm outline-none transition hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-transparent focus-visible:ring-2 focus-visible:ring-gray-300 cursor-pointer"
+      className="h-8 w-8 rounded-lg border border-border-default text-sm outline-none transition hover:bg-surface-inset disabled:opacity-50 disabled:hover:bg-transparent focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] cursor-pointer"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
@@ -168,8 +168,8 @@ function Segmented({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-700">{label}</span>
-      <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
+      <span className="text-sm text-body">{label}</span>
+      <div className="inline-flex overflow-hidden rounded-lg border border-border-default">
         {options.map((o, i) => {
           const active = o.value === value;
           return (
@@ -179,9 +179,11 @@ function Segmented({
               onClick={() => onChange(o.value)}
               className={[
                 "px-3 h-8 text-sm outline-none transition cursor-pointer",
-                active ? "bg-gray-900 text-white" : "bg-white hover:bg-gray-50",
-                i !== options.length - 1 ? "border-r border-gray-300" : "",
-                "focus-visible:ring-2 focus-visible:ring-gray-300",
+                active
+                  ? "bg-accent text-accent-contrast"
+                  : "bg-surface-card text-body hover:bg-surface-inset",
+                i !== options.length - 1 ? "border-r border-border-default" : "",
+                "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
               ].join(" ")}
               aria-pressed={active}
             >
@@ -215,7 +217,7 @@ function PageIndicator({
 
   if (total <= 1) {
     return (
-      <span className="px-2 text-sm text-gray-700">
+      <span className="px-2 text-sm text-body">
         Page <span className="font-medium">{total === 0 ? 0 : 1}</span> /{" "}
         <span className="font-medium">{total}</span>
       </span>
@@ -227,7 +229,7 @@ function PageIndicator({
       <button
         type="button"
         onClick={startEditing}
-        className="px-2 h-8 rounded-lg border border-transparent text-sm text-gray-700 hover:border-gray-300 cursor-pointer"
+        className="px-2 h-8 rounded-lg border border-transparent text-sm text-body hover:border-accent cursor-pointer"
         title="Click to jump to page"
         aria-label={`Page ${current} of ${total}. Click to edit.`}
       >
@@ -260,13 +262,13 @@ function PageIndicator({
         min={1}
         max={total}
         inputMode="numeric"
-        className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-gray-300"
+        className="w-16 rounded-lg border border-border-default px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-[var(--rui-focus-ring)]"
         aria-label={`Go to page (1–${total})`}
       />
       <button
         type="submit"
         onMouseDown={(e) => e.preventDefault()}
-        className="h-8 rounded-lg border border-gray-300 px-2 text-sm outline-none transition hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-gray-300 cursor-pointer"
+        className="h-8 rounded-lg border border-border-default px-2 text-sm outline-none transition hover:bg-surface-inset focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] cursor-pointer"
         aria-label="Go to page"
         title="Go to page"
       >

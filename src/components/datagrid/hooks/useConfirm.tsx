@@ -64,15 +64,15 @@ export function useConfirm() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="w-full max-w-sm rounded-xl bg-white p-4 shadow-2xl outline-none">
+          <div className="w-full max-w-sm rounded-xl bg-surface-card p-4 shadow-2xl outline-none">
             <h3 className="text-base font-semibold">{s.title}</h3>
             {s.description && (
-              <p className="mt-1 text-sm text-gray-600">{s.description}</p>
+              <p className="mt-1 text-sm text-muted">{s.description}</p>
             )}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-md border px-3 py-1.5 text-sm"
+                className="rounded-md border border-border-default px-3 py-1.5 text-sm text-body hover:bg-surface-inset"
                 onClick={() => close(false)}
                 autoFocus
               >
@@ -81,10 +81,10 @@ export function useConfirm() {
               <button
                 type="button"
                 className={
-                  "rounded-md px-3 py-1.5 text-sm text-white " +
+                  "rounded-md px-3 py-1.5 text-sm text-accent-contrast transition-colors " +
                   (s.isDestructive
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-black hover:bg-zinc-900")
+                    ? "bg-danger hover:opacity-90"
+                    : "bg-accent hover:bg-accent-hover")
                 }
                 onClick={() => close(true)}
               >

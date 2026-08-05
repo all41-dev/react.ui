@@ -67,6 +67,10 @@ Defaults are neutral (greys with a blue accent). Dark values are defined under
 `[data-theme="dark"]`; set that attribute on `<html>` to switch, or re-scope the
 variables under any selector you prefer — they are ordinary custom properties.
 
+**Import order does not matter.** The defaults live in `@layer rui-tokens`, and unlayered
+CSS always beats layered CSS, so your override wins even if your bundler injects it before
+this package's stylesheet.
+
 #### Token reference
 
 | Group | Tokens |

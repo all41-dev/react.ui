@@ -7,9 +7,9 @@ export const LoadingScreenDemo = () => {
 
   return (
     <div className="space-y-8 p-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-surface-card rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold mb-4">Loading Screen Demo</h2>
-        <p className="text-gray-600 mb-6">
+        <p className="text-muted mb-6">
           Click the buttons below to preview different loading screen
           configurations. Click anywhere on the loading screen to close it (for
           demo purposes only).
@@ -18,7 +18,7 @@ export const LoadingScreenDemo = () => {
         <div className="flex gap-4">
           <button
             onClick={() => setShowDefault(true)}
-            className="px-4 py-2 bg-zinc-800 text-white rounded-md hover:bg-zinc-700 transition-colors"
+            className="px-4 py-2 bg-surface-raised text-white rounded-md hover:bg-surface-inset transition-colors"
           >
             Show Default Loader
           </button>

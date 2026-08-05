@@ -1,0 +1,58 @@
+/*
+ * Template for a sandbox brand override.
+ *
+ *   cp theme.local.css.example acme.local.css
+ *
+ * `*.local.css` is gitignored — see README.md in this folder. The values below are
+ * placeholders (a generic violet), NOT anyone's brand.
+ *
+ * Override only what differs from the library defaults. Every token you leave out keeps
+ * its neutral value, so most real override files are just the accent and surface
+ * families. The complete token list lives in the root README under "Theming".
+ */
+
+:root {
+  --rui-accent: #7c3aed;
+  --rui-accent-hover: #6d28d9;
+  --rui-accent-subtle: #f5f3ff;
+  --rui-accent-contrast: #ffffff;
+
+  --rui-surface-page: #ffffff;
+  --rui-surface-card: #ffffff;
+  --rui-surface-raised: #faf9fc;
+  --rui-surface-inset: #f2eefc;
+
+  --rui-text-body: #1c1725;
+  --rui-text-muted: rgba(28, 23, 37, 0.75);
+  --rui-text-faint: rgba(28, 23, 37, 0.5);
+
+  --rui-border-default: #e4ddf2;
+  --rui-border-translucent: rgba(0, 0, 0, 0.12);
+
+  --rui-focus-ring: rgba(124, 58, 237, 0.28);
+  --rui-link: #6d28d9;
+  --rui-link-hover: #5b21b6;
+}
+
+[data-theme="dark"] {
+  --rui-accent: #a78bfa;
+  --rui-accent-hover: #c4b5fd;
+  --rui-accent-subtle: rgba(124, 58, 237, 0.2);
+  --rui-accent-contrast: #140c22;
+
+  --rui-surface-page: #0c0a12;
+  --rui-surface-card: #1a1626;
+  --rui-surface-raised: #251f36;
+  --rui-surface-inset: #130f1d;
+
+  --rui-text-body: #e7e2f0;
+  --rui-text-muted: rgba(231, 226, 240, 0.75);
+  --rui-text-faint: rgba(231, 226, 240, 0.5);
+
+  --rui-border-default: #332b47;
+  --rui-border-translucent: rgba(255, 255, 255, 0.14);
+
+  --rui-focus-ring: rgba(167, 139, 250, 0.4);
+  --rui-link: #c4b5fd;
+  --rui-link-hover: #ddd6fe;
+}

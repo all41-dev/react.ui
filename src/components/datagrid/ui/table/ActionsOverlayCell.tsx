@@ -25,7 +25,7 @@ export function ActionsOverlayCell({
           "opacity-0 group-hover:opacity-100 transition-opacity",
           rowBgClass,
           "z-20",
-          "border-b border-gray-200",
+          "border-b border-border-default",
           "rounded-l-md",
           "bg-clip-padding",
         ].join(" ")}

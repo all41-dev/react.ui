@@ -25,7 +25,7 @@ export function EditDrawerRight<TRow extends object, TForm extends object>({
 
   return (
     <div
-      className={`fixed right-0 top-0 z-40 h-full w-full max-w-md transform bg-white shadow-xl transition-transform duration-300 ${
+      className={`fixed right-0 top-0 z-40 h-full w-full max-w-md transform bg-surface-card shadow-xl transition-transform duration-300 ${
         open ? "translate-x-0" : "translate-x-full"
       }`}
     >

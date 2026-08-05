@@ -336,7 +336,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   return (
     <DataGridContext.Provider value={contextValue}>
       <div
-        className={["flex flex-col rounded-lg border bg-white", className]
+        className={["flex flex-col rounded-lg border bg-surface-card", className]
           .filter(Boolean)
           .join(" ")}
       >
@@ -354,8 +354,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
           aria-busy={!!isLoading}
         >
           {isLoading && (
-            <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-white/50">
-              <div className="pointer-events-auto rounded-md border bg-white px-3 py-2 shadow-sm">
+            <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-surface-card/50">
+              <div className="pointer-events-auto rounded-md border bg-surface-card px-3 py-2 shadow-sm">
                 <Spinner label="Loading…" />
               </div>
             </div>

@@ -11,14 +11,14 @@ export interface LoadingScreenProps {
 
 export const LoadingScreen: FC<LoadingScreenProps> = ({
   message = "Loading...",
-  gradientStart = "from-primary/20",
+  gradientStart = "from-accent/20",
   gradientEnd = "to-info/20",
-  spinnerColor = "border-t-primary",
-  textColor = "text-zinc-100",
-  ringColor = "border-zinc-800",
+  spinnerColor = "border-t-accent",
+  textColor = "text-body",
+  ringColor = "border-border-default",
 }) => {
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-zinc-950 text-white z-50">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-surface-page text-body z-50">
       <div className="relative flex flex-col items-center">
         <div
           className={`absolute -inset-4 bg-linear-to-r ${gradientStart} ${gradientEnd} blur-xl rounded-full animate-pulse`}
@@ -39,9 +39,9 @@ export const LoadingScreen: FC<LoadingScreenProps> = ({
             {message}
           </h2>
           <div className="flex gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:-0.3s]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce [animation-delay:-0.15s]" />
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 animate-bounce" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.3s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.15s]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce" />
           </div>
         </div>
       </div>

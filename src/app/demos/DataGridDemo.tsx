@@ -186,10 +186,10 @@ export function DataGridDemo() {
             const val = getValue();
             const badgeClass =
               val === "Admin"
-                ? "bg-purple-100 text-purple-700 border-purple-200"
+                ? "bg-accent-subtle text-accent border-accent"
                 : val === "Editor"
-                  ? "bg-blue-100 text-blue-700 border-blue-200"
-                  : "bg-gray-100 text-gray-700 border-gray-200";
+                  ? "bg-accent-subtle text-accent border-accent"
+                  : "bg-surface-inset text-body border-border-default";
             return (
               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${badgeClass}`}>
                 {val}
@@ -213,13 +213,13 @@ export function DataGridDemo() {
             const val = getValue();
             const badgeClass =
               val === "active"
-                ? "bg-green-100 text-green-700"
+                ? "bg-success/15 text-success"
                 : val === "inactive"
-                  ? "bg-red-100 text-red-700"
-                  : "bg-amber-100 text-amber-700";
+                  ? "bg-danger/15 text-danger"
+                  : "bg-warning/15 text-body";
             return (
               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${badgeClass}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${val === "active" ? "bg-green-500" : val === "inactive" ? "bg-red-500" : "bg-amber-500"}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${val === "active" ? "bg-green-500" : val === "inactive" ? "bg-danger" : "bg-warning"}`} />
                 {val}
               </span>
             );
@@ -337,7 +337,7 @@ export function DataGridDemo() {
             <img
               src={getValue()}
               alt="photo"
-              className="h-9 w-9 rounded object-cover border border-gray-200"
+              className="h-9 w-9 rounded object-cover border border-border-default"
               loading="lazy"
             />
           ),
@@ -376,10 +376,10 @@ export function DataGridDemo() {
           const done = Boolean(getValue());
           return (
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${done ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${done ? "bg-success/15 text-success" : "bg-warning/15 text-body"
                 }`}
             >
-              <span className={`h-1.5 w-1.5 rounded-full ${done ? "bg-emerald-600" : "bg-amber-600"}`} />
+              <span className={`h-1.5 w-1.5 rounded-full ${done ? "bg-emerald-600" : "bg-warning"}`} />
               {done ? "Completed" : "Pending"}
             </span>
           );
@@ -477,12 +477,12 @@ export function DataGridDemo() {
 
   // Expanded Row Content
   const renderExpandedRow = (item: any) => (
-    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-2 text-sm">
-      <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+    <div className="bg-surface-inset border border-border-default rounded-lg p-4 space-y-2 text-sm">
+      <div className="flex items-center justify-between text-xs font-semibold text-muted uppercase tracking-wider">
         <span>Resource JSON Details ({activeResource})</span>
         <span>ID: #{item.id}</span>
       </div>
-      <pre className="bg-slate-950 text-emerald-400 p-3 rounded-md text-xs font-mono overflow-x-auto">
+      <pre className="bg-surface-raised text-success p-3 rounded-md text-xs font-mono overflow-x-auto">
         {JSON.stringify(item, null, 2)}
       </pre>
     </div>
@@ -495,10 +495,10 @@ export function DataGridDemo() {
     icon: any;
     color: string;
   }[] = [
-      { key: "users", label: "Users", count: "10 items", icon: UsersIcon, color: "bg-blue-600 text-white" },
+      { key: "users", label: "Users", count: "10 items", icon: UsersIcon, color: "bg-accent text-accent-contrast" },
       { key: "posts", label: "Posts", count: "100 items", icon: FileText, color: "bg-indigo-600 text-white" },
       { key: "comments", label: "Comments", count: "500 items", icon: MessageSquare, color: "bg-purple-600 text-white" },
-      { key: "albums", label: "Albums", count: "100 items", icon: Folder, color: "bg-amber-600 text-white" },
+      { key: "albums", label: "Albums", count: "100 items", icon: Folder, color: "bg-warning text-white" },
       { key: "photos", label: "Photos", count: "5,000 items (Virtual)", icon: ImageIcon, color: "bg-rose-600 text-white" },
       { key: "todos", label: "Todos", count: "200 items", icon: CheckSquare, color: "bg-emerald-600 text-white" },
     ];
@@ -506,28 +506,28 @@ export function DataGridDemo() {
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="border-b border-gray-200 pb-4">
+      <div className="border-b border-border-default pb-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-blue-600" />
-          <h2 className="text-2xl font-bold text-gray-900">
+          <Sparkles className="h-6 w-6 text-accent" />
+          <h2 className="text-2xl font-bold text-body">
             JSONPlaceholder API & DataGrid Sandbox
           </h2>
         </div>
-        <p className="text-gray-600 text-sm mt-1">
+        <p className="text-muted text-sm mt-1">
           Test virtual scrolling, pagination, form containers, and error handling across all JSONPlaceholder REST endpoints.
         </p>
       </div>
 
       {/* Resource Endpoint Selector */}
       {dataSource === "mock-api" && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-card border border-border-default rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-gray-900 font-bold text-sm">
-              <Database className="h-4 w-4 text-blue-600" />
+            <div className="flex items-center gap-2 text-body font-bold text-sm">
+              <Database className="h-4 w-4 text-accent" />
               <span>Select Endpoint Dataset:</span>
             </div>
-            <span className="text-xs text-gray-500 font-medium">
-              Active: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-blue-600">/{activeResource}</code> ({data.length} items loaded)
+            <span className="text-xs text-muted font-medium">
+              Active: <code className="bg-surface-inset px-1.5 py-0.5 rounded text-accent">/{activeResource}</code> ({data.length} items loaded)
             </span>
           </div>
 
@@ -540,21 +540,21 @@ export function DataGridDemo() {
                   key={res.key}
                   onClick={() => setActiveResource(res.key)}
                   className={`p-3 rounded-lg border text-left transition-all cursor-pointer flex flex-col justify-between ${isActive
-                    ? "border-blue-600 ring-2 ring-blue-500/20 bg-blue-50/50 shadow-xs"
-                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 bg-white"
+                    ? "border-accent ring-2 ring-[var(--rui-focus-ring)] bg-accent-subtle shadow-xs"
+                    : "border-border-default hover:border-accent hover:bg-surface-inset bg-surface-card"
                     }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`p-1.5 rounded-md ${isActive ? res.color : "bg-gray-100 text-gray-600"}`}>
+                    <span className={`p-1.5 rounded-md ${isActive ? res.color : "bg-surface-inset text-muted"}`}>
                       <Icon className="h-4 w-4" />
                     </span>
-                    {isActive && <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />}
+                    {isActive && <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />}
                   </div>
                   <div>
-                    <div className={`font-bold text-sm ${isActive ? "text-blue-900" : "text-gray-800"}`}>
+                    <div className={`font-bold text-sm ${isActive ? "text-accent" : "text-body"}`}>
                       {res.label}
                     </div>
-                    <div className="text-[11px] text-gray-500 font-medium">
+                    <div className="text-[11px] text-muted font-medium">
                       {res.count}
                     </div>
                   </div>
@@ -567,61 +567,61 @@ export function DataGridDemo() {
       {/* Controls Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Error Simulation */}
-        <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <div className="bg-warning/10 border border-warning/40 rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-body font-semibold text-sm">
+            <AlertTriangle className="h-4 w-4 text-warning" />
             <span>Error Simulation Center</span>
           </div>
 
           <div className="space-y-2 text-xs">
-            <label className="flex items-center justify-between cursor-pointer p-1.5 rounded hover:bg-amber-100/50">
-              <span className="font-medium text-amber-900">Fetch Error (500)</span>
+            <label className="flex items-center justify-between cursor-pointer p-1.5 rounded hover:bg-warning/15">
+              <span className="font-medium text-body">Fetch Error (500)</span>
               <input
                 type="checkbox"
                 checked={simFetchError}
                 onChange={(e) => setSimFetchError(e.target.checked)}
-                className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                className="h-4 w-4 rounded border-warning/40 text-warning focus:ring-[var(--rui-focus-ring)] cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between cursor-pointer p-1.5 rounded hover:bg-amber-100/50">
-              <span className="font-medium text-amber-900">Save Error (500)</span>
+            <label className="flex items-center justify-between cursor-pointer p-1.5 rounded hover:bg-warning/15">
+              <span className="font-medium text-body">Save Error (500)</span>
               <input
                 type="checkbox"
                 checked={simSaveError}
                 onChange={(e) => setSimSaveError(e.target.checked)}
-                className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                className="h-4 w-4 rounded border-warning/40 text-warning focus:ring-[var(--rui-focus-ring)] cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between cursor-pointer p-1.5 rounded hover:bg-amber-100/50">
-              <span className="font-medium text-amber-900">Delete Error (403)</span>
+            <label className="flex items-center justify-between cursor-pointer p-1.5 rounded hover:bg-warning/15">
+              <span className="font-medium text-body">Delete Error (403)</span>
               <input
                 type="checkbox"
                 checked={simDeleteError}
                 onChange={(e) => setSimDeleteError(e.target.checked)}
-                className="h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                className="h-4 w-4 rounded border-warning/40 text-warning focus:ring-[var(--rui-focus-ring)] cursor-pointer"
               />
             </label>
           </div>
         </div>
 
         {/* Card 2: Edit Container & Layout */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2 text-gray-800 font-semibold text-sm">
-            <Layout className="h-4 w-4 text-blue-600" />
+        <div className="bg-surface-card border border-border-default rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-body font-semibold text-sm">
+            <Layout className="h-4 w-4 text-accent" />
             <span>Form Container & Grid</span>
           </div>
 
           <div className="space-y-2 text-xs">
             <div>
-              <span className="block text-gray-500 font-medium mb-1">Edit Container:</span>
+              <span className="block text-muted font-medium mb-1">Edit Container:</span>
               <div className="grid grid-cols-3 gap-1">
                 {(["right", "modal", "inline"] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setContainerType(type)}
-                    className={`py-1 px-2 rounded text-center capitalize font-medium cursor-pointer transition-colors ${containerType === type ? "bg-blue-600 text-white shadow-xs" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    className={`py-1 px-2 rounded text-center capitalize font-medium cursor-pointer transition-colors ${containerType === type ? "bg-accent text-accent-contrast shadow-xs" : "bg-surface-inset text-body hover:bg-surface-inset"
                       }`}
                   >
                     {type}
@@ -631,13 +631,13 @@ export function DataGridDemo() {
             </div>
 
             <div>
-              <span className="block text-gray-500 font-medium mb-1">Form Columns:</span>
+              <span className="block text-muted font-medium mb-1">Form Columns:</span>
               <div className="grid grid-cols-3 gap-1">
                 {([1, 2, 3] as const).map((num) => (
                   <button
                     key={num}
                     onClick={() => setFormCols(num)}
-                    className={`py-1 px-2 rounded text-center font-medium cursor-pointer transition-colors ${formCols === num ? "bg-blue-600 text-white shadow-xs" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    className={`py-1 px-2 rounded text-center font-medium cursor-pointer transition-colors ${formCols === num ? "bg-accent text-accent-contrast shadow-xs" : "bg-surface-inset text-body hover:bg-surface-inset"
                       }`}
                   >
                     {num} Col
@@ -649,27 +649,27 @@ export function DataGridDemo() {
         </div>
 
         {/* Card 3: Data Source & Latency */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2 text-gray-800 font-semibold text-sm">
-            <Database className="h-4 w-4 text-emerald-600" />
+        <div className="bg-surface-card border border-border-default rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-body font-semibold text-sm">
+            <Database className="h-4 w-4 text-success" />
             <span>Data Provider & Delay</span>
           </div>
 
           <div className="space-y-2 text-xs">
             <div>
-              <span className="block text-gray-500 font-medium mb-1">Provider:</span>
+              <span className="block text-muted font-medium mb-1">Provider:</span>
               <div className="grid grid-cols-2 gap-1">
                 <button
                   onClick={() => setDataSource("mock-data")}
                   disabled={activeResource !== "users"}
-                  className={`py-1 px-2 rounded font-medium cursor-pointer transition-colors ${dataSource === "mock-data" ? "bg-emerald-600 text-white shadow-xs" : "bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className={`py-1 px-2 rounded font-medium cursor-pointer transition-colors ${dataSource === "mock-data" ? "bg-emerald-600 text-white shadow-xs" : "bg-surface-inset text-body hover:bg-surface-inset disabled:opacity-40 disabled:cursor-not-allowed"
                     }`}
                 >
                   Local Mock
                 </button>
                 <button
                   onClick={() => setDataSource("mock-api")}
-                  className={`py-1 px-2 rounded font-medium cursor-pointer transition-colors ${dataSource === "mock-api" ? "bg-emerald-600 text-white shadow-xs" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  className={`py-1 px-2 rounded font-medium cursor-pointer transition-colors ${dataSource === "mock-api" ? "bg-emerald-600 text-white shadow-xs" : "bg-surface-inset text-body hover:bg-surface-inset"
                     }`}
                 >
                   HTTP API
@@ -678,9 +678,9 @@ export function DataGridDemo() {
             </div>
 
             <div>
-              <div className="flex justify-between text-gray-500 font-medium mb-1">
+              <div className="flex justify-between text-muted font-medium mb-1">
                 <span>Latency:</span>
-                <span className="text-gray-900 font-bold">{simDelay}ms</span>
+                <span className="text-body font-bold">{simDelay}ms</span>
               </div>
               <input
                 type="range"
@@ -689,47 +689,47 @@ export function DataGridDemo() {
                 step="250"
                 value={simDelay}
                 onChange={(e) => setSimDelay(Number(e.target.value))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                className="w-full h-1.5 bg-surface-inset rounded-lg appearance-none cursor-pointer accent-emerald-600"
               />
             </div>
           </div>
         </div>
 
         {/* Card 4: Quick Actions & Reset */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2 text-gray-800 font-semibold text-sm">
-            <Layers className="h-4 w-4 text-purple-600" />
+        <div className="bg-surface-card border border-border-default rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-body font-semibold text-sm">
+            <Layers className="h-4 w-4 text-accent" />
             <span>Quick Actions</span>
           </div>
 
           <div className="space-y-2 text-xs">
             <button
               onClick={loadData}
-              className="w-full py-1 px-3 rounded bg-slate-800 hover:bg-slate-900 text-white font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+              className="w-full py-1 px-3 rounded bg-accent hover:bg-accent-hover text-accent-contrast font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-xs"
             >
               <RefreshCw className="h-3.5 w-3.5" /> Reload Data
             </button>
 
             <button
               onClick={() => setData([])}
-              className="w-full py-1 px-3 rounded border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              className="w-full py-1 px-3 rounded border border-border-default hover:bg-surface-inset text-body font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
-              <Inbox className="h-3.5 w-3.5 text-gray-400" /> Clear Data (Empty State)
+              <Inbox className="h-3.5 w-3.5 text-faint" /> Clear Data (Empty State)
             </button>
 
             <label className="flex items-center justify-between cursor-pointer pt-0.5">
-              <span className="font-medium text-gray-700">Expandable JSON:</span>
+              <span className="font-medium text-body">Expandable JSON:</span>
               <input
                 type="checkbox"
                 checked={enableExpandable}
                 onChange={(e) => setEnableExpandable(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                className="h-4 w-4 rounded border-border-default text-accent focus:ring-[var(--rui-focus-ring)] cursor-pointer"
               />
             </label>
 
             {enableExpandable && (
               <label className="flex items-center justify-between cursor-pointer pt-0.5">
-                <span className="font-medium text-gray-700">Single Accordion:</span>
+                <span className="font-medium text-body">Single Accordion:</span>
                 <input
                   type="checkbox"
                   checked={accordionMode}
@@ -737,7 +737,7 @@ export function DataGridDemo() {
                     setAccordionMode(e.target.checked);
                     setExpandedRowIds(new Set());
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  className="h-4 w-4 rounded border-border-default text-accent focus:ring-[var(--rui-focus-ring)] cursor-pointer"
                 />
               </label>
             )}
@@ -747,9 +747,9 @@ export function DataGridDemo() {
 
       {/* Active Error Simulations Banner */}
       {(simFetchError || simSaveError || simDeleteError) && (
-        <div className="bg-amber-100 border-l-4 border-amber-500 p-3 rounded-r-lg text-xs text-amber-900 flex items-center justify-between">
+        <div className="bg-warning/15 border-l-4 border-warning p-3 rounded-r-lg text-xs text-body flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
             <span>
               <strong>Active Error Simulations:</strong>{" "}
               {[
@@ -767,7 +767,7 @@ export function DataGridDemo() {
               setSimSaveError(false);
               setSimDeleteError(false);
             }}
-            className="text-amber-700 underline font-medium hover:text-amber-900 cursor-pointer"
+            className="text-body underline font-medium hover:text-warning cursor-pointer"
           >
             Clear All Simulations
           </button>

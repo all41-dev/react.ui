@@ -14,7 +14,7 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
     <td
       data-col-id={c.column.id}
       className={[
-        "border-b border-gray-200 text-sm align-middle",
+        "border-b border-border-default text-sm align-middle",
         paddingClass,
         m?.hideOnMobile ? "hidden md:table-cell" : "",
       ].join(" ")}

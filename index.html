@@ -4,7 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <title>React UI Sandbox</title>
+    <script>
+      // Stamp the theme before the bundle loads, otherwise the page paints in the
+      // default theme first and visibly flips once React mounts.
+      (function () {
+        try {
+          var stored = localStorage.getItem("rui-theme");
+          document.documentElement.dataset.theme =
+            stored === "light" || stored === "dark" ? stored : "dark";
+        } catch (e) {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

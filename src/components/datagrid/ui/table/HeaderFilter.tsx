@@ -14,8 +14,8 @@ function useDebounced<T>(value: T, ms = 250) {
 }
 
 const baseControl =
-  "block w-full h-8 rounded-md border border-gray-300 bg-white text-xs text-gray-800 " +
-  "shadow-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200";
+  "block w-full h-8 rounded-md border border-border-default bg-surface-card text-xs text-body " +
+  "shadow-sm outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)]";
 
 const inputClass = `${baseControl} px-2`;
 const selectClass = `${baseControl} appearance-none pl-2 pr-6`;
@@ -110,7 +110,7 @@ function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "sele
         ))}
       </select>
 
-      <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-gray-400">
+      <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-faint">
         <ChevronDown className="h-3 w-3" aria-hidden />
       </span>
     </div>
@@ -142,7 +142,7 @@ function BooleanFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "boo
         <option value="false">{labels.false}</option>
       </select>
 
-      <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-gray-400">
+      <span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center text-faint">
         <ChevronDown className="h-3 w-3" aria-hidden />
       </span>
     </div>

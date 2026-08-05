@@ -60,9 +60,9 @@ export function renderEditor<T extends FieldValues>(opts: {
           const hasError = !!fieldState.error;
           const errorMsg = fieldState.error?.message as string | undefined;
           const baseClass =
-            "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none hover:border-gray-400";
+            "w-full rounded-lg border border-border-default bg-surface-card px-3 py-2 text-sm text-body placeholder:text-faint transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] focus:outline-none hover:border-accent";
           const invalidClass = hasError
-            ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+            ? "border-danger focus:border-danger focus:ring-[var(--rui-focus-ring)]"
             : "";
 
           const forwarded: any = {
@@ -94,23 +94,23 @@ export function renderEditor<T extends FieldValues>(opts: {
                       className="sr-only peer"
                       {...(meta.editorProps as any)}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-surface-inset peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--rui-focus-ring)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-accent-contrast after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-card after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
                   </div>
                   <div className="flex-1 min-w-0">
                     {label && (
-                      <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                      <span className="text-sm font-medium text-body group-hover:text-body">
                         {label}
                       </span>
                     )}
                     {description && (
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-muted mt-0.5">
                         {description}
                       </p>
                     )}
                   </div>
                 </label>
                 {hasError && (
-                  <p className="text-xs text-red-600 mt-1.5 ml-14">
+                  <p className="text-xs text-danger mt-1.5 ml-14">
                     {errorMsg}
                   </p>
                 )}
@@ -128,11 +128,11 @@ export function renderEditor<T extends FieldValues>(opts: {
               {label && (
                 <label
                   htmlFor={String(name)}
-                  className="block text-xs font-semibold text-gray-700 uppercase tracking-wide"
+                  className="block text-xs font-semibold text-body uppercase tracking-wide"
                 >
                   {label}
                   {meta.required && (
-                    <span className="text-red-500 ml-1">*</span>
+                    <span className="text-danger ml-1">*</span>
                   )}
                 </label>
               )}
@@ -143,10 +143,10 @@ export function renderEditor<T extends FieldValues>(opts: {
                   onChange={field.onChange}
                 />
                 {description && (
-                  <p className="text-xs text-gray-500 mt-1.5">{description}</p>
+                  <p className="text-xs text-muted mt-1.5">{description}</p>
                 )}
                 {hasError && (
-                  <p className="text-xs text-red-600 mt-1.5 font-medium">
+                  <p className="text-xs text-danger mt-1.5 font-medium">
                     {errorMsg}
                   </p>
                 )}

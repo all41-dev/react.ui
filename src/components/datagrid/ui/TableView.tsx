@@ -82,7 +82,7 @@ export function TableView<TRow extends object>({
             lastColWidth={lastColWidth}
           />
 
-          <thead className="sticky top-0 z-1 bg-gray-50">
+          <thead className="sticky top-0 z-1 bg-surface-inset">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((h) => (
@@ -93,7 +93,7 @@ export function TableView<TRow extends object>({
           </thead>
 
           {isLoading && rows.length === 0 && (
-            <tbody className="bg-white">
+            <tbody className="bg-surface-card">
               <SkeletonRow cols={leafColCount} />
               <SkeletonRow cols={leafColCount} />
               <SkeletonRow cols={leafColCount} />
@@ -101,11 +101,11 @@ export function TableView<TRow extends object>({
           )}
 
           {isCreating && inlineEditor && (
-            <tbody className="bg-white border-b border-gray-200">
+            <tbody className="bg-surface-card border-b border-border-default">
               <tr>
                 <td colSpan={leafColCount} className="p-0 overflow-hidden">
                   <div className="animate-slide-down">
-                    <div className="border-l-2 border-blue-400 bg-linear-to-r from-blue-50/50 to-white shadow-sm">
+                    <div className="border-l-2 border-accent bg-linear-to-r from-accent-subtle to-surface-card shadow-sm">
                       {inlineEditor}
                     </div>
                   </div>
@@ -127,7 +127,7 @@ export function TableView<TRow extends object>({
               const r = allRows[virtualRow.index];
               const key = getId(r.original) ?? r.id;
               const rowBgClass =
-                r.index % 2 === 0 ? "bg-white" : "bg-gray-50";
+                r.index % 2 === 0 ? "bg-surface-card" : "bg-surface-inset";
               const isEditing =
                 editingRowId !== undefined &&
                 String(key) === String(editingRowId);
@@ -167,7 +167,7 @@ export function TableView<TRow extends object>({
           )}
 
           {!isLoading && rows.length === 0 && !error && (
-            <tbody className="bg-white">
+            <tbody className="bg-surface-card">
               <tr>
                 <td colSpan={leafColCount}>
                   <EmptyState
@@ -184,20 +184,20 @@ export function TableView<TRow extends object>({
       <div className="block md:hidden space-y-3 p-4">
         {isLoading && rows.length === 0 && (
           <>
-            <div className="border rounded-lg p-4 bg-white animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="border rounded-lg p-4 bg-surface-card animate-pulse space-y-2">
+              <div className="h-4 bg-surface-inset rounded w-3/4"></div>
+              <div className="h-4 bg-surface-inset rounded w-1/2"></div>
             </div>
-            <div className="border rounded-lg p-4 bg-white animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="border rounded-lg p-4 bg-surface-card animate-pulse space-y-2">
+              <div className="h-4 bg-surface-inset rounded w-3/4"></div>
+              <div className="h-4 bg-surface-inset rounded w-1/2"></div>
             </div>
           </>
         )}
 
         {isCreating && inlineEditor && (
-          <div className="border rounded-lg p-4 bg-white shadow-md border-blue-200">
-            <div className="mb-2 text-sm font-medium text-blue-600">
+          <div className="border rounded-lg p-4 bg-surface-card shadow-md border-accent">
+            <div className="mb-2 text-sm font-medium text-accent">
               New Item
             </div>
             {inlineEditor}
@@ -227,9 +227,9 @@ export function TableView<TRow extends object>({
               return (
                 <div
                   key={String(key)}
-                  className="border rounded-lg p-4 bg-white shadow-md border-blue-200"
+                  className="border rounded-lg p-4 bg-surface-card shadow-md border-accent"
                 >
-                  <div className="mb-2 text-sm font-medium text-blue-600">
+                  <div className="mb-2 text-sm font-medium text-accent">
                     Editing Item
                   </div>
                   {inlineEditor}
@@ -243,8 +243,8 @@ export function TableView<TRow extends object>({
             return (
               <div
                 key={String(key)}
-                className={`border rounded-lg p-4 bg-white hover:shadow-md transition-shadow flex flex-col gap-3 ${
-                  isSelected ? "bg-blue-50" : ""
+                className={`border rounded-lg p-4 bg-surface-card hover:shadow-md transition-shadow flex flex-col gap-3 ${
+                  isSelected ? "bg-accent-subtle" : ""
                 }`}
                 style={
                   isSelected
@@ -259,7 +259,7 @@ export function TableView<TRow extends object>({
                 {/* Header Section: First Column + Actions */}
                 <div className="flex justify-between items-start gap-3">
                   {headerCell && (
-                    <div className="font-semibold text-lg text-gray-900 break-words">
+                    <div className="font-semibold text-lg text-body break-words">
                       {flexRender(
                         headerCell.column.columnDef.cell,
                         headerCell.getContext()
@@ -279,7 +279,7 @@ export function TableView<TRow extends object>({
 
                 {/* Body Section: Grid of remaining columns */}
                 {bodyCells.length > 0 && (
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t pt-3 border-gray-100">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t pt-3 border-border-default">
                     {bodyCells.map((c) => {
                       const headerDef = c.column.columnDef.header;
                       const headerText =
@@ -291,10 +291,10 @@ export function TableView<TRow extends object>({
 
                       return (
                         <div key={c.id} className="flex flex-col min-w-0">
-                          <span className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-0.5">
+                          <span className="text-xs text-muted uppercase tracking-wider font-medium mb-0.5">
                             {headerText}
                           </span>
-                          <span className="text-sm text-gray-700 break-words">
+                          <span className="text-sm text-body break-words">
                             {flexRender(
                               c.column.columnDef.cell,
                               c.getContext()

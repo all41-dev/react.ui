@@ -38,7 +38,7 @@ function ModalShell({
       aria-labelledby="modal-title"
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-2xl max-h-[90vh] bg-surface-card rounded-lg shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {children}

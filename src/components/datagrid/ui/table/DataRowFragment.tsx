@@ -32,9 +32,9 @@ function DataRowFragmentInner<TRow extends object>({
   return (
     <>
       <tr
-        className={`group transition-colors duration-150 hover:bg-gray-100/70 cursor-pointer ${
-          isEditing ? "bg-blue-50/70" : ""
-        } ${isSelected ? "bg-blue-50" : ""}`}
+        className={`group transition-colors duration-150 hover:bg-surface-inset cursor-pointer ${
+          isEditing ? "bg-accent-subtle" : ""
+        } ${isSelected ? "bg-accent-subtle" : ""}`}
         style={
           isSelected
             ? { boxShadow: "inset 4px 0 0 0 rgb(59 130 246)" }
@@ -54,8 +54,8 @@ function DataRowFragmentInner<TRow extends object>({
       </tr>
 
       {isExpanded && renderExpandedRow && (
-        <tr className="bg-gray-50/50">
-          <td colSpan={leafColCount} className="p-0 border-b border-gray-200">
+        <tr className="bg-surface-inset">
+          <td colSpan={leafColCount} className="p-0 border-b border-border-default">
             <div className="px-4 py-3 animate-slide-down">
               {renderExpandedRow(row.original)}
             </div>
@@ -64,10 +64,10 @@ function DataRowFragmentInner<TRow extends object>({
       )}
 
       {isEditing && inlineEditor && (
-        <tr className="bg-white border-b border-gray-200">
+        <tr className="bg-surface-card border-b border-border-default">
           <td colSpan={leafColCount} className="p-0 overflow-hidden">
             <div className="animate-slide-down">
-              <div className="border-l-2 border-blue-400 bg-linear-to-r from-blue-50/50 to-white shadow-sm">
+              <div className="border-l-2 border-accent bg-linear-to-r from-accent-subtle to-surface-card shadow-sm">
                 {inlineEditor}
               </div>
             </div>

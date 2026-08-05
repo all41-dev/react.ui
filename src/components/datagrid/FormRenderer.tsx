@@ -86,7 +86,7 @@ export function FormRenderer<T extends FieldValues>({
                 key={String(key ?? c.id ?? label)}
                 className="rounded-lg border p-3"
               >
-                <div className="mb-1 text-xs font-medium text-gray-500">
+                <div className="mb-1 text-xs font-medium text-muted">
                   {label}
                 </div>
                 <div className="text-sm">{value}</div>

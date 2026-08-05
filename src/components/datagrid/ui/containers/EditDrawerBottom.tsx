@@ -30,7 +30,7 @@ export function EditDrawerBottom<
 }) {
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-40 w-full transform bg-white shadow-2xl transition-transform duration-300 ${
+      className={`fixed bottom-0 left-0 right-0 z-40 w-full transform bg-surface-card shadow-2xl transition-transform duration-300 ${
         open ? "translate-y-0" : "translate-y-full"
       }`}
     >

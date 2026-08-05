@@ -142,26 +142,26 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
   // Variant-specific class names
   const isInline = variant === "inline";
   const actionsContainerClass = isInline
-    ? "flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-200 bg-gradient-to-r from-gray-50/80 to-white"
+    ? "flex items-center justify-end gap-3 px-4 py-3 border-t border-border-default bg-gradient-to-r from-surface-inset to-surface-card"
     : variant === "modal"
     ? "mt-auto flex items-center justify-end gap-2 pt-2 border-t"
     : "mt-auto flex items-center justify-end gap-2 pt-2";
 
   const cancelBtnClass = isInline
-    ? "cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm disabled:opacity-50 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+    ? "cursor-pointer rounded-lg border border-border-default bg-surface-card px-4 py-2 text-sm font-medium text-body shadow-sm disabled:opacity-50 hover:bg-surface-inset hover:border-accent transition-all duration-200"
     : variant === "modal"
-    ? "cursor-pointer rounded-md border px-4 py-2 text-sm disabled:opacity-60 hover:bg-gray-50"
+    ? "cursor-pointer rounded-md border px-4 py-2 text-sm disabled:opacity-60 hover:bg-surface-inset"
     : "cursor-pointer rounded-md border px-3 py-2 disabled:opacity-60";
 
   const submitBtnClass = isInline
-    ? "cursor-pointer rounded-lg bg-black px-4 py-2 text-sm font-medium text-white shadow-sm disabled:opacity-50 hover:bg-gray-800 hover:shadow-md transition-all duration-200"
+    ? "cursor-pointer rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-contrast shadow-sm disabled:opacity-50 hover:bg-accent-hover hover:shadow-md transition-all duration-200"
     : variant === "modal"
-    ? "cursor-pointer rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-60 hover:bg-gray-800"
-    : "cursor-pointer rounded-md bg-black px-3 py-2 text-white disabled:opacity-60";
+    ? "cursor-pointer rounded-md bg-accent px-4 py-2 text-sm text-accent-contrast disabled:opacity-60 hover:bg-accent-hover"
+    : "cursor-pointer rounded-md bg-accent px-3 py-2 text-accent-contrast disabled:opacity-60 hover:bg-accent-hover";
 
   const serverErrorClass = isInline
-    ? "rounded-lg border border-red-200 bg-red-50/80 p-3 text-sm text-red-700 shadow-sm"
-    : "rounded-md border border-red-200 bg-red-50 p-2 text-sm text-red-700";
+    ? "rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger shadow-sm"
+    : "rounded-md border border-danger/30 bg-danger/10 p-2 text-sm text-danger";
 
   // Inline variant renders differently (flat form without header)
   if (isInline) {
@@ -180,7 +180,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
             )}
 
             {switchFields.length > 0 && (
-              <div className="flex flex-wrap items-start gap-6 pt-2 border-t border-gray-200">
+              <div className="flex flex-wrap items-start gap-6 pt-2 border-t border-border-default">
                 {switchFields.map((c) => (
                   <div key={(c as any).accessorKey || c.id}>
                     {renderEditor<TForm>({
@@ -292,7 +292,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
           )}
 
           {switchFields.length > 0 && (
-            <div className="flex flex-wrap items-start gap-6 pt-2 border-t border-gray-200">
+            <div className="flex flex-wrap items-start gap-6 pt-2 border-t border-border-default">
               {switchFields.map((c) => (
                 <div key={(c as any).accessorKey || c.id}>
                   {renderEditor<TForm>({

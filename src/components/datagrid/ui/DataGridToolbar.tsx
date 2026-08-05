@@ -29,8 +29,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-b p-3 relative z-10">
-        <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="flex items-center justify-between gap-2 border-b border-border-default p-3 relative z-10">
+        <h2 className="text-lg font-semibold text-body">{title}</h2>
         <div className="flex items-center gap-2">
           {toolbar}
           {editContainer !== "none" && (
@@ -41,9 +41,9 @@ export const DataGridToolbar = memo(function DataGridToolbar({
     inline-flex items-center gap-2
     rounded-md px-3 py-2  
     text-sm font-medium
-    bg-black text-white
+    bg-accent text-accent-contrast
     transition-all
-    hover:bg-gray-900
+    hover:bg-accent-hover
     active:scale-95
     disabled:opacity-50 disabled:cursor-not-allowed
     cursor-pointer select-none
@@ -59,7 +59,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
 
       {showError && (
         <div
-          className="mx-3 mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          className="mx-3 mt-3 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
           role="alert"
         >
           <div className="flex items-center justify-between gap-3">
@@ -70,7 +70,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="rounded border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+                  className="rounded border border-danger/40 bg-surface-card px-2 py-1 text-xs font-medium text-danger hover:bg-danger/20"
                 >
                   Retry
                 </button>
@@ -78,7 +78,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
               <button
                 type="button"
                 onClick={() => setDismissed(true)}
-                className="rounded p-1 text-red-400 hover:text-red-600 hover:bg-red-100 transition-colors"
+                className="rounded p-1 text-danger hover:text-danger hover:bg-danger/20 transition-colors"
                 aria-label="Dismiss error"
                 title="Dismiss"
               >

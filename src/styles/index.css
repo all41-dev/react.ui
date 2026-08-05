@@ -4,3 +4,13 @@
  */
 @import "tailwindcss";
 @import "./base.css";
+
+/* Sandbox page chrome. Deliberately not in base.css — a bare `a` rule would be
+   intrusive for consumers of the published stylesheet. */
+a {
+  color: var(--rui-link);
+}
+a:hover {
+  color: var(--rui-link-hover);
+  text-decoration: underline;
+}

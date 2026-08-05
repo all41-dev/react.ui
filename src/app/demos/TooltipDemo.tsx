@@ -4,7 +4,7 @@ export function TooltipDemo() {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-6">Tooltip Demo</h2>
-      <p className="mb-6 text-gray-600">
+      <p className="mb-6 text-muted">
         Hover over the elements below to see tooltips in different positions.
       </p>
 
@@ -14,7 +14,7 @@ export function TooltipDemo() {
 
           <div className="flex flex-col gap-4 items-start">
             <Tooltip content="This is a top tooltip" place="top">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md">
+              <button className="px-4 py-2 bg-accent text-white rounded-md">
                 Hover me (Top)
               </button>
             </Tooltip>
@@ -44,7 +44,7 @@ export function TooltipDemo() {
 
           <div className="flex flex-col gap-4 items-start">
             <Tooltip content="Tooltips work on text elements too!">
-              <span className="text-blue-600 underline cursor-pointer">
+              <span className="text-accent underline cursor-pointer">
                 Hover over this text
               </span>
             </Tooltip>

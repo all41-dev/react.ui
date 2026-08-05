@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type FC, type ReactNode, useState } from "react";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "./ThemeProvider";
 
 interface IProviders {
   readonly children: ReactNode;
@@ -25,9 +26,11 @@ export const Providers: FC<IProviders> = ({ children }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
-      {/* Mount once */}
-      <Toaster position="top-right" richColors closeButton/>
+      <ThemeProvider>
+        {children}
+        {/* Mount once */}
+        <Toaster position="top-right" richColors closeButton />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

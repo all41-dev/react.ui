@@ -32,3 +32,8 @@ build-output
 # Local review notes
 REVIEW_REPORT.md
 claude_docs
+
+# Local brand/theme overrides for the sandbox. This repo is public; brand palettes
+# are not. Share these files with colleagues directly, never through git.
+# See src/app/styles/README.md.
+src/app/styles/*.local.css

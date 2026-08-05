@@ -4,7 +4,7 @@ export function ToasterDemo() {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">Toaster Demo</h2>
-      <p className="mb-4 text-gray-600">
+      <p className="mb-4 text-muted">
         Click the buttons below to trigger different toast notifications.
       </p>
 
@@ -18,7 +18,7 @@ export function ToasterDemo() {
 
         <button
           onClick={() => toast.error("Error! Something went wrong.")}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          className="px-4 py-2 bg-danger text-white rounded-md hover:bg-danger transition-colors"
         >
           Error Toast
         </button>
@@ -30,7 +30,7 @@ export function ToasterDemo() {
               toast.settleSuccess(id, "Done! Data loaded successfully.");
             }, 2000);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors"
         >
           Loading → Success
         </button>

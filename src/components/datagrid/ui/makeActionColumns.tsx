@@ -54,8 +54,8 @@ function ActionSpinner() {
 export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
   const btnBase =
     "inline-flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded cursor-pointer " +
-    "bg-white hover:bg-gray-100 border border-gray-200 hover:border-gray-300 transition-colors " +
-    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white";
+    "bg-surface-card hover:bg-surface-inset border border-border-default hover:border-accent transition-colors " +
+    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-surface-card";
 
   const EditButton: FC<{ row: T }> = ({ row }) => (
     <button
@@ -85,7 +85,7 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
             ? opts.labels?.delete
             : "Delete"
         }
-        className={`${btnBase} text-red-600 hover:text-red-700 hover:bg-red-50`}
+        className={`${btnBase} text-danger hover:text-danger hover:bg-danger/10`}
         disabled={isDeleting}
         onClick={async (e) => {
           e.stopPropagation();
