@@ -167,7 +167,7 @@ export function DataGridDemo() {
         {
           accessorKey: "name",
           header: "Name",
-          meta: { editor: "text", required: true, formLayout: { order: 1 } },
+          meta: { editor: "text", required: true, formLayout: { order: 1 }, filter: { type: "text", placeholder: "Name…" } },
         },
         {
           accessorKey: "username",
@@ -203,6 +203,14 @@ export function DataGridDemo() {
               { label: "User", value: "User" },
               { label: "Editor", value: "Editor" },
             ],
+            filter: {
+              type: "select",
+              options: [
+                { label: "Admin", value: "Admin" },
+                { label: "User", value: "User" },
+                { label: "Editor", value: "Editor" },
+              ],
+            },
             formLayout: { order: 4 },
           },
         },
@@ -231,6 +239,14 @@ export function DataGridDemo() {
               { label: "Inactive", value: "inactive" },
               { label: "Pending", value: "pending" },
             ],
+            filter: {
+              type: "select",
+              options: [
+                { label: "Active", value: "active" },
+                { label: "Inactive", value: "inactive" },
+                { label: "Pending", value: "pending" },
+              ],
+            },
             formLayout: { order: 5 },
           },
         },
@@ -777,7 +793,8 @@ export function DataGridDemo() {
       {/* DataGrid Instance */}
       <DataGrid
         key={activeResource}
-        title={`${activeResource.toUpperCase()} Dataset (${data.length} items)`}
+        title={`${activeResource.toUpperCase()} dataset`}
+        subtitle={`/${activeResource} · JSONPlaceholder`}
         columns={currentColumns}
         zodSchema={currentSchema}
         initialData={data}

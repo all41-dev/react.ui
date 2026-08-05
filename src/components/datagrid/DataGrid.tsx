@@ -38,6 +38,7 @@ import {
   type ReactNode,
 } from "react";
 import { DataGridPagination } from "./ui/DataGridPagination";
+import { FacetChips, type FacetChip } from "./ui/FacetChips";
 import { Pencil, Trash2 } from "lucide-react";
 import { Tooltip } from "react-tooltip";
 import { DataGridContext } from "./DataGridContext";
@@ -45,6 +46,12 @@ import { useId } from "react";
 
 export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   title?: string;
+  /** Faint one-liner rendered next to the title. */
+  subtitle?: string;
+  /** Toolbar search across all columns. Default true. */
+  searchable?: boolean;
+  /** Title of the empty state ("No data" when omitted). */
+  emptyLabel?: string;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   initialData: TRow[];
@@ -96,6 +103,9 @@ const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
 
 export function DataGrid<TRow extends object, TForm extends object = TRow>({
   title = "Data",
+  subtitle,
+  searchable = true,
+  emptyLabel,
   columns,
   zodSchema,
   initialData,
@@ -127,6 +137,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   } | null>(null);
   const [open, setOpen] = useState(false);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [sorting, setSorting] = useState<SortingState>(initialSorting ?? []);
   const [selectedRowId, setSelectedRowId] = useState<
     string | number | undefined
@@ -312,11 +324,16 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     defaultColumn,
     columnResizeMode: "onChange",
     columnResizeDirection: "ltr",
+    // Toolbar search: contains, case-insensitive, across every globally-filterable
+    // column — the built-in fn reads each column's accessor, which is the spec's
+    // "uses column.value(row) when defined".
+    globalFilterFn: "includesString",
     state: {
       columnSizing: colState.columnSizing,
       columnVisibility: colState.columnVisibility,
       columnOrder: colState.columnOrder,
       columnFilters,
+      globalFilter,
       sorting,
       ...(paginationEnabled ? { pagination } : {}),
     },
@@ -324,6 +341,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     onColumnVisibilityChange: colHandlers.onColumnVisibilityChange,
     onColumnOrderChange: colHandlers.onColumnOrderChange,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     onSortingChange: setSorting,
     ...(paginationEnabled ? { onPaginationChange: setPagination } : {}),
   });
@@ -333,14 +351,19 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
    * mount, which previously stomped a controlled parent's initial pageIndex, and the
    * identity check keeps it from calling the parent's onChange for a no-op.
    */
-  const prevFilterSortRef = useRef({ columnFilters, sorting });
+  const prevFilterSortRef = useRef({ columnFilters, globalFilter, sorting });
   useEffect(() => {
     if (!paginationEnabled) return;
     const prev = prevFilterSortRef.current;
-    if (prev.columnFilters === columnFilters && prev.sorting === sorting) return;
-    prevFilterSortRef.current = { columnFilters, sorting };
+    if (
+      prev.columnFilters === columnFilters &&
+      prev.globalFilter === globalFilter &&
+      prev.sorting === sorting
+    )
+      return;
+    prevFilterSortRef.current = { columnFilters, globalFilter, sorting };
     onPaginationChange((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
-  }, [columnFilters, sorting, paginationEnabled, onPaginationChange]);
+  }, [columnFilters, globalFilter, sorting, paginationEnabled, onPaginationChange]);
 
   const handleSubmit = useCallback(
     async (values: TForm) => {
@@ -378,6 +401,48 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     return cols.length;
   }, [columns, actionCol]);
 
+  const hasFilterableColumns = useMemo(
+    () => baseCols.some((c) => (c as any).meta?.filter),
+    [baseCols]
+  );
+
+  // One chip per active criterion: search first, then each column filter.
+  const facetChips = useMemo<FacetChip[]>(() => {
+    const labelOf = (id: string) => {
+      const col = baseCols.find((c) => getColId(c) === id) as any;
+      const header = col?.header;
+      return col?.meta?.label ?? (typeof header === "string" ? header : id);
+    };
+    const valueOf = (v: unknown): string => {
+      if (Array.isArray(v)) return v.join(", ");
+      if (typeof v === "boolean") return v ? "Yes" : "No";
+      if (v && typeof v === "object") {
+        const r = v as { from?: string; to?: string };
+        return [r.from, r.to].filter(Boolean).join(" → ");
+      }
+      return String(v ?? "");
+    };
+    const chips: FacetChip[] = [];
+    if (globalFilter.trim() !== "") {
+      chips.push({
+        id: "__search__",
+        label: "Search",
+        value: globalFilter,
+        onClear: () => setGlobalFilter(""),
+      });
+    }
+    for (const f of columnFilters) {
+      chips.push({
+        id: f.id,
+        label: labelOf(f.id),
+        value: valueOf(f.value),
+        onClear: () =>
+          setColumnFilters((prev) => prev.filter((x) => x.id !== f.id)),
+      });
+    }
+    return chips;
+  }, [globalFilter, columnFilters, baseCols]);
+
   const tooltipId = useId().replace(/:/g, "_");
 
   const contextValue = useMemo(() => ({ tooltipId }), [tooltipId]);
@@ -391,12 +456,23 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       >
         <DataGridToolbar
           title={title}
+          subtitle={subtitle}
+          count={rows.length}
           toolbar={toolbar}
           editContainer={editContainer}
           error={error ?? null}
           onAddClick={handleCreate}
           onRetry={onRetry}
+          searchable={searchable}
+          searchValue={globalFilter}
+          onSearchChange={setGlobalFilter}
+          hasFilterableColumns={hasFilterableColumns}
+          filtersShown={showFilters}
+          activeFilterCount={columnFilters.length}
+          onToggleFilters={() => setShowFilters((v) => !v)}
         />
+
+        <FacetChips chips={facetChips} />
 
         <div
           className="relative overflow-x-auto overflow-y-visible isolate w-full"
@@ -417,6 +493,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             rows={rows}
             error={error ?? null}
             leafColCount={leafColCount}
+            showFilters={showFilters && hasFilterableColumns}
+            emptyLabel={emptyLabel}
             editingRowId={
               editContainer === "inline" &&
               editing?.mode === "edit" &&

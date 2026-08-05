@@ -1,6 +1,5 @@
 import { flexRender, type Header } from "@tanstack/react-table";
 import type { ColumnMeta } from "../../types/column";
-import { HeaderFilter } from "./HeaderFilter";
 
 function Resizer({
   getResizeHandler,
@@ -75,7 +74,6 @@ function HeaderCellInner<TRow extends object>({
           {flexRender(h.column.columnDef.header, h.getContext())}
         </div>
       </div>
-      <HeaderFilter h={h} />
     </th>
   );
 }
@@ -84,8 +82,8 @@ export const HeaderCell = memo(HeaderCellInner, (prev, next) => {
   if (prev.h.id !== next.h.id) return false;
   if (prev.h.column.getSize() !== next.h.column.getSize()) return false;
   if (prev.h.column.getIsSorted() !== next.h.column.getIsSorted()) return false;
-  if (prev.h.column.getFilterValue() !== next.h.column.getFilterValue())
-    return false;
+  // Filters no longer render inside the header cell (they live in the filter row),
+  // so getFilterValue() changes don't need to bust this memo anymore.
   if (prev.h.column.columnDef !== next.h.column.columnDef) return false;
   return true;
 }) as typeof HeaderCellInner;

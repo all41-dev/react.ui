@@ -5,6 +5,7 @@ import { useContainerWidth } from "../hooks/useContainerWidth";
 import { useColumnLayout } from "../hooks/useColumnLayout";
 import { Colgroup } from "./table/Colgroup";
 import { HeaderCell } from "./table/HeaderCell";
+import { HeaderFilter } from "./table/HeaderFilter";
 import { type ReactNode } from "react";
 import { DataRowFragment } from "./table/DataRowFragment";
 
@@ -15,6 +16,9 @@ type TableViewProps<TRow extends object> = {
   rows: TRow[];
   error: string | Error | null;
   leafColCount: number;
+  /** Renders the per-column filter row under the header (toolbar Filters toggle). */
+  showFilters?: boolean;
+  emptyLabel?: string;
   editingRowId?: string | number | undefined;
   inlineEditor?: ReactNode;
   isCreating?: boolean;
@@ -31,6 +35,8 @@ export function TableView<TRow extends object>({
   rows,
   error,
   leafColCount,
+  showFilters,
+  emptyLabel,
   editingRowId,
   inlineEditor,
   isCreating,
@@ -90,6 +96,26 @@ export function TableView<TRow extends object>({
                 ))}
               </tr>
             ))}
+            {/* Filter row lives in thead so it stays sticky under the header. */}
+            {showFilters && (
+              <tr className="bg-surface-inset">
+                {table
+                  .getHeaderGroups()
+                  .at(-1)!
+                  .headers.map((h) =>
+                    h.isPlaceholder || h.column.id === "__actions__" ? (
+                      <th key={h.id} className="!w-0 !p-0 border-none" aria-hidden="true" />
+                    ) : (
+                      <th
+                        key={h.id}
+                        className="border-b border-border-default px-3 pb-2 pt-0 text-left align-top font-normal"
+                      >
+                        <HeaderFilter h={h} />
+                      </th>
+                    )
+                  )}
+              </tr>
+            )}
           </thead>
 
           {isLoading && rows.length === 0 && (
@@ -171,7 +197,7 @@ export function TableView<TRow extends object>({
               <tr>
                 <td colSpan={leafColCount}>
                   <EmptyState
-                    title="No data"
+                    title={emptyLabel ?? "No data"}
                     description="There are no items to display yet."
                   />
                 </td>
@@ -311,7 +337,7 @@ export function TableView<TRow extends object>({
 
         {!isLoading && rows.length === 0 && !error && (
           <EmptyState
-            title="No data"
+            title={emptyLabel ?? "No data"}
             description="There are no items to display yet."
           />
         )}

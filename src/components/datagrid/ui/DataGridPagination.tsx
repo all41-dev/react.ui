@@ -1,5 +1,6 @@
 import type { Table, TableState } from "@tanstack/react-table";
-import { useRef, useState, memo } from "react";
+import { memo } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Props<TRow extends object> = {
   table: Table<TRow>;
@@ -7,8 +8,27 @@ type Props<TRow extends object> = {
   pageSizeOptions?: number[];
   className?: string;
   sticky?: boolean;
+  /** Not read directly — passing table.getState() busts the memo when table state changes. */
   tableState?: TableState;
 };
+
+/**
+ * Windowed page list per the design spec: first, last, current ±1, with ellipsis
+ * filling the gaps. Short totals render every page.
+ */
+function pageWindow(current: number, total: number): (number | "ellipsis-l" | "ellipsis-r")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const wanted = new Set([1, total, current - 1, current, current + 1]);
+  const pages = [...wanted].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out: (number | "ellipsis-l" | "ellipsis-r")[] = [];
+  let prev = 0;
+  for (const p of pages) {
+    if (p - prev > 1) out.push(p < current ? "ellipsis-l" : "ellipsis-r");
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
 
 export const DataGridPagination = memo(function DataGridPagination<TRow extends object>({
   table,
@@ -22,26 +42,27 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
     pageSize: pageSizeOptions[0] ?? 10,
   };
 
+  const filteredTotal =
+    typeof totalCount === "number" ? totalCount : table.getFilteredRowModel().rows.length;
+
   const rawCount = table.getPageCount();
   const pageCount = Number.isFinite(rawCount)
     ? rawCount
-    : typeof totalCount === "number" && totalCount >= 0
-    ? Math.max(1, Math.ceil(totalCount / pageSize))
-    : 0;
+    : Math.max(1, Math.ceil(filteredTotal / pageSize));
 
   const canPrev = table.getCanPreviousPage();
   const canNext = table.getCanNextPage();
 
-  const filteredTotal =
-    typeof totalCount === "number" ? totalCount : table.getFilteredRowModel().rows.length;
+  const current = pageIndex + 1;
+  const from = filteredTotal === 0 ? 0 : pageIndex * pageSize + 1;
+  const to = Math.min(current * pageSize, filteredTotal);
+  const rangeMsg = filteredTotal === 0 ? "No results" : `${from}–${to} of ${filteredTotal}`;
 
-  const from = pageCount === 0 ? 0 : pageIndex * pageSize + 1;
-  const to = Math.min((pageIndex + 1) * pageSize, filteredTotal);
-
-  const liveMsg = pageCount === 0 ? "No results" : `${from} to ${to}`;
-
-  const navRef = useRef<HTMLElement>(null);
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Never steal keys from the page-size select (or any future form control here) —
+    // arrow keys inside it must change the selection, not the page. (#15)
+    const t = e.target as HTMLElement;
+    if (t.closest("select, input, textarea")) return;
     if (e.key === "ArrowLeft") {
       e.preventDefault();
       if (e.shiftKey) table.setPageIndex(0);
@@ -52,11 +73,11 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
       if (e.shiftKey) table.setPageIndex(Math.max(0, pageCount - 1));
       else table.nextPage();
     }
-    if (e.key.toLowerCase() === "home") {
+    if (e.key === "Home") {
       e.preventDefault();
       table.setPageIndex(0);
     }
-    if (e.key.toLowerCase() === "end") {
+    if (e.key === "End") {
       e.preventDefault();
       table.setPageIndex(Math.max(0, pageCount - 1));
     }
@@ -64,73 +85,80 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
 
   return (
     <nav
-      ref={navRef}
       onKeyDown={onKeyDown}
       tabIndex={0}
       aria-label="Pagination"
       className={[
-        "bg-surface-card border-t p-3",
-        "flex flex-col gap-3 md:flex-row md:items-center md:justify-between",
-        sticky ? "sticky bottom-0 z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]" : "",
+        "bg-surface-card border-t border-border-default px-3.5 py-2",
+        "flex flex-wrap items-center justify-between gap-2",
+        "outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
+        sticky ? "sticky bottom-0 z-10" : "",
         className,
       ].join(" ")}
     >
-      {/* LEFT: status */}
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <span aria-live="polite">{liveMsg}</span>
-      </div>
+      {/* LEFT: range of the FILTERED set */}
+      <span aria-live="polite" className="text-xs text-muted">
+        {rangeMsg}
+      </span>
 
-      {/* RIGHT: controls */}
-      <div className="flex flex-col items-stretch gap-2 md:flex-row md:items-center">
-        {/* Segmented page size */}
-        <Segmented
-          label="Rows"
-          value={String(pageSize)}
-          onChange={(v) => table.setPageSize(Number(v))}
-          options={pageSizeOptions.map((n) => ({ label: String(n), value: String(n) }))}
-        />
-
-        <div className="flex items-center gap-1">
-          <IconButton
-            label="First page"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!canPrev}
+      {/* RIGHT: page size + windowed pages */}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          Rows
+          <select
+            value={pageSize}
+            onChange={(e) => table.setPageSize(Number(e.target.value))}
+            className="h-[26px] cursor-pointer rounded-control border border-border-default bg-surface-card px-1.5 text-xs text-body outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)]"
           >
-            «
-          </IconButton>
-          <IconButton
-            label="Previous page"
-            onClick={() => table.previousPage()}
-            disabled={!canPrev}
-          >
-            ‹
-          </IconButton>
+            {pageSizeOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
 
-          <PageIndicator
-            current={pageCount === 0 ? 0 : pageIndex + 1}
-            total={pageCount}
-            onSubmit={(n) => table.setPageIndex(Math.max(0, Math.min(n - 1, pageCount - 1)))}
-          />
+        <div className="flex items-center gap-0.5">
+          <PagerButton label="Previous page" onClick={() => table.previousPage()} disabled={!canPrev}>
+            <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+          </PagerButton>
 
-          <IconButton label="Next page" onClick={() => table.nextPage()} disabled={!canNext}>
-            ›
-          </IconButton>
-          <IconButton
-            label="Last page"
-            onClick={() => table.setPageIndex(Math.max(0, pageCount - 1))}
-            disabled={!canNext}
-          >
-            »
-          </IconButton>
+          {pageCount > 0 &&
+            pageWindow(current, pageCount).map((p) =>
+              typeof p === "number" ? (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => table.setPageIndex(p - 1)}
+                  aria-label={`Page ${p}`}
+                  aria-current={p === current ? "page" : undefined}
+                  className={[
+                    "h-[26px] min-w-[26px] cursor-pointer rounded-control px-1.5 text-xs outline-none transition-colors",
+                    "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
+                    p === current
+                      ? "bg-accent font-semibold text-accent-contrast"
+                      : "text-muted hover:bg-surface-inset hover:text-body",
+                  ].join(" ")}
+                >
+                  {p}
+                </button>
+              ) : (
+                <span key={p} aria-hidden className="px-1 text-xs text-faint">
+                  …
+                </span>
+              )
+            )}
+
+          <PagerButton label="Next page" onClick={() => table.nextPage()} disabled={!canNext}>
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+          </PagerButton>
         </div>
       </div>
     </nav>
   );
 }) as <TRow extends object>(props: Props<TRow>) => React.ReactElement;
 
-/* —— UI bits —— */
-
-function IconButton({
+function PagerButton({
   label,
   onClick,
   disabled,
@@ -144,136 +172,13 @@ function IconButton({
   return (
     <button
       type="button"
-      className="h-8 w-8 rounded-lg border border-border-default text-sm outline-none transition hover:bg-surface-inset disabled:opacity-50 disabled:hover:bg-transparent focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] cursor-pointer"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
       title={label}
+      className="grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-control text-muted outline-none transition-colors hover:bg-surface-inset hover:text-body focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
     >
       {children}
     </button>
-  );
-}
-
-function Segmented({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { label: string; value: string }[];
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-body">{label}</span>
-      <div className="inline-flex overflow-hidden rounded-lg border border-border-default">
-        {options.map((o, i) => {
-          const active = o.value === value;
-          return (
-            <button
-              key={o.value}
-              type="button"
-              onClick={() => onChange(o.value)}
-              className={[
-                "px-3 h-8 text-sm outline-none transition cursor-pointer",
-                active
-                  ? "bg-accent text-accent-contrast"
-                  : "bg-surface-card text-body hover:bg-surface-inset",
-                i !== options.length - 1 ? "border-r border-border-default" : "",
-                "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
-              ].join(" ")}
-              aria-pressed={active}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** “X / Y” with quick edit (fixed: submit vs blur) */
-function PageIndicator({
-  current,
-  total,
-  onSubmit,
-}: {
-  current: number;
-  total: number;
-  onSubmit: (n: number) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  // `val` only matters while editing, so seed it on entry instead of mirroring
-  // `current` through an effect (which cost a cascading render on every page change).
-  const [val, setVal] = useState(String(current));
-  const startEditing = () => {
-    setVal(String(current));
-    setEditing(true);
-  };
-
-  if (total <= 1) {
-    return (
-      <span className="px-2 text-sm text-body">
-        Page <span className="font-medium">{total === 0 ? 0 : 1}</span> /{" "}
-        <span className="font-medium">{total}</span>
-      </span>
-    );
-  }
-
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={startEditing}
-        className="px-2 h-8 rounded-lg border border-transparent text-sm text-body hover:border-accent cursor-pointer"
-        title="Click to jump to page"
-        aria-label={`Page ${current} of ${total}. Click to edit.`}
-      >
-        Page <span className="font-medium">{current}</span> /{" "}
-        <span className="font-medium">{total}</span>
-      </button>
-    );
-  }
-
-  // — Editing mode —
-  const doSubmit = () => {
-    const n = Math.max(1, Math.min(Number(val) || 1, total));
-    onSubmit(n);
-    setEditing(false);
-  };
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        doSubmit();
-      }}
-      className="flex items-center gap-1"
-    >
-      <input
-        autoFocus
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onBlur={doSubmit}                       
-        min={1}
-        max={total}
-        inputMode="numeric"
-        className="w-16 rounded-lg border border-border-default px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-[var(--rui-focus-ring)]"
-        aria-label={`Go to page (1–${total})`}
-      />
-      <button
-        type="submit"
-        onMouseDown={(e) => e.preventDefault()}
-        className="h-8 rounded-lg border border-border-default px-2 text-sm outline-none transition hover:bg-surface-inset focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] cursor-pointer"
-        aria-label="Go to page"
-        title="Go to page"
-      >
-        Go
-      </button>
-    </form>
   );
 }
