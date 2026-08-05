@@ -1,4 +1,4 @@
-import { flexRender, type Table } from "@tanstack/react-table";
+import { type Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { SkeletonRow, EmptyState } from "./GridStates";
 import { useContainerWidth } from "../hooks/useContainerWidth";
@@ -77,9 +77,17 @@ export function TableView<TRow extends object>({
 
   return (
     <>
+      {/*
+       * Single scroll container for all breakpoints. There used to be a second,
+       * always-mounted `block md:hidden` card list here that mapped over EVERY row —
+       * on desktop with 10k rows it built 10k hidden card nodes alongside the
+       * virtualized table, defeating the virtualizer entirely (#13). Small screens
+       * scroll this table horizontally; consumers wanting a card layout pass `card`
+       * and get the real cards view.
+       */}
       <div
         ref={wrapperRef}
-        className="relative overflow-x-auto overflow-y-auto isolate w-full max-h-[70vh] hidden md:block"
+        className="relative isolate max-h-[70vh] w-full overflow-x-auto overflow-y-auto"
       >
         <table
           className="table-fixed border-collapse border-spacing-y-1"
@@ -211,142 +219,6 @@ export function TableView<TRow extends object>({
         </table>
       </div>
 
-      <div className="block md:hidden space-y-3 p-4">
-        {isLoading && rows.length === 0 && (
-          <>
-            <div className="border rounded-lg p-4 bg-surface-card animate-pulse space-y-2">
-              <div className="h-4 bg-surface-inset rounded w-3/4"></div>
-              <div className="h-4 bg-surface-inset rounded w-1/2"></div>
-            </div>
-            <div className="border rounded-lg p-4 bg-surface-card animate-pulse space-y-2">
-              <div className="h-4 bg-surface-inset rounded w-3/4"></div>
-              <div className="h-4 bg-surface-inset rounded w-1/2"></div>
-            </div>
-          </>
-        )}
-
-        {isCreating && inlineEditor && (
-          <div className="border rounded-lg p-4 bg-surface-card shadow-md border-accent">
-            <div className="mb-2 text-sm font-medium text-accent">
-              New Item
-            </div>
-            {inlineEditor}
-          </div>
-        )}
-
-        {!isLoading &&
-          table.getRowModel().rows.map((r) => {
-            const key = getId(r.original) ?? r.id;
-            const cells = r.getVisibleCells();
-            const visibleCells = cells.filter((c) => {
-              if (c.column.id === "__actions__" || c.column.id === "__select__")
-                return false;
-              const meta = (c.column.columnDef as any).meta;
-              return !meta?.hideOnMobile;
-            });
-
-            const actionCell = cells.find((c) => c.column.id === "__actions__");
-            const isSelected =
-              selectedRowId !== undefined &&
-              String(selectedRowId) === String(key);
-
-            const isEditing =
-              editingRowId !== undefined &&
-              String(key) === String(editingRowId);
-
-            if (isEditing && inlineEditor) {
-              return (
-                <div
-                  key={String(key)}
-                  className="border rounded-lg p-4 bg-surface-card shadow-md border-accent"
-                >
-                  <div className="mb-2 text-sm font-medium text-accent">
-                    Editing Item
-                  </div>
-                  {inlineEditor}
-                </div>
-              );
-            }
-
-            // Split cells into header (first one) and body (rest)
-            const [headerCell, ...bodyCells] = visibleCells;
-
-            return (
-              <div
-                key={String(key)}
-                className={`border rounded-lg p-4 bg-surface-card hover:shadow-md transition-shadow flex flex-col gap-3 ${
-                  isSelected ? "bg-accent-subtle" : ""
-                }`}
-                style={
-                  isSelected
-                    ? {
-                        boxShadow: "inset 4px 0 0 0 rgb(59 130 246)",
-                      }
-                    : undefined
-                }
-                onClick={() => onRowClick?.(r.original)}
-                aria-selected={isSelected || undefined}
-              >
-                {/* Header Section: First Column + Actions */}
-                <div className="flex justify-between items-start gap-3">
-                  {headerCell && (
-                    <div className="font-semibold text-lg text-body break-words">
-                      {flexRender(
-                        headerCell.column.columnDef.cell,
-                        headerCell.getContext()
-                      )}
-                    </div>
-                  )}
-
-                  {actionCell && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      {flexRender(
-                        actionCell.column.columnDef.cell,
-                        actionCell.getContext()
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Body Section: Grid of remaining columns */}
-                {bodyCells.length > 0 && (
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t pt-3 border-border-default">
-                    {bodyCells.map((c) => {
-                      const headerDef = c.column.columnDef.header;
-                      const headerText =
-                        typeof headerDef === "string"
-                          ? headerDef
-                          : typeof headerDef === "function"
-                          ? String(c.column.id || "")
-                          : String(headerDef || c.column.id || "");
-
-                      return (
-                        <div key={c.id} className="flex flex-col min-w-0">
-                          <span className="text-xs text-muted uppercase tracking-wider font-medium mb-0.5">
-                            {headerText}
-                          </span>
-                          <span className="text-sm text-body break-words">
-                            {flexRender(
-                              c.column.columnDef.cell,
-                              c.getContext()
-                            )}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-        {!isLoading && rows.length === 0 && !error && (
-          <EmptyState
-            title={emptyLabel ?? "No data"}
-            description="There are no items to display yet."
-          />
-        )}
-      </div>
     </>
   );
 }

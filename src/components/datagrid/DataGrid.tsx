@@ -40,6 +40,7 @@ import {
 } from "react";
 import { DataGridPagination } from "./ui/DataGridPagination";
 import { FacetChips, type FacetChip } from "./ui/FacetChips";
+import { CardsView } from "./ui/CardsView";
 import {
   CellEditPopover,
   type CellEditState,
@@ -57,6 +58,9 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   searchable?: boolean;
   /** Title of the empty state ("No data" when omitted). */
   emptyLabel?: string;
+  /** Supplying this enables the list/cards segment toggle in the toolbar. */
+  card?: (row: TRow) => ReactNode;
+  defaultView?: "list" | "cards";
   /** Leading checkbox column with page-scoped select-all and a bulk footer pill. */
   selectable?: boolean;
   /** Fires with the currently selected row objects whenever the selection changes. */
@@ -115,6 +119,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   subtitle,
   searchable = true,
   emptyLabel,
+  card,
+  defaultView = "list",
   selectable = false,
   onSelectionChange,
   columns,
@@ -150,6 +156,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState<"list" | "cards">(defaultView);
   const [sorting, setSorting] = useState<SortingState>(initialSorting ?? []);
   const [selectedRowId, setSelectedRowId] = useState<
     string | number | undefined
@@ -544,6 +551,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     return cols.length + (selectable ? 1 : 0);
   }, [columns, actionCol, selectable]);
 
+  const showCards = !!card && view === "cards";
+
   const hasFilterableColumns = useMemo(
     () => baseCols.some((c) => (c as any).meta?.filter),
     [baseCols]
@@ -619,6 +628,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
           filtersShown={showFilters}
           activeFilterCount={columnFilters.length}
           onToggleFilters={() => setShowFilters((v) => !v)}
+          view={card ? view : undefined}
+          onViewChange={card ? setView : undefined}
         />
 
         <FacetChips chips={facetChips} />
@@ -635,6 +646,18 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             </div>
           )}
 
+          {showCards ? (
+            <CardsView
+              table={table}
+              getId={getId}
+              card={card!}
+              isLoading={isLoading ?? false}
+              error={error ?? null}
+              emptyLabel={emptyLabel}
+              selectedRowIds={selectable ? selectedIds : undefined}
+              onRowClick={onRowClick ? handleRowClick : undefined}
+            />
+          ) : (
           <TableView
             table={table}
             getId={getId}
@@ -677,8 +700,11 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             expandedRowIds={expandedRowIds}
             renderExpandedRow={renderExpandedRow}
           />
+          )}
         </div>
-        {paginationEnabled && (
+        {/* Pagination applies to the list view only — the cards grid shows the whole
+            filtered set, so a pager under it would be lying. */}
+        {paginationEnabled && !showCards && (
           <DataGridPagination
             table={table}
             /* The FILTERED count, not rows.length — otherwise page counts and the
@@ -691,6 +717,24 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             }
             tableState={table.getState()}
           />
+        )}
+        {/* Cards view has no pager, but the bulk pill still needs somewhere to live. */}
+        {showCards && selectable && selectedIds.size > 0 && (
+          <div className="flex items-center gap-2 border-t border-border-default bg-surface-card px-3.5 py-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent py-0.5 pl-2.5 pr-1 text-[.6875rem] font-semibold text-accent-contrast">
+              {selectedIds.size} selected
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="cursor-pointer rounded-full px-1.5 font-medium underline-offset-2 transition-opacity hover:underline hover:opacity-90"
+              >
+                Clear
+              </button>
+            </span>
+            <span className="text-xs text-muted">
+              {table.getFilteredRowModel().rows.length} shown
+            </span>
+          </div>
         )}
         {editContainer !== "inline" && (
           <EditContainer<TRow, TForm>

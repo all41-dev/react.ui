@@ -160,6 +160,39 @@ export function DataGridDemo() {
     });
   };
 
+  /** Card body for the cards view — the primary label plus a couple of details. */
+  const renderCard = useCallback(
+    (row: any) => {
+      const title =
+        row.name ?? row.title ?? row.email ?? `#${row.id}`;
+      const details: [string, unknown][] =
+        activeResource === "users"
+          ? [["Email", row.email], ["Role", row.role], ["Status", row.status]]
+          : activeResource === "posts"
+            ? [["User", row.userId], ["Body", String(row.body ?? "").slice(0, 80)]]
+            : activeResource === "comments"
+              ? [["Email", row.email], ["Post", row.postId]]
+              : activeResource === "todos"
+                ? [["User", row.userId], ["Done", row.completed ? "Yes" : "No"]]
+                : [["User", row.userId ?? row.albumId]];
+
+      return (
+        <div className="flex flex-col gap-2 pr-6">
+          <span className="truncate text-sm font-semibold text-body">{title}</span>
+          <dl className="flex flex-col gap-1">
+            {details.map(([k, v]) => (
+              <div key={k} className="flex gap-2 text-xs">
+                <dt className="shrink-0 text-faint">{k}</dt>
+                <dd className="min-w-0 truncate text-muted">{String(v ?? "—")}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      );
+    },
+    [activeResource]
+  );
+
   // Columns per Resource
   const currentColumns = useMemo(() => {
     if (activeResource === "users") {
@@ -806,6 +839,7 @@ export function DataGridDemo() {
         onRetry={loadData}
         idAccessor={(row) => row.id}
         selectable
+        card={renderCard}
         editContainer={containerType}
         onPersist={handlePersist}
         onDelete={handleDelete}

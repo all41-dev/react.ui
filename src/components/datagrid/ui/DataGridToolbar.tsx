@@ -1,5 +1,7 @@
-import { Funnel, Plus, RefreshCw, Search, X } from "lucide-react";
+import { Funnel, LayoutGrid, List, Plus, RefreshCw, Search, X } from "lucide-react";
 import { memo, useEffect, useState } from "react";
+
+export type GridView = "list" | "cards";
 
 type DataGridToolbarProps = {
   title: string;
@@ -19,6 +21,9 @@ type DataGridToolbarProps = {
   filtersShown?: boolean;
   activeFilterCount?: number;
   onToggleFilters?: () => void;
+  /** Rendered only when the consumer supplies a `card` renderer. */
+  view?: GridView;
+  onViewChange?: (v: GridView) => void;
 };
 
 export const DataGridToolbar = memo(function DataGridToolbar({
@@ -37,6 +42,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   filtersShown,
   activeFilterCount = 0,
   onToggleFilters,
+  view,
+  onViewChange,
 }: DataGridToolbarProps) {
   /*
    * Dismissal is tracked by message rather than by a boolean reset from an effect.
@@ -96,6 +103,35 @@ export const DataGridToolbar = memo(function DataGridToolbar({
                 </span>
               )}
             </button>
+          )}
+
+          {view && onViewChange && (
+            <div
+              role="group"
+              aria-label="View"
+              className="inline-flex overflow-hidden rounded-control border border-border-default"
+            >
+              {([
+                { id: "list" as const, Icon: List, label: "List view" },
+                { id: "cards" as const, Icon: LayoutGrid, label: "Cards view" },
+              ]).map(({ id, Icon, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onViewChange(id)}
+                  aria-label={label}
+                  aria-pressed={view === id}
+                  title={label}
+                  className={`grid h-[30px] w-[30px] cursor-pointer place-items-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] ${
+                    view === id
+                      ? "bg-accent-subtle text-accent"
+                      : "text-muted hover:bg-surface-inset hover:text-body"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              ))}
+            </div>
           )}
 
           {onRetry && (
