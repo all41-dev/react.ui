@@ -64,6 +64,29 @@ interface JSONPlaceholderUser {
   };
 }
 
+/**
+ * JSONPlaceholder is a read-only fake API: every POST echoes back the same
+ * canned id for a resource (users -> 11, posts -> 101, ...). Trusting it would
+ * give every locally created row of a resource an identical id — duplicate
+ * React keys, and later edit/delete hitting the wrong row. So we ignore the
+ * echoed id and mint a locally unique one instead.
+ */
+const LOCAL_ID_PREFIX = "local-";
+let clientIdSeq = 0;
+function newClientId(resource: string): string {
+  clientIdSeq += 1;
+  return `${LOCAL_ID_PREFIX}${resource}-${clientIdSeq}`;
+}
+
+/**
+ * Rows created in this session exist only in the browser — the server has never
+ * heard of them, and PUT /users/local-user-1 answers 500. Skip the round-trip for
+ * those and let the caller treat the write as successful.
+ */
+function isLocalId(id: string): boolean {
+  return id.startsWith(LOCAL_ID_PREFIX);
+}
+
 function transformUser(apiUser: JSONPlaceholderUser): User {
   return {
     id: String(apiUser.id),
@@ -85,15 +108,15 @@ export const mockApi = {
     return response.data.map(transformUser);
   },
   async createUser(user: Omit<User, "id">): Promise<User> {
-    const response = await axios.post<JSONPlaceholderUser>(`${API_BASE}/users`, user);
-    return { ...user, id: String(response.data.id || Date.now()) };
+    await axios.post<JSONPlaceholderUser>(`${API_BASE}/users`, user);
+    return { ...user, id: newClientId("user") };
   },
   async updateUser(user: User): Promise<User> {
-    await axios.put(`${API_BASE}/users/${user.id}`, user);
+    if (!isLocalId(user.id)) await axios.put(`${API_BASE}/users/${user.id}`, user);
     return user;
   },
   async deleteUser(id: string): Promise<void> {
-    await axios.delete(`${API_BASE}/users/${id}`);
+    if (!isLocalId(id)) await axios.delete(`${API_BASE}/users/${id}`);
   },
 
   // POSTS (100)
@@ -102,15 +125,15 @@ export const mockApi = {
     return response.data.map((item) => ({ ...item, id: String(item.id) }));
   },
   async createPost(post: Omit<Post, "id">): Promise<Post> {
-    const response = await axios.post<any>(`${API_BASE}/posts`, post);
-    return { ...post, id: String(response.data.id || Date.now()) };
+    await axios.post<any>(`${API_BASE}/posts`, post);
+    return { ...post, id: newClientId("post") };
   },
   async updatePost(post: Post): Promise<Post> {
-    await axios.put(`${API_BASE}/posts/${post.id}`, post);
+    if (!isLocalId(post.id)) await axios.put(`${API_BASE}/posts/${post.id}`, post);
     return post;
   },
   async deletePost(id: string): Promise<void> {
-    await axios.delete(`${API_BASE}/posts/${id}`);
+    if (!isLocalId(id)) await axios.delete(`${API_BASE}/posts/${id}`);
   },
 
   // COMMENTS (500)
@@ -119,15 +142,15 @@ export const mockApi = {
     return response.data.map((item) => ({ ...item, id: String(item.id) }));
   },
   async createComment(comment: Omit<Comment, "id">): Promise<Comment> {
-    const response = await axios.post<any>(`${API_BASE}/comments`, comment);
-    return { ...comment, id: String(response.data.id || Date.now()) };
+    await axios.post<any>(`${API_BASE}/comments`, comment);
+    return { ...comment, id: newClientId("comment") };
   },
   async updateComment(comment: Comment): Promise<Comment> {
-    await axios.put(`${API_BASE}/comments/${comment.id}`, comment);
+    if (!isLocalId(comment.id)) await axios.put(`${API_BASE}/comments/${comment.id}`, comment);
     return comment;
   },
   async deleteComment(id: string): Promise<void> {
-    await axios.delete(`${API_BASE}/comments/${id}`);
+    if (!isLocalId(id)) await axios.delete(`${API_BASE}/comments/${id}`);
   },
 
   // ALBUMS (100)
@@ -136,15 +159,15 @@ export const mockApi = {
     return response.data.map((item) => ({ ...item, id: String(item.id) }));
   },
   async createAlbum(album: Omit<Album, "id">): Promise<Album> {
-    const response = await axios.post<any>(`${API_BASE}/albums`, album);
-    return { ...album, id: String(response.data.id || Date.now()) };
+    await axios.post<any>(`${API_BASE}/albums`, album);
+    return { ...album, id: newClientId("album") };
   },
   async updateAlbum(album: Album): Promise<Album> {
-    await axios.put(`${API_BASE}/albums/${album.id}`, album);
+    if (!isLocalId(album.id)) await axios.put(`${API_BASE}/albums/${album.id}`, album);
     return album;
   },
   async deleteAlbum(id: string): Promise<void> {
-    await axios.delete(`${API_BASE}/albums/${id}`);
+    if (!isLocalId(id)) await axios.delete(`${API_BASE}/albums/${id}`);
   },
 
   // PHOTOS (5000)
@@ -153,15 +176,15 @@ export const mockApi = {
     return response.data.map((item) => ({ ...item, id: String(item.id) }));
   },
   async createPhoto(photo: Omit<Photo, "id">): Promise<Photo> {
-    const response = await axios.post<any>(`${API_BASE}/photos`, photo);
-    return { ...photo, id: String(response.data.id || Date.now()) };
+    await axios.post<any>(`${API_BASE}/photos`, photo);
+    return { ...photo, id: newClientId("photo") };
   },
   async updatePhoto(photo: Photo): Promise<Photo> {
-    await axios.put(`${API_BASE}/photos/${photo.id}`, photo);
+    if (!isLocalId(photo.id)) await axios.put(`${API_BASE}/photos/${photo.id}`, photo);
     return photo;
   },
   async deletePhoto(id: string): Promise<void> {
-    await axios.delete(`${API_BASE}/photos/${id}`);
+    if (!isLocalId(id)) await axios.delete(`${API_BASE}/photos/${id}`);
   },
 
   // TODOS (200)
@@ -170,14 +193,14 @@ export const mockApi = {
     return response.data.map((item) => ({ ...item, id: String(item.id) }));
   },
   async createTodo(todo: Omit<Todo, "id">): Promise<Todo> {
-    const response = await axios.post<any>(`${API_BASE}/todos`, todo);
-    return { ...todo, id: String(response.data.id || Date.now()) };
+    await axios.post<any>(`${API_BASE}/todos`, todo);
+    return { ...todo, id: newClientId("todo") };
   },
   async updateTodo(todo: Todo): Promise<Todo> {
-    await axios.put(`${API_BASE}/todos/${todo.id}`, todo);
+    if (!isLocalId(todo.id)) await axios.put(`${API_BASE}/todos/${todo.id}`, todo);
     return todo;
   },
   async deleteTodo(id: string): Promise<void> {
-    await axios.delete(`${API_BASE}/todos/${id}`);
+    if (!isLocalId(id)) await axios.delete(`${API_BASE}/todos/${id}`);
   },
 };

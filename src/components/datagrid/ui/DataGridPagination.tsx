@@ -1,5 +1,5 @@
 import type { Table, TableState } from "@tanstack/react-table";
-import { useEffect, useRef, useState, memo } from "react";
+import { useRef, useState, memo } from "react";
 
 type Props<TRow extends object> = {
   table: Table<TRow>;
@@ -205,8 +205,13 @@ function PageIndicator({
   onSubmit: (n: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  // `val` only matters while editing, so seed it on entry instead of mirroring
+  // `current` through an effect (which cost a cascading render on every page change).
   const [val, setVal] = useState(String(current));
-  useEffect(() => setVal(String(current)), [current]);
+  const startEditing = () => {
+    setVal(String(current));
+    setEditing(true);
+  };
 
   if (total <= 1) {
     return (
@@ -221,7 +226,7 @@ function PageIndicator({
     return (
       <button
         type="button"
-        onClick={() => setEditing(true)}
+        onClick={startEditing}
         className="px-2 h-8 rounded-lg border border-transparent text-sm text-gray-700 hover:border-gray-300 cursor-pointer"
         title="Click to jump to page"
         aria-label={`Page ${current} of ${total}. Click to edit.`}

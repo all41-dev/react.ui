@@ -19,7 +19,8 @@ export function Tooltip({
   offset = 8,
   id: forcedId,
 }: TooltipProps) {
-  const uid = (forcedId ?? useId()).replace(/:/g, "_");
+  const autoId = useId();
+  const uid = (forcedId ?? autoId).replace(/:/g, "_");
 
   if (!isValidElement(children)) {
     console.error("Tooltip expects a single valid ReactElement as child.");

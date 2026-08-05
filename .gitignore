@@ -28,3 +28,7 @@ build-output
 
 .env
 .env.development
+
+# Local review notes
+REVIEW_REPORT.md
+claude_docs

@@ -130,12 +130,19 @@ export function DataGridDemo() {
       setError(msg);
       toast.error(msg);
     } finally {
+      // Expanded ids point at rows from the previous resource; clear them here
+      // (after the await) rather than synchronously inside the effect below.
+      setExpandedRowIds(new Set());
       setLoading(false);
     }
   }, [activeResource, dataSource, simFetchError, simDelay]);
 
   useEffect(() => {
-    setExpandedRowIds(new Set());
+    // loadData() sets `loading`/`error` synchronously before its first await —
+    // the standard hand-rolled fetch pattern the compiler rule warns about. The
+    // real fix is to drive this demo with the React Query provider the sandbox
+    // already mounts but never uses; until then, keep the pattern explicit.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [loadData]);
 
