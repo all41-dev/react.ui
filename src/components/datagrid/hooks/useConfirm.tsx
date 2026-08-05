@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type ConfirmState = {
@@ -7,7 +7,6 @@ type ConfirmState = {
   description?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  resolve?: (v: boolean) => void;
   isDestructive?: boolean;
 };
 
@@ -16,6 +15,19 @@ export function useConfirm() {
     open: false,
     title: "",
   });
+
+  /*
+   * The pending resolver lives in a ref rather than in state so every exit path can
+   * settle it. Previously a second confirm() while one was open replaced the stored
+   * resolver and the first promise never settled — the awaiting caller hung forever.
+   * Unmounting mid-prompt had the same effect.
+   */
+  const pendingResolve = useRef<((v: boolean) => void) | null>(null);
+
+  const settle = useCallback((v: boolean) => {
+    pendingResolve.current?.(v);
+    pendingResolve.current = null;
+  }, []);
 
   const confirm = useCallback(
     (
@@ -30,8 +42,10 @@ export function useConfirm() {
           }
     ) =>
       new Promise<boolean>((resolve) => {
+        settle(false); // superseded prompt resolves rather than hanging
+        pendingResolve.current = resolve;
         if (typeof opts === "string") {
-          setS({ open: true, title: opts, resolve });
+          setS({ open: true, title: opts });
         } else {
           setS({
             open: true,
@@ -40,17 +54,21 @@ export function useConfirm() {
             confirmText: opts.confirmText ?? "Confirm",
             cancelText: opts.cancelText ?? "Cancel",
             isDestructive: opts.isDestructive ?? true,
-            resolve,
           });
         }
       }),
-    []
+    [settle]
   );
 
-  const close = (v: boolean) => {
-    s.resolve?.(v);
-    setS((prev) => ({ ...prev, open: false, resolve: undefined }));
-  };
+  useEffect(() => () => settle(false), [settle]);
+
+  const close = useCallback(
+    (v: boolean) => {
+      settle(v);
+      setS((prev) => ({ ...prev, open: false }));
+    },
+    [settle]
+  );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") close(false);

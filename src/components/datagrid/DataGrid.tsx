@@ -86,6 +86,10 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
 };
 
 const getColId = (c: any) => (c.id ?? c.accessorKey ?? "").toString();
+
+/** Row ids arrive as string | number depending on the accessor; compare them as text. */
+const sameRowId = (a: string | number | undefined, b: string | number | undefined) =>
+  a !== undefined && b !== undefined && String(a) === String(b);
 const EMPTY_EXPANDED_SET = new Set<string | number>();
 
 const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
@@ -142,22 +146,41 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   const onPaginationChange: OnChangeFn<PaginationState> =
     paginationProp?.onChange ?? setUncontrolledPagination;
   const setPagination = paginationProp?.onChange ?? setUncontrolledPagination;
-  useEffect(() => setRows(initialData ?? []), [initialData]);
 
-  // Cancel editing when cancelEditTrigger changes (and is > 0)
-  const prevCancelTriggerRef = useRef<number | undefined>(undefined);
+  /*
+   * `rows` is seeded from `initialData` and then owned locally so create/edit/delete can
+   * be reflected immediately (see handleSubmit / handleDelete). Reconciled during render
+   * rather than in an effect: no extra render pass, and no window in which the grid shows
+   * data the parent has already replaced.
+   *
+   * `initialData` must be a stable reference — the same contract TanStack Table places on
+   * its own `data` prop. Rebuilding the array inline on every render discards any pending
+   * local mutation.
+   */
+  const [syncedData, setSyncedData] = useState(initialData);
+  if (initialData !== syncedData) {
+    setSyncedData(initialData);
+    setRows(initialData ?? []);
+  }
+
+  /*
+   * `cancelEditTrigger` is an imperative signal: the parent bumps the number to cancel.
+   * The ref is seeded with the incoming value so mounting never counts as a change, and
+   * it advances on EVERY change rather than only while something is being edited —
+   * otherwise a bump that arrives with no editor open leaves the ref stale, and the next
+   * editor the user opens is cancelled the moment it appears.
+   */
+  const prevCancelTriggerRef = useRef<number | undefined>(cancelEditTrigger);
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
   useEffect(() => {
-    if (
-      cancelEditTrigger !== undefined &&
-      cancelEditTrigger > 0 &&
-      prevCancelTriggerRef.current !== cancelEditTrigger &&
-      editing !== null
-    ) {
-      prevCancelTriggerRef.current = cancelEditTrigger;
-      setEditing(null);
-      onCancelEdit?.();
-    }
-  }, [cancelEditTrigger, editing, onCancelEdit]);
+    if (prevCancelTriggerRef.current === cancelEditTrigger) return;
+    prevCancelTriggerRef.current = cancelEditTrigger;
+    if (cancelEditTrigger === undefined || cancelEditTrigger <= 0) return;
+    if (editingRef.current === null) return;
+    setEditing(null);
+    onCancelEdit?.();
+  }, [cancelEditTrigger, onCancelEdit]);
 
   const getId = useCallback(
     (r: TRow) => getRowKey(r, idAccessor),
@@ -210,6 +233,12 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       });
       if (!ok) return;
       await onDelete(row);
+      // Drop the row locally so a plain `onDelete` consumer (no query adapter re-supplying
+      // `initialData`) doesn't watch a successfully deleted row stay on screen.
+      // Errors deliberately propagate: the action button owns the catch, the toast and
+      // its own spinner state.
+      const deletedId = getId(row);
+      setRows((prev) => prev.filter((r) => !sameRowId(getId(r), deletedId)));
     },
     [onDelete, getId, confirm]
   );
@@ -298,20 +327,40 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     onSortingChange: setSorting,
     ...(paginationEnabled ? { onPaginationChange: setPagination } : {}),
   });
+  /*
+   * Filtering or sorting should send the user back to page 1 — but only when they
+   * actually change. Seeding the ref with the current values keeps this from firing on
+   * mount, which previously stomped a controlled parent's initial pageIndex, and the
+   * identity check keeps it from calling the parent's onChange for a no-op.
+   */
+  const prevFilterSortRef = useRef({ columnFilters, sorting });
   useEffect(() => {
     if (!paginationEnabled) return;
-    onPaginationChange((prev) => ({ ...prev, pageIndex: 0 }));
+    const prev = prevFilterSortRef.current;
+    if (prev.columnFilters === columnFilters && prev.sorting === sorting) return;
+    prevFilterSortRef.current = { columnFilters, sorting };
+    onPaginationChange((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
   }, [columnFilters, sorting, paginationEnabled, onPaginationChange]);
 
   const handleSubmit = useCallback(
     async (values: TForm) => {
       if (!onPersist) return;
       try {
+        // Reflect the result locally. A consumer using the query adapter will re-supply
+        // `initialData` and overwrite this with server truth; a plain `onPersist`
+        // consumer would otherwise see nothing happen at all.
         if (editing?.mode === "edit" && editing.row) {
           const prevRow = editing.row;
-          await onPersist("edit", values, prevRow);
+          const saved = await onPersist("edit", values, prevRow);
+          const prevId = getId(prevRow);
+          if (saved) {
+            setRows((prev) =>
+              prev.map((r) => (sameRowId(getId(r), prevId) ? saved : r))
+            );
+          }
         } else {
-          await onPersist("create", values);
+          const created = await onPersist("create", values);
+          if (created) setRows((prev) => [...prev, created]);
         }
         setOpen(false);
         setEditing(null);
@@ -404,7 +453,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         {paginationEnabled && (
           <DataGridPagination
             table={table}
-            totalCount={rows.length}
+            /* The FILTERED count, not rows.length — otherwise page counts and the
+               "X to Y of Z" range ignore any active column filter. */
+            totalCount={table.getFilteredRowModel().rows.length}
             pageSizeOptions={
               paginationProp?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS
             }

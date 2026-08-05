@@ -1,5 +1,5 @@
 import { Plus, X } from "lucide-react";
-import { memo, useState, useEffect } from "react";
+import { memo, useState } from "react";
 
 type DataGridToolbarProps = {
   title: string;
@@ -18,14 +18,16 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   onAddClick,
   onRetry,
 }: DataGridToolbarProps) {
-  const [dismissed, setDismissed] = useState(false);
-
-  // Reset dismiss state when a new/different error arrives
-  useEffect(() => {
-    if (error) setDismissed(false);
-  }, [error]);
-
-  const showError = error && !dismissed;
+  /*
+   * Dismissal is tracked by message rather than by a boolean reset from an effect.
+   * Keying on the Error object's identity meant a parent that rebuilt its error on every
+   * render un-dismissed the banner immediately; keying on the text means a genuinely new
+   * error re-opens it and the same one stays closed. No effect needed.
+   */
+  const errorMessage =
+    error == null ? null : typeof error === "string" ? error : error.message;
+  const [dismissedMessage, setDismissedMessage] = useState<string | null>(null);
+  const showError = errorMessage !== null && errorMessage !== dismissedMessage;
 
   return (
     <>
@@ -36,7 +38,9 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           {editContainer !== "none" && (
             <button
               onClick={onAddClick}
-              disabled={!!error}
+              /* Tied to the visible banner, not to `error` — dismissing the banner used
+                 to leave Add disabled forever. */
+              disabled={showError}
               className="
     inline-flex items-center gap-2
     rounded-md px-3 py-2  
@@ -63,9 +67,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           role="alert"
         >
           <div className="flex items-center justify-between gap-3">
-            <span className="truncate">
-              {typeof error === "string" ? error : error.message}
-            </span>
+            <span className="truncate">{errorMessage}</span>
             <div className="flex items-center gap-1 shrink-0">
               {onRetry && (
                 <button
@@ -77,7 +79,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
               )}
               <button
                 type="button"
-                onClick={() => setDismissed(true)}
+                onClick={() => setDismissedMessage(errorMessage)}
                 className="rounded p-1 text-danger hover:text-danger hover:bg-danger/20 transition-colors"
                 aria-label="Dismiss error"
                 title="Dismiss"

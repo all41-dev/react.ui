@@ -11,9 +11,19 @@ export function useContainerWidth<T extends HTMLElement>() {
     const update = () => setWidth(el.clientWidth);
     update();
 
-    const ro = new ResizeObserver(() => requestAnimationFrame(update));
+    // The frame is tracked so cleanup can cancel it. Without this, a resize landing just
+    // before unmount ran update() on a dead component; coalescing also drops redundant
+    // measurements during a continuous drag.
+    let frame = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
   }, []);
 
   return { ref, width };
