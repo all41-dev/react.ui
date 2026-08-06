@@ -8,6 +8,15 @@ export type CodeEditorProps = {
   placeholder?: string;
   id?: string;
   className?: string;
+  /*
+   * `renderEditor` builds these for every field, but this component didn't accept them,
+   * so a validation error on a code field was announced to nobody — the textarea claimed
+   * to be valid and pointed at no description. They forward to the real control.
+   */
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+  "aria-required"?: boolean;
+  "aria-label"?: string;
 };
 
 /**
@@ -21,6 +30,10 @@ export function CodeEditor({
   rows = 10,
   placeholder,
   id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+  "aria-required": ariaRequired,
+  "aria-label": ariaLabel,
 }: CodeEditorProps) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
@@ -94,6 +107,10 @@ export function CodeEditor({
           placeholder={placeholder}
           spellCheck={false}
           wrap="off"
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
+          aria-required={ariaRequired}
+          aria-label={ariaLabel}
           className="block w-full resize-none overflow-auto whitespace-pre bg-transparent px-2.5 py-[9px] font-mono text-[.75rem] leading-[1.6] text-body outline-none [tab-size:2] placeholder:text-faint"
         />
       </div>

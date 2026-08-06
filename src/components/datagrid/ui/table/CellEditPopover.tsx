@@ -39,8 +39,22 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
   const [saving, setSaving] = useState(false);
   const trapRef = useFocusTrap<HTMLDivElement>(true);
 
+  /*
+   * Seeded through `toForm`, the same hook `computeDefaults` uses for the full form.
+   * Reading the row value directly meant the popover showed the STORED shape while the
+   * cell behind it showed the formatted one, and the editor for a value the consumer
+   * stores in cents opened on "1250" instead of "12.50".
+   */
   const form = useForm<Record<string, unknown>>({
-    defaultValues: { [key]: (state.row as any)[key] ?? "" },
+    defaultValues: {
+      [key]: (() => {
+        const raw = (state.row as Record<string, unknown>)[key];
+        const seeded = column.meta?.toForm
+          ? column.meta.toForm(raw, state.row)
+          : raw;
+        return seeded ?? "";
+      })(),
+    },
   });
 
   // Spec: Esc or scroll closes. Scroll uses capture so the grid's own scroll

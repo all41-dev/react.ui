@@ -1,5 +1,4 @@
-import type { Table, TableState } from "@tanstack/react-table";
-import { memo } from "react";
+import type { Table } from "@tanstack/react-table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SelectionPill } from "./SelectionPill";
 
@@ -17,15 +16,16 @@ type Props<TRow extends object> = {
    * page controls (there are no pages to move between).
    */
   totalOnly?: boolean;
-  /** Not read directly — passing table.getState() busts the memo when table state changes. */
-  tableState?: TableState;
 };
 
 /**
  * Windowed page list per the design spec: first, last, current ±1, with ellipsis
  * filling the gaps. Short totals render every page.
  */
-function pageWindow(current: number, total: number): (number | "ellipsis-l" | "ellipsis-r")[] {
+export function pageWindow(
+  current: number,
+  total: number
+): (number | "ellipsis-l" | "ellipsis-r")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const wanted = new Set([1, total, current - 1, current, current + 1]);
   const pages = [...wanted].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
@@ -39,7 +39,14 @@ function pageWindow(current: number, total: number): (number | "ellipsis-l" | "e
   return out;
 }
 
-export const DataGridPagination = memo(function DataGridPagination<TRow extends object>({
+/*
+ * Not memoized. It was, with no comparator — and since every prop that matters is read
+ * off the live `table`, the only way to notice a page change was to also pass
+ * `table.getState()`, which is the object literal built inline in `useReactTable` and so
+ * is new on every render. The memo could never hit; the extra prop existed purely to
+ * guarantee it never did.
+ */
+export function DataGridPagination<TRow extends object>({
   table,
   totalCount,
   pageSizeOptions = [10, 20, 50, 100],
@@ -180,7 +187,7 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
       </div>
     </nav>
   );
-}) as <TRow extends object>(props: Props<TRow>) => React.ReactElement;
+}
 
 function PagerButton({
   label,

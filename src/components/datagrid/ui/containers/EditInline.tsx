@@ -1,7 +1,6 @@
 import type { ZodTypeAny } from "zod";
 import type { WithMeta } from "../../types/column";
 import { EditFormBody, getRowId, type FormLayoutConfig } from "./EditFormBody";
-import React from "react";
 
 type EditInlineProps<TRow extends object, TForm extends object> = {
   open: boolean;
@@ -14,7 +13,12 @@ type EditInlineProps<TRow extends object, TForm extends object> = {
   onSubmit: (values: TForm) => void | Promise<void>;
 };
 
-function EditInlineInner<TRow extends object, TForm extends object>({
+/*
+ * Not memoized. It receives `columns` (frequently an inline array) and an inline
+ * `onCancel`, so a shallow compare failed every single time — the wrapper was pure
+ * overhead advertising an optimization that never happened.
+ */
+export function EditInline<TRow extends object, TForm extends object>({
   open,
   mode,
   row,
@@ -42,5 +46,3 @@ function EditInlineInner<TRow extends object, TForm extends object>({
     />
   );
 }
-
-export const EditInline = React.memo(EditInlineInner) as typeof EditInlineInner;

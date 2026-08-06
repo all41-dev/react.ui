@@ -17,6 +17,8 @@ type TableViewProps<TRow extends object> = {
   getId: (row: TRow) => string | number | undefined;
   isLoading: boolean;
   error: string | Error | null;
+  /** Accessible name for the grid — the table had none at all. */
+  label?: string;
   /** Renders the per-column filter row under the header (toolbar Filters toggle). */
   showFilters?: boolean;
   emptyLabel?: string;
@@ -31,7 +33,7 @@ type TableViewProps<TRow extends object> = {
   isCreating?: boolean;
   selectedRowId?: string | number | undefined;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: Set<string | number>;
+  expandedRowIds?: ReadonlySet<string | number>;
   renderExpandedRow?: (row: TRow) => ReactNode;
 };
 
@@ -40,6 +42,7 @@ export function TableView<TRow extends object>({
   getId,
   isLoading,
   error,
+  label,
   showFilters,
   emptyLabel,
   selectedRowIds,
@@ -167,6 +170,18 @@ export function TableView<TRow extends object>({
            */
           className="table-fixed border-separate border-spacing-0"
           style={{ width: `${tableW}px` }}
+          /*
+           * `role="grid"` makes the `aria-selected` on each row valid ARIA — on a plain
+           * table it is meaningless and assistive tech ignores it.
+           *
+           * The counts are the FILTERED totals, not what is mounted: the body is
+           * virtualized and grouped, so the DOM holds a window of rows whose positions
+           * would otherwise be announced as "row 3 of 12" when the user is at row 400.
+           */
+          role="grid"
+          aria-label={label}
+          aria-rowcount={filteredRowCount}
+          aria-colcount={leafColCount}
         >
           <Colgroup
             leafColsAll={leafColsAll}
@@ -277,6 +292,9 @@ export function TableView<TRow extends object>({
                 >
                   <DataRowFragment
                     row={r}
+                    /* 1-based, and counted over the flat body list rather than the
+                       mounted window — the virtualizer only keeps a slice in the DOM. */
+                    ariaRowIndex={virtualRow.index + 1}
                     leafColCount={leafColCount}
                     isEditing={isEditing}
                     isSelected={isSelected}

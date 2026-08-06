@@ -11,8 +11,23 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
     | ColumnMeta<any, any>
     | undefined;
   const paddingClass = m?.cellClassName ?? "px-3";
-  const rendered = flexRender(c.column.columnDef.cell, c.getContext());
-  const value = typeof c.getValue === "function" ? c.getValue() : undefined;
+  const raw = typeof c.getValue === "function" ? c.getValue() : undefined;
+
+  /*
+   * This is where `format` belongs and, until now, the one place it was never called.
+   * Its only caller was `computeDefaults`, which used it to seed the EDIT FORM — so a
+   * column formatting 1234 as "1 234 €" put that string in the input while the cell
+   * itself showed the bare number. `format` is display-only now, and this is the display.
+   *
+   * A custom `cell` renderer is the lower-level hook and stays in charge of its own
+   * output; declaring both means `format` decides the value and `cell` is bypassed.
+   */
+  const formatted = m?.format ? m.format(raw, c.row.original) : undefined;
+  const rendered = m?.format
+    ? (formatted as React.ReactNode)
+    : flexRender(c.column.columnDef.cell, c.getContext());
+  // The tooltip echoes what is on screen — it exists because that text is clipped.
+  const value = m?.format ? formatted : raw;
 
   const canCellEdit = !!(m?.cellEdit && m?.editor && ctx?.canCellEdit);
 

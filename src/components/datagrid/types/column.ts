@@ -41,9 +41,24 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   /** Seed value when creating a new row (defaults to "" / false for switches). */
   default?: unknown;
 
-  parse?: (value: unknown, formValues: TForm) => unknown;
+  /*
+   * Three separate jobs that used to be two.
+   *
+   * `format` was documented as display-only but `computeDefaults` also used it to seed
+   * the edit form, so a column rendering 1234 as "1 234 €" put that string into the
+   * input and submitted it. `parse` was declared as its inverse but only ran on submit,
+   * making the round-trip asymmetric. Splitting them means each hook has exactly one
+   * caller and the round-trip is symmetric by construction.
+   */
+
+  /** Cell display only. Never reaches the edit form. */
   format?: (value: unknown, row: TRow) => unknown;
- filter?: ColumnFilterMeta;
+  /** Stored value → form field value. Seeds the editor; defaults to the raw value. */
+  toForm?: (value: unknown, row: TRow) => unknown;
+  /** Form field value → stored value. Applied on submit and on a cell-edit save. */
+  fromForm?: (value: unknown, formValues: TForm) => unknown;
+
+  filter?: ColumnFilterMeta;
   headerClassName?: string;
   cellClassName?: string;
   hideOnMobile?: boolean;

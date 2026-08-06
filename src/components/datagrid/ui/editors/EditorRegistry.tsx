@@ -8,7 +8,6 @@ import type { WithMeta } from "../../types/column";
 import { TextInput } from "../inputs/TextInput";
 import { NumberInput } from "../inputs/NumberInput";
 import { SelectInput } from "../inputs/SelectInput";
-import { SwitchInput } from "../inputs/SwitchInput";
 import { DateInput } from "../inputs/DateInput";
 import { TimeInput } from "../inputs/TimeInput";
 import { TextArea } from "../inputs/TextArea";
@@ -34,6 +33,14 @@ export function renderEditor<T extends FieldValues>(opts: {
   const description = meta.description;
   const editor = meta.editor;
 
+  /*
+   * "switch" is deliberately absent from this map: the branch further down renders the
+   * spec's 38x21 track inline, along with its own label, hint and error, and never
+   * reaches `Comp`. The `SwitchInput` that used to be mapped here was a plain 15px
+   * checkbox that nothing could reach and that matched nothing in the design.
+   */
+  const isSwitch = editor === "switch";
+
   const Comp =
     editor === "text"
       ? TextInput
@@ -41,8 +48,6 @@ export function renderEditor<T extends FieldValues>(opts: {
       ? NumberInput
       : editor === "select"
       ? SelectInput
-      : editor === "switch"
-      ? SwitchInput
       : editor === "date"
       ? DateInput
       : editor === "time"
@@ -55,7 +60,10 @@ export function renderEditor<T extends FieldValues>(opts: {
       ? CodeEditor
       : null;
 
-  if (!Comp) return null;
+  // The switch branch supplies its own markup, so a missing `Comp` is only fatal for
+  // every other editor kind.
+  if (!Comp && !isSwitch) return null;
+  const Field = Comp as NonNullable<typeof Comp>;
 
   // Rich editors carry their own chrome — the plain-input border/focus classes
   // must not be layered on top of them.
@@ -190,7 +198,7 @@ export function renderEditor<T extends FieldValues>(opts: {
                 </label>
               )}
               <div>
-                <Comp
+                <Field
                   {...forwarded}
                   value={field.value ?? ""}
                   onChange={field.onChange}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFocusTrap } from "./useFocusTrap";
 
@@ -16,6 +16,10 @@ export function useConfirm() {
     open: false,
     title: "",
   });
+
+  const baseId = useId();
+  const titleId = `${baseId}-title`;
+  const descId = `${baseId}-desc`;
 
   /*
    * The pending resolver lives in a ref rather than in state so every exit path can
@@ -81,20 +85,34 @@ export function useConfirm() {
 
   const Dialog = s.open
     ? createPortal(
+        /*
+         * The dialog semantics belong to the PANEL, not the scrim. They used to sit on
+         * this backdrop div, which made `aria-modal` claim the whole viewport overlay was
+         * the dialog, and it carried no `aria-labelledby` — so screen readers announced
+         * an unnamed dialog and the heading was just loose text inside it.
+         */
         <div
           className="fixed inset-0 z-1000 grid place-items-center bg-black/50 animate-backdrop-in"
           onKeyDown={onKeyDown}
-          role="dialog"
-          aria-modal="true"
         >
           <div
             ref={trapRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            aria-describedby={s.description ? descId : undefined}
             tabIndex={-1}
             className="w-full max-w-sm rounded-surface border border-border-default bg-surface-card p-4 font-sans text-[.8125rem] text-body shadow-[var(--elev-3)] outline-none animate-pop-in"
           >
-            <h3 className="text-[.9375rem] font-semibold text-body">{s.title}</h3>
+            {/* `alertdialog` rather than `dialog`: this always interrupts to confirm a
+                consequence, which is exactly what the role is for. */}
+            <h3 id={titleId} className="text-[.9375rem] font-semibold text-body">
+              {s.title}
+            </h3>
             {s.description && (
-              <p className="mt-1 text-[.8125rem] text-muted">{s.description}</p>
+              <p id={descId} className="mt-1 text-[.8125rem] text-muted">
+                {s.description}
+              </p>
             )}
             <div className="mt-4 flex justify-end gap-2">
               <button

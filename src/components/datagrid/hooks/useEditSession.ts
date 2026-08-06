@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export type CellAnchor = {
   top: number;
@@ -25,20 +25,7 @@ export type EditSession<TRow> =
 
 const IDLE = { kind: "idle" } as const;
 
-type Params<TRow> = {
-  getId: (row: TRow) => string | number | undefined;
-  onEditStart?: (rowId: string | number) => void;
-  onCancelEdit?: () => void;
-  /** Imperative signal: the parent bumps this number to cancel whatever is open. */
-  cancelEditTrigger?: number;
-};
-
-export function useEditSession<TRow>({
-  getId,
-  onEditStart,
-  onCancelEdit,
-  cancelEditTrigger,
-}: Params<TRow>) {
+export function useEditSession<TRow>() {
   const [session, setSession] = useState<EditSession<TRow>>(IDLE);
 
   /*
@@ -57,12 +44,8 @@ export function useEditSession<TRow>({
   const startCreate = useCallback(() => enter({ kind: "create" }), [enter]);
 
   const startEdit = useCallback(
-    (row: TRow) => {
-      enter({ kind: "edit", row });
-      const rowId = getId(row);
-      if (rowId !== undefined) onEditStart?.(rowId);
-    },
-    [enter, getId, onEditStart]
+    (row: TRow) => enter({ kind: "edit", row }),
+    [enter]
   );
 
   const startCellEdit = useCallback(
@@ -73,31 +56,10 @@ export function useEditSession<TRow>({
 
   /** The single teardown. Every dismissal and every successful save routes through it. */
   const close = useCallback(() => {
-    const prev = sessionRef.current;
-    if (prev.kind === "idle") return;
+    if (sessionRef.current.kind === "idle") return;
     sessionRef.current = IDLE;
     setSession(IDLE);
-    /*
-     * `onCancelEdit` is the counterpart to `onEditStart`, which only ever fires for a
-     * row edit — so dismissing a cell popover is not the end of a session the parent
-     * was ever told about, and announcing it would be noise.
-     */
-    if (prev.kind === "create" || prev.kind === "edit") onCancelEdit?.();
-  }, [onCancelEdit]);
-
-  /*
-   * The ref is seeded with the incoming value so mounting never counts as a change, and
-   * it advances on EVERY change rather than only while something is being edited —
-   * otherwise a bump that arrives with no editor open leaves the ref stale, and the next
-   * editor the user opens is cancelled the moment it appears.
-   */
-  const prevCancelTriggerRef = useRef<number | undefined>(cancelEditTrigger);
-  useEffect(() => {
-    if (prevCancelTriggerRef.current === cancelEditTrigger) return;
-    prevCancelTriggerRef.current = cancelEditTrigger;
-    if (cancelEditTrigger === undefined || cancelEditTrigger <= 0) return;
-    close();
-  }, [cancelEditTrigger, close]);
+  }, []);
 
   return {
     session,

@@ -10,5 +10,12 @@
   "include": ["src"],
   // The sandbox is a demo host, not part of the published surface. Its .d.ts
   // files referenced dev-only packages (axios) that consumers do not install.
-  "exclude": ["src/app", "src/main.tsx"]
+  // Tests are excluded for the same reason — nothing published should carry them.
+  "exclude": [
+    "src/app",
+    "src/main.tsx",
+    "src/test",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ]
 }

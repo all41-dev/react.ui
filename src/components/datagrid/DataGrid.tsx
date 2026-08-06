@@ -3,7 +3,15 @@ import type { ZodType } from "zod";
 import { Pencil, Trash2 } from "lucide-react";
 import { Tooltip } from "react-tooltip";
 import { toast } from "sonner";
-import { useCallback, useId, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useState,
+  type ReactNode,
+  type Ref,
+} from "react";
 
 import { getApiMessage } from "../../api/errors";
 import {
@@ -38,6 +46,7 @@ import {
 import { EditInline } from "./ui/containers/EditInline";
 import { CellEditPopover } from "./ui/table/CellEditPopover";
 import type { ActionColumnOpts } from "./ui/makeActionColumns";
+import { computeDefaults } from "./utils/getAccessorKey";
 import { getRowKey } from "./utils/getRowKey";
 
 export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
@@ -85,11 +94,43 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   };
   onRowClick?: (row: TRow) => void;
   renderExpandedRow?: (row: TRow) => ReactNode;
-  expandedRowIds?: Set<string | number>;
-  onToggleExpanded?: (rowId: string | number) => void;
-  onEditStart?: (rowId: string | number) => void;
-  onCancelEdit?: () => void;
-  cancelEditTrigger?: number; // When this changes, cancel editing
+  /**
+   * Row expansion is fully controlled: the grid renders the panel for every id in this
+   * set and owns nothing else about it. The toggle affordance is yours to place — a
+   * chevron in one of your own columns, or `onRowClick`.
+   *
+   * (`onToggleExpanded` used to sit alongside this. It was declared in the props type
+   * and never read anywhere in the grid, so nothing could ever call it.)
+   */
+  expandedRowIds?: ReadonlySet<string | number>;
+  /**
+   * Imperative control. Replaces `cancelEditTrigger` / `onEditStart` / `onCancelEdit` —
+   * a number the parent had to bump, plus two callbacks whose only job was to mirror
+   * state the grid already owns. See {@link DataGridHandle}.
+   */
+  ref?: Ref<DataGridHandle<TRow>>;
+};
+
+/**
+ * What a parent can ask the grid to do.
+ *
+ * ```tsx
+ * const grid = useRef<DataGridHandle<User>>(null);
+ * grid.current?.startCreate();
+ * grid.current?.cancelEdit();
+ * ```
+ */
+export type DataGridHandle<TRow extends object> = {
+  /** Open the create form. */
+  startCreate: () => void;
+  /** Open the edit form for a row. */
+  startEdit: (row: TRow) => void;
+  /** Close whatever editor is open — form or cell popover. No-op when idle. */
+  cancelEdit: () => void;
+  /** True while a create/edit form or a cell popover is open. */
+  isEditing: () => boolean;
+  /** Clear the checkbox selection. */
+  clearSelection: () => void;
 };
 
 const EMPTY_EXPANDED_SET = new Set<string | number>();
@@ -141,17 +182,13 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   onRowClick,
   renderExpandedRow,
   expandedRowIds: externalExpandedRowIds,
-  onEditStart,
-  onCancelEdit,
-  cancelEditTrigger,
+  ref,
 }: DataGridProps<TRow, TForm>) {
   const [view, setView] = useState<"list" | "cards">(defaultView);
   const [selectedRowId, setSelectedRowId] = useState<string | number | undefined>(
     undefined
   );
 
-  // Use external expandedRowIds if provided, otherwise use empty set
-  // (Internal state management removed since expansion is controlled from column buttons)
   const expandedRowIds = externalExpandedRowIds ?? EMPTY_EXPANDED_SET;
 
   const getId = useCallback(
@@ -171,12 +208,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     onSelectionChange,
   });
 
-  const edit = useEditSession<TRow>({
-    getId,
-    onEditStart,
-    onCancelEdit,
-    cancelEditTrigger,
-  });
+  const edit = useEditSession<TRow>();
 
   const filters = useGridFilters<TRow, TForm>({
     columns,
@@ -303,22 +335,25 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       const prevRow = cell.row;
 
       /*
-       * `parse` runs on the edited column only. It is declared as the inverse of the
-       * form editor's output, and on this path every OTHER field still holds its stored
-       * row value rather than a form value — feeding those through `parse` would
-       * double-convert them. Reaching real parity with the form's submit path needs the
-       * `format` / `toForm` split (§3.6); until then, one field is the honest scope.
+       * Exactly the full form's round-trip, on one field: put the row through `toForm`
+       * to get form-shaped values, swap in what the popover produced, then run every
+       * column's `fromForm` back the other way.
+       *
+       * Doing this needed the §3.6 split. While `parse` was the only hook, running it
+       * over the other fields would have double-converted them — they held stored row
+       * values, not form values — so the cell path could only ever convert the one field
+       * and sent the rest in whatever shape they happened to be in.
        */
-      const parsed = cellEditColumn.meta?.parse
-        ? cellEditColumn.meta.parse(value, {
-            ...(prevRow as object),
-            [key]: value,
-          } as TForm)
-        : value;
-      const draft: Record<string, unknown> = {
-        ...(prevRow as Record<string, unknown>),
-        [key]: parsed,
+      const formDraft: Record<string, unknown> = {
+        ...(computeDefaults(prevRow as never, columns as never) as object),
+        [key]: value,
       };
+      const draft: Record<string, unknown> = { ...formDraft };
+      for (const c of columns) {
+        const colKey = (c as { accessorKey?: string }).accessorKey;
+        if (!colKey || !c.meta?.fromForm) continue;
+        draft[colKey] = c.meta.fromForm(formDraft[colKey], formDraft as TForm);
+      }
 
       // Validate just this field: a full-schema failure on some OTHER field must not
       // block editing this one.
@@ -349,7 +384,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       if (saved) replaceRow(prevRow, saved);
       edit.close();
     },
-    [onPersist, edit, cellEditColumn, zodSchema, replaceRow]
+    [onPersist, edit, cellEditColumn, columns, zodSchema, replaceRow]
   );
 
   const startCellEditFromCell = useCallback(
@@ -364,6 +399,25 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       });
     },
     [onPersist, edit]
+  );
+
+  /*
+   * The imperative surface, replacing `cancelEditTrigger` (a number the parent bumped),
+   * `onEditStart` and `onCancelEdit`. Those three existed so a parent could drive and
+   * mirror an edit session the grid already owns; between them they needed a seeded ref,
+   * a second ref for the live session, and an effect to tell a genuine bump from the
+   * initial mount. One method replaces all of it.
+   */
+  useImperativeHandle(
+    ref,
+    () => ({
+      startCreate: edit.startCreate,
+      startEdit: edit.startEdit,
+      cancelEdit: edit.close,
+      isEditing: () => edit.session.kind !== "idle",
+      clearSelection: selection.clear,
+    }),
+    [edit.startCreate, edit.startEdit, edit.close, edit.session.kind, selection.clear]
   );
 
   const tooltipId = useId().replace(/:/g, "_");
@@ -507,6 +561,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
                 getId={getId}
                 isLoading={isLoading ?? false}
                 error={error ?? null}
+                label={title}
                 showFilters={filters.showFilters && filters.hasFilterableColumns}
                 emptyLabel={emptyLabel}
                 selectedRowIds={selectable ? selection.selectedIds : undefined}
@@ -541,7 +596,6 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
               onClearSelection={selectable ? selection.clear : undefined}
               totalOnly={!!grouping.groups}
               pageSizeOptions={pagination.pageSizeOptions}
-              tableState={table.getState()}
             />
           )}
 
@@ -582,8 +636,16 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
           )}
 
           {ConfirmDialog}
-          <Tooltip id={tooltipId} />
         </div>
+
+        {/*
+         * Outside the grid root, and portaled to the body. It used to live inside that
+         * root, which is `overflow-hidden` (load-bearing — see the class list above), so
+         * a tooltip on any cell near an edge was clipped by the very element that gives
+         * the grid its rounded corners. The tooltip is positioned fixed against its
+         * anchor, so nothing about placement depends on being a descendant.
+         */}
+        <Tooltip id={tooltipId} positionStrategy="fixed" />
       </DataGridSelectionContext.Provider>
     </DataGridContext.Provider>
   );

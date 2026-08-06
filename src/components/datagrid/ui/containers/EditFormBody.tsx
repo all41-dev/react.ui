@@ -57,7 +57,12 @@ type EditFormBodyProps<TRow extends object, TForm extends object> = {
   onSubmittingChange?: (isSubmitting: boolean) => void;
 };
 
-function EditFormBodyInner<TRow extends object, TForm extends object>({
+/*
+ * Not memoized. It receives `columns` (frequently an inline array) plus inline
+ * `onCancel` / `onSubmit`, so the shallow compare failed on every render — the wrapper
+ * cost a comparison and advertised an optimization that never happened.
+ */
+export function EditFormBody<TRow extends object, TForm extends object>({
   mode,
   row,
   columns,
@@ -127,8 +132,8 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
       for (const c of fields) {
         const key = (c as any).accessorKey as keyof TForm | undefined;
         if (!key) continue;
-        if (c.meta?.parse)
-          out[key] = c.meta.parse(
+        if (c.meta?.fromForm)
+          out[key] = c.meta.fromForm(
             (values as any)[key],
             values as unknown as TForm
           );
@@ -342,5 +347,3 @@ function SavingLabel() {
     </span>
   );
 }
-
-export const EditFormBody = React.memo(EditFormBodyInner) as typeof EditFormBodyInner;

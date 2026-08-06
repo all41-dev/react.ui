@@ -62,6 +62,16 @@ export function GroupHeaderRow<TRow extends object>({
             }
           }}
           aria-expanded={!collapsed}
+          /*
+           * No `aria-controls`. Its target has to be a single mounted element, and this
+           * group's rows are virtualized into one `<tbody>` each — non-contiguous, and
+           * mostly not in the DOM at all. Pointing at ids that may not exist is worse
+           * than omitting the attribute, so the name below carries the context instead:
+           * "Admin, 3 rows" + aria-expanded says what collapses without it.
+           */
+          aria-label={`${group.label}, ${group.rows.length} ${
+            group.rows.length === 1 ? "row" : "rows"
+          }`}
           className="flex cursor-pointer items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
         >
           {/* The chevron takes the accent when open — it is the one moving part that

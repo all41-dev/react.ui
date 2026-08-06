@@ -209,8 +209,31 @@
   animation: ruiShimmer 1.2s linear infinite;
 }
 
+/*
+ * Reduced motion. This used to cover the skeleton shimmer alone, leaving every entrance
+ * animation running — the drawer still flew in from the right and the modal still
+ * scaled up, which is exactly the vestibular-trigger motion the preference asks to stop.
+ *
+ * The overlays keep their fade so an element still reads as arriving rather than
+ * teleporting; only the transform is dropped. The skeleton stops outright: an infinite
+ * looping animation is the one case where "subtle" is not an option.
+ */
 @media (prefers-reduced-motion: reduce) {
   .rui-skeleton {
     animation: none;
+  }
+
+  .animate-slide-down {
+    animation: none;
+  }
+
+  .animate-drawer-in,
+  .animate-sheet-in,
+  .animate-pop-in {
+    animation: ruiFadeIn 0.12s ease-out;
+  }
+
+  .animate-backdrop-in {
+    animation-duration: 0.12s;
   }
 }

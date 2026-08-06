@@ -202,6 +202,15 @@ export type MarkdownEditorProps = {
   placeholder?: string;
   id?: string;
   className?: string;
+  /*
+   * `renderEditor` builds these for every field, but this component didn't accept them,
+   * so a validation error on a markdown field was announced to nobody — the textarea
+   * claimed to be valid and pointed at no description. They forward to the real control.
+   */
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
+  "aria-required"?: boolean;
+  "aria-label"?: string;
 };
 
 type SelectionOp = (
@@ -238,6 +247,10 @@ export function MarkdownEditor({
   rows = 8,
   placeholder,
   id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+  "aria-required": ariaRequired,
+  "aria-label": ariaLabel,
 }: MarkdownEditorProps) {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -346,6 +359,10 @@ export function MarkdownEditor({
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
           placeholder={placeholder}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
+          aria-required={ariaRequired}
+          aria-label={ariaLabel}
           className="block min-h-[118px] w-full resize-y bg-transparent p-2.5 text-[.8125rem] leading-[1.6] text-body outline-none placeholder:text-faint"
         />
       ) : (

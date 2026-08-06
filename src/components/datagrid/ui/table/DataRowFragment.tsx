@@ -13,6 +13,8 @@ type DataRowFragmentProps<TRow extends object> = {
   inlineEditor?: ReactNode;
   renderExpandedRow?: (row: TRow) => ReactNode;
   onRowClick?: (row: TRow) => void;
+  /** 1-based position in the whole filtered set, for `aria-rowindex`. */
+  ariaRowIndex?: number;
 };
 
 function DataRowFragmentInner<TRow extends object>({
@@ -24,8 +26,10 @@ function DataRowFragmentInner<TRow extends object>({
   inlineEditor,
   renderExpandedRow,
   onRowClick,
+  ariaRowIndex,
 }: DataRowFragmentProps<TRow>) {
   const cells = row.getVisibleCells();
+  const interactive = !!onRowClick;
 
   return (
     <>
@@ -36,18 +40,45 @@ function DataRowFragmentInner<TRow extends object>({
          * which a fixed `bg-surface-inset` did not.
          */
         className={[
-          "group cursor-pointer transition-colors duration-100",
+          "group transition-colors duration-100",
+          interactive
+            ? "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--rui-focus-ring)]"
+            : "",
           isEditing || isSelected
             ? "bg-accent-subtle"
             : "hover:bg-[color-mix(in_srgb,var(--rui-text-body)_5%,transparent)]",
-        ].join(" ")}
+        ]
+          .filter(Boolean)
+          .join(" ")}
         style={
           isSelected || isEditing
             ? { boxShadow: "inset 3px 0 0 0 var(--rui-accent)" }
             : undefined
         }
-        onClick={() => onRowClick?.(row.original)}
-        aria-selected={isSelected || undefined}
+        onClick={interactive ? () => onRowClick(row.original) : undefined}
+        /*
+         * The row was click-only: `onClick` and `cursor-pointer` with no tabIndex, no key
+         * handler and no role, so selecting or expanding a row was impossible without a
+         * pointer. Enter and Space now do what a click does — and only when there IS a
+         * click handler, so a static row stays out of the tab order.
+         */
+        tabIndex={interactive ? 0 : undefined}
+        onKeyDown={
+          interactive
+            ? (e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                // Let the row's own controls (checkbox, action buttons, cell editors)
+                // handle their own keys rather than firing the row action too.
+                if ((e.target as HTMLElement) !== e.currentTarget) return;
+                e.preventDefault();
+                onRowClick(row.original);
+              }
+            : undefined
+        }
+        aria-rowindex={ariaRowIndex}
+        // Valid only inside a `role="grid"`, which TableView now declares.
+        aria-selected={isSelected}
+        aria-expanded={renderExpandedRow ? isExpanded : undefined}
       >
         {cells.map((c) => {
           if (c.column.id === "__actions__") {
@@ -115,6 +146,7 @@ export const DataRowFragment = React.memo(
 
     // Layout props
     if (prev.leafColCount !== next.leafColCount) return false;
+    if (prev.ariaRowIndex !== next.ariaRowIndex) return false;
 
     // Callbacks & renderers
     if (prev.inlineEditor !== next.inlineEditor) return false;

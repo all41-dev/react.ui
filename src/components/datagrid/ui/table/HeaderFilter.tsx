@@ -30,6 +30,12 @@ type FilterOf<K extends ColumnFilterMeta["type"]> = Extract<ColumnFilterMeta, { 
 type FilterProps<TRow extends object, K extends ColumnFilterMeta["type"]> = {
   col: Column<TRow, unknown>;
   cfg: FilterOf<K>;
+  /**
+   * Accessible name for the control. These are bare inputs in a header cell with no
+   * visible label of their own, so without this a screen reader announces "combobox"
+   * with no indication of which column it filters.
+   */
+  label: string;
 };
 
 /**
@@ -39,7 +45,7 @@ type FilterProps<TRow extends object, K extends ColumnFilterMeta["type"]> = {
  * crashed with "rendered fewer hooks than expected" as soon as a column's
  * filter config or `getCanFilter()` changed at runtime.
  */
-function TextFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "text">) {
+function TextFilter<TRow extends object>({ col, cfg, label }: FilterProps<TRow, "text">) {
   const external = (col.getFilterValue() as string) ?? "";
   const [input, setInput] = useState(external);
   const [lastExternal, setLastExternal] = useState(external);
@@ -60,6 +66,7 @@ function TextFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "text">
     <div>
       <input
         className={inputClass}
+        aria-label={`Filter by ${label}`}
         placeholder={cfg.placeholder ?? "Filter…"}
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -68,7 +75,7 @@ function TextFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "text">
   );
 }
 
-function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "select">) {
+function SelectFilter<TRow extends object>({ col, cfg, label }: FilterProps<TRow, "select">) {
   const raw = col.getFilterValue();
   const opts = cfg.options ?? ([] as SelectOption[]);
 
@@ -78,6 +85,7 @@ function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "sele
       <div>
         <select
           multiple
+          aria-label={`Filter by ${label}`}
           className={inputClass + " !h-auto"}
           value={val}
           onChange={(e) => {
@@ -101,6 +109,7 @@ function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "sele
     <div className="relative">
       <select
         className={selectClass}
+        aria-label={`Filter by ${label}`}
         value={val}
         onChange={(e) => {
           const v = e.target.value;
@@ -122,7 +131,7 @@ function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "sele
   );
 }
 
-function BooleanFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "boolean">) {
+function BooleanFilter<TRow extends object>({ col, cfg, label }: FilterProps<TRow, "boolean">) {
   const raw = col.getFilterValue();
   const labels = {
     any: "Any",
@@ -136,6 +145,7 @@ function BooleanFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "boo
     <div className="relative">
       <select
         className={selectClass}
+        aria-label={`Filter by ${label}`}
         value={val}
         onChange={(e) => {
           const v = e.target.value;
@@ -154,7 +164,7 @@ function BooleanFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "boo
   );
 }
 
-function DateRangeFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "dateRange">) {
+function DateRangeFilter<TRow extends object>({ col, cfg, label }: FilterProps<TRow, "dateRange">) {
   const v = (col.getFilterValue() as { from?: string; to?: string }) ?? {};
   const from = v.from ?? "";
   const to = v.to ?? "";
@@ -169,6 +179,7 @@ function DateRangeFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "d
       <input
         type="date"
         className={inputClass}
+        aria-label={`Filter by ${label}, from`}
         placeholder={cfg.placeholders?.from ?? "From"}
         value={from}
         onChange={(e) => push({ ...v, from: e.target.value || undefined })}
@@ -176,6 +187,7 @@ function DateRangeFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "d
       <input
         type="date"
         className={inputClass}
+        aria-label={`Filter by ${label}, to`}
         placeholder={cfg.placeholders?.to ?? "To"}
         value={to}
         onChange={(e) => push({ ...v, to: e.target.value || undefined })}
@@ -190,15 +202,21 @@ export function HeaderFilter<TRow extends object>({ h }: { h: Header<TRow, unkno
   const cfg = meta?.filter;
   if (!cfg || !col.getCanFilter()) return null;
 
+  // The column's own name, for the control's accessible name. `header` is only usable
+  // when it is a plain string — it can be an arbitrary renderer.
+  const header = col.columnDef.header;
+  const label =
+    meta?.label ?? (typeof header === "string" && header ? header : col.id);
+
   switch (cfg.type) {
     case "text":
-      return <TextFilter col={col} cfg={cfg} />;
+      return <TextFilter col={col} cfg={cfg} label={label} />;
     case "select":
-      return <SelectFilter col={col} cfg={cfg} />;
+      return <SelectFilter col={col} cfg={cfg} label={label} />;
     case "boolean":
-      return <BooleanFilter col={col} cfg={cfg} />;
+      return <BooleanFilter col={col} cfg={cfg} label={label} />;
     case "dateRange":
-      return <DateRangeFilter col={col} cfg={cfg} />;
+      return <DateRangeFilter col={col} cfg={cfg} label={label} />;
     default:
       return null;
   }
