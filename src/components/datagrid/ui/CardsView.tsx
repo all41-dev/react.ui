@@ -2,7 +2,7 @@ import type { Row, Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, type ReactNode } from "react";
 import { useContainerWidth } from "../hooks/useContainerWidth";
-import { EmptyState } from "./GridStates";
+import { EmptyState, NoResultsState } from "./GridStates";
 import { CardItem } from "./CardItem";
 
 type CardsViewProps<TRow extends object> = {
@@ -86,12 +86,27 @@ export function CardsView<TRow extends object>({
   }
 
   if (!isLoading && rows.length === 0 && !error) {
+    // `rows` is already the filtered model here, so an empty one means either no data
+    // at all or no matches — the same two states the table view distinguishes.
+    const { columnFilters, globalFilter } = table.getState();
+    const hasActiveFilters =
+      columnFilters.length > 0 || String(globalFilter ?? "").trim() !== "";
+    const hasAnyData = table.getCoreRowModel().rows.length > 0;
     return (
       <div className="bg-surface-inset">
-        <EmptyState
-          title={emptyLabel ?? "No data"}
-          description="There are no items to display yet."
-        />
+        {hasActiveFilters && hasAnyData ? (
+          <NoResultsState
+            onClearFilters={() => {
+              table.resetColumnFilters();
+              table.setGlobalFilter("");
+            }}
+          />
+        ) : (
+          <EmptyState
+            title={emptyLabel ?? "No data"}
+            description="There are no items to display yet."
+          />
+        )}
       </div>
     );
   }
@@ -112,7 +127,9 @@ export function CardsView<TRow extends object>({
             style={{ transform: `translateY(${vi.start}px)` }}
           >
             <div className="grid gap-3" style={gridStyle}>
-              {chunks[vi.index].map((r) => {
+              {/* `columns` is derived from the measured width; if it changes between the
+                  virtualizer's count and this render the chunk can be gone. */}
+              {chunks[vi.index]?.map((r) => {
                 const id = String(getId(r.original) ?? r.id);
                 return (
                   <CardItem

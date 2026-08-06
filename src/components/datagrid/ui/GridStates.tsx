@@ -1,4 +1,5 @@
 import { Inbox } from "lucide-react";
+import type { ReactNode } from "react";
 
 export function Spinner({ label }: { label?: string }) {
   return (
@@ -42,15 +43,42 @@ export function SkeletonRow({ cols }: { cols: number }) {
 export function EmptyState({
   title = "No data",
   description,
+  action,
 }: {
   title?: string;
   description?: string;
+  /** Recovery affordance — the "Clear filters" button on a no-results state. */
+  action?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-11 text-center text-faint">
       <Inbox className="h-6 w-6" aria-hidden="true" />
       <p className="text-[.8125rem]">{title}</p>
       {description && <p className="text-[.6875rem]">{description}</p>}
+      {action && <div className="mt-1.5">{action}</div>}
     </div>
+  );
+}
+
+/**
+ * Shown instead of the plain empty state when filters are what emptied the grid —
+ * "no data" and "no matches" are different problems and only one of them is the
+ * user's to fix.
+ */
+export function NoResultsState({ onClearFilters }: { onClearFilters: () => void }) {
+  return (
+    <EmptyState
+      title="No matching results"
+      description="No rows match the current search and filters."
+      action={
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="cursor-pointer rounded-control border border-border-default bg-surface-card px-2.5 py-1 text-[.75rem] text-body transition-colors hover:border-accent hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
+        >
+          Clear filters
+        </button>
+      }
+    />
   );
 }

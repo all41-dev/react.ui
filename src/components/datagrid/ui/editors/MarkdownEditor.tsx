@@ -12,11 +12,39 @@ import { useRef, useState, type ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
 /* Minimal markdown renderer.                                          */
-/* Produces React nodes directly — user input is never parsed as HTML, */
-/* so there is nothing to sanitize.                                    */
+/* Produces React nodes directly, so no user input is ever parsed as   */
+/* HTML — but link TARGETS still need sanitizing: React will happily   */
+/* render href="javascript:…" and it executes on click.                */
 /* ------------------------------------------------------------------ */
 
 const INLINE = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[[^\]]+\]\([^)\s]+\))/g;
+
+/*
+ * Scheme allowlist for `[label](href)`. React renders whatever string it is given as
+ * an href, so `[x](javascript:fetch('/api/keys'))` produced a working link in the
+ * preview pane — a real XSS vector in a library that renders user-authored content.
+ *
+ * Allowlist rather than a `javascript:` denylist: `data:`, `vbscript:` and whatever a
+ * browser ships next are all equally dangerous. Any future image support needs the
+ * same check on its `src`.
+ */
+const ALLOWED_SCHEMES = /^(?:https?|mailto|tel|ftp):$/i;
+/** A URL is relative — and therefore safe — when nothing before the path is a scheme. */
+const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+export function safeHref(raw: string): string | undefined {
+  // Strip spaces and C0 controls first: browsers ignore them when resolving a URL, so
+  // "java\0script:x" would otherwise read as scheme-less and slip through.
+  const href = Array.from(raw)
+    .filter((ch) => ch.charCodeAt(0) > 32)
+    .join("");
+  if (href === "") return undefined;
+  const scheme = HAS_SCHEME.exec(href)?.[0];
+  // No scheme at all → relative ("/docs", "docs/page", "#anchor", "?q=1"). Nothing a
+  // relative URL can resolve to executes script.
+  if (!scheme) return href;
+  return ALLOWED_SCHEMES.test(scheme) ? href : undefined;
+}
 
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
@@ -38,17 +66,23 @@ function renderInline(text: string): ReactNode[] {
       out.push(<em key={k++}>{tok.slice(1, -1)}</em>);
     } else {
       const label = tok.slice(1, tok.indexOf("]"));
-      const href = tok.slice(tok.indexOf("(") + 1, -1);
+      const href = safeHref(tok.slice(tok.indexOf("(") + 1, -1));
       out.push(
-        <a
-          key={k++}
-          href={href}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="text-[var(--rui-link)] underline hover:text-[var(--rui-link-hover)]"
-        >
-          {label}
-        </a>
+        href === undefined ? (
+          // Disallowed scheme — show the source text so nothing is silently swallowed,
+          // but never as a clickable target.
+          <span key={k++}>{tok}</span>
+        ) : (
+          <a
+            key={k++}
+            href={href}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-[var(--rui-link)] underline hover:text-[var(--rui-link-hover)]"
+          >
+            {label}
+          </a>
+        )
       );
     }
     last = i + tok.length;

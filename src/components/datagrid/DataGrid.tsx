@@ -22,6 +22,7 @@ import {
 } from "./ui/containers/EditContainers";
 import { EditInline } from "./ui/containers/EditInline";
 import { getRowKey } from "./utils/getRowKey";
+import { filterFnFor } from "./utils/filterFns";
 import { makeSelectColumn } from "./ui/table/SelectionCells";
 import { toast } from "sonner";
 import { getApiMessage } from "../../api/errors";
@@ -234,6 +235,10 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     if (cancelEditTrigger === undefined || cancelEditTrigger <= 0) return;
     if (editingRef.current === null) return;
     setEditing(null);
+    // `open` describes the same session as `editing` and has to be torn down with it:
+    // leaving it true re-rendered EditContainer with `mode={editing?.mode ?? "create"}`,
+    // so the drawer stayed on screen and silently became a blank Create form (#B2).
+    setOpen(false);
     onCancelEdit?.();
   }, [cancelEditTrigger, onCancelEdit]);
 
@@ -366,8 +371,23 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
   const userKey =
     storageKey ?? `dg:${title.toLowerCase().replace(/\s+/g, "-")}`;
+  /*
+   * A column declaring `meta.filter` gets the matching filter function attached here.
+   * Left to TanStack's `auto`, the fn is inferred from the first row's value type and
+   * has no idea what shape the filter UI writes — select degraded to a substring match,
+   * multi-select and dateRange matched nothing at all (#B1). An explicit `filterFn` on
+   * the column always wins, so a consumer can still override.
+   */
   const baseCols = useMemo(
-    () => columns.filter((c) => getColId(c) !== "__actions__"),
+    () =>
+      columns
+        .filter((c) => getColId(c) !== "__actions__")
+        .map((c) => {
+          const cfg = c.meta?.filter;
+          if (!cfg || c.filterFn) return c;
+          const fn = filterFnFor(cfg);
+          return fn ? { ...c, filterFn: fn } : c;
+        }),
     [columns]
   );
   const selectCol = useMemo(
@@ -557,11 +577,6 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     [onPersist, cellEdit, cellEditColumn, zodSchema, getId]
   );
 
-  const leafColCount = useMemo(() => {
-    const cols = [...columns, actionCol];
-    return cols.length + (selectable ? 1 : 0);
-  }, [columns, actionCol, selectable]);
-
   const showCards = !!card && view === "cards";
 
   const activeGroupOption = useMemo(
@@ -734,9 +749,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             table={table}
             getId={getId}
             isLoading={isLoading ?? false}
-            rows={rows}
             error={error ?? null}
-            leafColCount={leafColCount}
             showFilters={showFilters && hasFilterableColumns}
             emptyLabel={emptyLabel}
             selectedRowIds={selectable ? selectedIds : undefined}

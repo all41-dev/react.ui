@@ -1,6 +1,6 @@
 import { type Row, type Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { SkeletonRow, EmptyState } from "./GridStates";
+import { SkeletonRow, EmptyState, NoResultsState } from "./GridStates";
 import { useContainerWidth } from "../hooks/useContainerWidth";
 import { useColumnLayout } from "../hooks/useColumnLayout";
 import { Colgroup } from "./table/Colgroup";
@@ -15,9 +15,7 @@ type TableViewProps<TRow extends object> = {
   table: Table<TRow>;
   getId: (row: TRow) => string | number | undefined;
   isLoading: boolean;
-  rows: TRow[];
   error: string | Error | null;
-  leafColCount: number;
   /** Renders the per-column filter row under the header (toolbar Filters toggle). */
   showFilters?: boolean;
   emptyLabel?: string;
@@ -40,9 +38,7 @@ export function TableView<TRow extends object>({
   table,
   getId,
   isLoading,
-  rows,
   error,
-  leafColCount,
   showFilters,
   emptyLabel,
   selectedRowIds,
@@ -66,6 +62,33 @@ export function TableView<TRow extends object>({
   );
 
   const allRows = table.getRowModel().rows;
+
+  /*
+   * Every colSpan in this table — skeletons, the virtualizer's padding rows, the empty
+   * state, the expanded-row panel, the inline editor. It has to be the count of columns
+   * actually RENDERED, so it comes from the table rather than from the consumer's
+   * `columns` array: that array excludes the injected select column, may itself contain
+   * an `__actions__` column that was already counted, and says nothing about column
+   * visibility. Over-spanning cells stretch past the `<colgroup>` and shear the layout.
+   */
+  const leafColCount = table.getVisibleLeafColumns().length;
+
+  /*
+   * "Nothing here yet" and "nothing matches your filters" are different states with
+   * different fixes, and neither is the unfiltered row array the parent passed down —
+   * reading that meant filtering to zero rows suppressed the empty state entirely and
+   * left a blank rectangle under the header.
+   */
+  const totalRowCount = table.getCoreRowModel().rows.length;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const { columnFilters, globalFilter } = table.getState();
+  const hasActiveFilters =
+    columnFilters.length > 0 || String(globalFilter ?? "").trim() !== "";
+
+  const clearFilters = () => {
+    table.resetColumnFilters();
+    table.setGlobalFilter("");
+  };
 
   /*
    * One flat list so a single virtualizer covers both grouped and ungrouped bodies.
@@ -169,7 +192,7 @@ export function TableView<TRow extends object>({
             )}
           </thead>
 
-          {isLoading && rows.length === 0 && (
+          {isLoading && totalRowCount === 0 && (
             <tbody className="bg-surface-card">
               <SkeletonRow cols={leafColCount} />
               <SkeletonRow cols={leafColCount} />
@@ -260,14 +283,18 @@ export function TableView<TRow extends object>({
             </tbody>
           )}
 
-          {!isLoading && rows.length === 0 && !error && (
+          {!isLoading && filteredRowCount === 0 && !error && (
             <tbody className="bg-surface-card">
               <tr>
                 <td colSpan={leafColCount}>
-                  <EmptyState
-                    title={emptyLabel ?? "No data"}
-                    description="There are no items to display yet."
-                  />
+                  {hasActiveFilters && totalRowCount > 0 ? (
+                    <NoResultsState onClearFilters={clearFilters} />
+                  ) : (
+                    <EmptyState
+                      title={emptyLabel ?? "No data"}
+                      description="There are no items to display yet."
+                    />
+                  )}
                 </td>
               </tr>
             </tbody>
