@@ -10,7 +10,7 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
   const m = (c.column.columnDef as any).meta as
     | ColumnMeta<any, any>
     | undefined;
-  const paddingClass = m?.cellClassName ?? "px-3 py-2";
+  const paddingClass = m?.cellClassName ?? "px-3";
   const rendered = flexRender(c.column.columnDef.cell, c.getContext());
   const value = typeof c.getValue === "function" ? c.getValue() : undefined;
 
@@ -19,9 +19,21 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
   return (
     <td
       data-col-id={c.column.id}
+      /*
+       * `.og td` — 40px, and a hairline at 65% opacity so a dense grid doesn't read as
+       * a wireframe. Text size is inherited from the grid root (.8125rem); it used to
+       * be forced to `text-sm`, a size that appears nowhere in the design.
+       */
       className={[
-        "border-b border-border-default text-sm align-middle",
+        "h-10 align-middle border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)]",
         paddingClass,
+        // `mono` and `align` were declared in ColumnMeta but read nowhere.
+        m?.mono ? "font-mono text-[.75rem] text-muted" : "",
+        m?.align === "right"
+          ? "text-right"
+          : m?.align === "center"
+            ? "text-center"
+            : "",
         m?.hideOnMobile ? "hidden md:table-cell" : "",
       ].join(" ")}
     >
@@ -34,7 +46,10 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
             e.stopPropagation();
             ctx!.startCellEdit!(c.row.original, c.column.id, e.currentTarget);
           }}
-          className="group/ce flex w-full cursor-pointer items-center gap-1.5 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
+          /* `.og-cellbtn` — a text cursor, not a pointer: it edits in place rather than
+             navigating. The negative margin lets the hover chrome bleed into the cell
+             padding so the target lines up with the text it replaces. */
+          className="group/ce -mx-1 flex w-full cursor-text items-center gap-1.5 rounded-[5px] border border-transparent px-1 py-0.5 text-left outline-none hover:border-border-translucent hover:bg-surface-inset focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
         >
           <span className="min-w-0 flex-1">
             <CellWithTooltip

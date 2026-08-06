@@ -95,12 +95,13 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
         aria-label={`Edit ${String((column as any).meta?.label ?? column.header ?? key)}`}
         tabIndex={-1}
         style={pos}
-        className="fixed z-[1000] flex flex-col gap-2 rounded-lg border border-border-default bg-surface-card p-3 shadow-2xl outline-none animate-pop-in"
+        /* `.og-pop`. Portaled, so it restates the type stack like the overlay shell. */
+        className="fixed z-[1000] flex flex-col gap-2.5 rounded-surface border border-border-default bg-surface-card p-3 font-sans text-[.8125rem] text-body shadow-[var(--elev-3)] outline-none animate-pop-in"
       >
         <form onSubmit={submit} className="flex flex-col gap-2">
           {renderEditor({ column: column as any, control: form.control as any })}
           {error && (
-            <p className="rounded border border-danger/30 bg-danger/10 p-2 text-xs text-danger">
+            <p className="rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger">
               {error}
             </p>
           )}
@@ -109,14 +110,14 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
               type="button"
               onClick={onCancel}
               disabled={saving}
-              className="cursor-pointer rounded-control border border-border-default px-2.5 py-1 text-xs text-body hover:bg-surface-inset disabled:opacity-50"
+              className="cursor-pointer rounded-control border border-border-default px-2.5 py-1 text-[.75rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="cursor-pointer rounded-control bg-accent px-2.5 py-1 text-xs font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
+              className="cursor-pointer rounded-control bg-accent px-2.5 py-1 text-[.75rem] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save"}
             </button>

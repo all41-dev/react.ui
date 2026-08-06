@@ -13,12 +13,17 @@ function useDebounced<T>(value: T, ms = 250) {
   return v;
 }
 
+/*
+ * `.og-f` — 26px on the inset surface. It was 32px on the card surface with a shadow,
+ * which made the filter row look like a second toolbar instead of a recessed strip
+ * under the header.
+ */
 const baseControl =
-  "block w-full h-8 rounded-md border border-border-default bg-surface-card text-xs text-body " +
-  "shadow-sm outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)]";
+  "block w-full h-[26px] rounded-control border border-border-default bg-surface-inset text-[.75rem] text-body " +
+  "outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)]";
 
-const inputClass = `${baseControl} px-2`;
-const selectClass = `${baseControl} appearance-none pl-2 pr-6`;
+const inputClass = `${baseControl} px-[7px]`;
+const selectClass = `${baseControl} appearance-none pl-[7px] pr-6`;
 
 type FilterOf<K extends ColumnFilterMeta["type"]> = Extract<ColumnFilterMeta, { type: K }>;
 
@@ -52,7 +57,7 @@ function TextFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "text">
   }, [col, debounced]);
 
   return (
-    <div className="mt-1">
+    <div>
       <input
         className={inputClass}
         placeholder={cfg.placeholder ?? "Filter…"}
@@ -70,7 +75,7 @@ function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "sele
   if (cfg.multi) {
     const val = (Array.isArray(raw) ? raw : []) as string[];
     return (
-      <div className="mt-1">
+      <div>
         <select
           multiple
           className={inputClass + " !h-auto"}
@@ -93,7 +98,7 @@ function SelectFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "sele
 
   const val = (raw as string) ?? "";
   return (
-    <div className="mt-1 relative">
+    <div className="relative">
       <select
         className={selectClass}
         value={val}
@@ -128,7 +133,7 @@ function BooleanFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "boo
   const val = raw === true ? "true" : raw === false ? "false" : "";
 
   return (
-    <div className="mt-1 relative">
+    <div className="relative">
       <select
         className={selectClass}
         value={val}
@@ -160,7 +165,7 @@ function DateRangeFilter<TRow extends object>({ col, cfg }: FilterProps<TRow, "d
   };
 
   return (
-    <div className="mt-1 flex gap-1">
+    <div className="flex gap-1">
       <input
         type="date"
         className={inputClass}

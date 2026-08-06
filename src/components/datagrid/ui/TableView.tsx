@@ -90,7 +90,8 @@ export function TableView<TRow extends object>({
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => wrapperRef.current,
-    estimateSize: (i) => (items[i]?.kind === "group" ? 36 : 44),
+    // Spec heights: 40px data rows, 36px group headers.
+    estimateSize: (i) => (items[i]?.kind === "group" ? 36 : 40),
     overscan: 10,
   });
 
@@ -119,7 +120,15 @@ export function TableView<TRow extends object>({
         className="relative isolate max-h-[70vh] w-full overflow-x-auto overflow-y-auto"
       >
         <table
-          className="table-fixed border-collapse border-spacing-y-1"
+          /*
+           * `border-separate` with zero spacing, matching `.og table`. Not cosmetic:
+           * in a collapsed-border table a positioned cell is undefined behaviour, and
+           * Chrome declines to make the sticky actions cell a containing block — the
+           * floating pill then laid out from its static position, off the right edge of
+           * the scroll container. (`border-spacing-y-1` was also dead here: spacing is
+           * ignored entirely under `border-collapse`.)
+           */
+          className="table-fixed border-separate border-spacing-0"
           style={{ width: `${tableW}px` }}
         >
           <Colgroup
@@ -136,9 +145,11 @@ export function TableView<TRow extends object>({
                 ))}
               </tr>
             ))}
-            {/* Filter row lives in thead so it stays sticky under the header. */}
+            {/* Filter row lives in thead so it stays sticky under the header. It sits on
+                the CARD surface, not the inset one — the inset is reserved for the
+                header above it, and stacking two insets erased the boundary. */}
             {showFilters && (
-              <tr className="bg-surface-inset">
+              <tr className="bg-surface-card">
                 {table
                   .getHeaderGroups()
                   .at(-1)!
@@ -148,7 +159,7 @@ export function TableView<TRow extends object>({
                     ) : (
                       <th
                         key={h.id}
-                        className="border-b border-border-default px-3 pb-2 pt-0 text-left align-top font-normal"
+                        className="h-9 border-b border-border-default px-2 text-left align-middle font-normal normal-case tracking-normal"
                       >
                         <HeaderFilter h={h} />
                       </th>
@@ -167,13 +178,11 @@ export function TableView<TRow extends object>({
           )}
 
           {isCreating && inlineEditor && (
-            <tbody className="bg-surface-card border-b border-border-default">
+            <tbody className="border-b border-border-default">
               <tr>
-                <td colSpan={leafColCount} className="p-0 overflow-hidden">
-                  <div className="animate-slide-down">
-                    <div className="border-l-2 border-accent bg-linear-to-r from-accent-subtle to-surface-card shadow-sm">
-                      {inlineEditor}
-                    </div>
+                <td colSpan={leafColCount} className="h-auto overflow-hidden p-0">
+                  <div className="animate-slide-down border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset">
+                    {inlineEditor}
                   </div>
                 </td>
               </tr>
@@ -212,8 +221,6 @@ export function TableView<TRow extends object>({
 
               const r = item.row;
               const key = getId(r.original) ?? r.id;
-              const rowBgClass =
-                r.index % 2 === 0 ? "bg-surface-card" : "bg-surface-inset";
               const isEditing =
                 editingRowId !== undefined &&
                 String(key) === String(editingRowId);
@@ -224,16 +231,16 @@ export function TableView<TRow extends object>({
               const isExpanded = expandedRowIds?.has(key) ?? false;
 
               return (
+                /* No zebra striping — the prototype has none. Rows sit on the card
+                   surface and are separated by the 65% hairline alone. */
                 <tbody
                   key={String(key)}
                   ref={rowVirtualizer.measureElement}
                   data-index={virtualRow.index}
-                  className={rowBgClass}
                 >
                   <DataRowFragment
                     row={r}
                     leafColCount={leafColCount}
-                    rowBgClass={rowBgClass}
                     isEditing={isEditing}
                     isSelected={isSelected}
                     isExpanded={isExpanded}

@@ -42,8 +42,8 @@ export function FormRenderer<T extends FieldValues>({
   return (
     <div className="flex h-full flex-col">
       {title && (
-        <div className="border-b p-4">
-          <h3 className="text-lg font-semibold">{title}</h3>
+        <div className="border-b border-border-default px-4 py-[13px]">
+          <h3 className="text-[.9375rem] font-semibold text-body">{title}</h3>
         </div>
       )}
 
@@ -84,12 +84,12 @@ export function FormRenderer<T extends FieldValues>({
             return (
               <div
                 key={String(key ?? c.id ?? label)}
-                className="rounded-lg border p-3"
+                className="rounded-control border border-border-default p-3"
               >
-                <div className="mb-1 text-xs font-medium text-muted">
+                <div className="mb-1 text-[.625rem] font-bold uppercase tracking-[.05em] text-faint">
                   {label}
                 </div>
-                <div className="text-sm">{value}</div>
+                <div className="text-[.8125rem] text-body">{value}</div>
               </div>
             );
           })}

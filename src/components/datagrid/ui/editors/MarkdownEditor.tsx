@@ -264,8 +264,8 @@ export function MarkdownEditor({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border-default bg-surface-card focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-default bg-surface-inset px-2 py-1">
+    <div className="flex flex-col overflow-hidden rounded-control border border-border-default bg-surface-inset focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-default bg-surface-card px-2 py-1">
         <div className="flex items-center gap-0.5">
           {TOOLS.map(({ action, label, Icon }) => (
             <button
@@ -279,13 +279,13 @@ export function MarkdownEditor({
                 runTool(action);
               }}
               disabled={tab === "preview"}
-              className="grid h-6 w-6 cursor-pointer place-items-center rounded text-muted transition-colors hover:bg-surface-raised hover:text-body disabled:opacity-40"
+              className="grid h-6 min-w-[26px] cursor-pointer place-items-center rounded-[5px] px-1.5 text-faint transition-colors hover:bg-surface-raised hover:text-body disabled:opacity-40"
             >
               <Icon className="h-3.5 w-3.5" />
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-0.5 text-xs">
+        <div className="flex items-center gap-0.5 rounded-md bg-surface-inset p-0.5 text-[.75rem]">
           {(["write", "preview"] as const).map((t) => (
             <button
               key={t}
@@ -294,8 +294,8 @@ export function MarkdownEditor({
               aria-pressed={tab === t}
               className={`cursor-pointer rounded px-2 py-0.5 capitalize transition-colors ${
                 tab === t
-                  ? "bg-surface-card font-semibold text-accent shadow-sm"
-                  : "text-muted hover:text-body"
+                  ? "bg-surface-card font-semibold text-accent shadow-[0_1px_2px_rgba(0,0,0,.18)]"
+                  : "text-faint hover:text-body"
               }`}
             >
               {t}
@@ -312,10 +312,10 @@ export function MarkdownEditor({
           onChange={(e) => onChange(e.target.value)}
           rows={rows}
           placeholder={placeholder}
-          className="block w-full resize-y bg-surface-card p-3 font-mono text-sm text-body outline-none placeholder:text-faint"
+          className="block min-h-[118px] w-full resize-y bg-transparent p-2.5 text-[.8125rem] leading-[1.6] text-body outline-none placeholder:text-faint"
         />
       ) : (
-        <div className="max-h-96 space-y-3 overflow-y-auto p-3 text-sm text-body">
+        <div className="max-h-[280px] min-h-[118px] space-y-3 overflow-y-auto px-3 py-2 text-[.8125rem] leading-[1.6] text-body">
           {value?.trim() ? (
             renderMarkdown(value)
           ) : (

@@ -12,23 +12,33 @@ export function Spinner({ label }: { label?: string }) {
   );
 }
 
+/*
+ * `.og-sk` — one 9px shimmer bar per column, in a real 40px row, so the skeleton
+ * occupies the layout the data will. The previous version was a single colSpan cell
+ * holding a 12-column grid of `animate-pulse` blocks: the wrong height, the wrong
+ * column positions, and an opacity pulse where the design calls for a gradient sweep.
+ *
+ * Widths repeat on a fixed cycle rather than randomly — a random width per render makes
+ * the skeleton twitch on every re-render.
+ */
+const SKELETON_WIDTHS = ["70%", "45%", "85%", "35%", "60%"];
+
 export function SkeletonRow({ cols }: { cols: number }) {
   return (
-    <tr>
-      <td colSpan={cols} className="px-3 py-2">
-        <div className="grid grid-cols-12 gap-2">
-          <div className="col-span-3 h-4 animate-pulse rounded bg-surface-inset" />
-          <div className="col-span-2 h-4 animate-pulse rounded bg-surface-inset" />
-          <div className="col-span-4 h-4 animate-pulse rounded bg-surface-inset" />
-          <div className="col-span-1 h-4 animate-pulse rounded bg-surface-inset" />
-          <div className="col-span-2 h-4 animate-pulse rounded bg-surface-inset" />
-        </div>
-      </td>
+    <tr aria-hidden>
+      {Array.from({ length: Math.max(1, cols) }, (_, i) => (
+        <td key={i} className="h-10 px-3 align-middle">
+          <div
+            className="rui-skeleton"
+            style={{ width: SKELETON_WIDTHS[i % SKELETON_WIDTHS.length] }}
+          />
+        </td>
+      ))}
     </tr>
   );
 }
 
-/** Polished empty state shown when the grid has no data. */
+/** `.og-empty` — centred icon over the label, in the faint tone. */
 export function EmptyState({
   title = "No data",
   description,
@@ -37,12 +47,10 @@ export function EmptyState({
   description?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-surface-inset">
-        <Inbox className="h-6 w-6 text-faint" aria-hidden="true" />
-      </div>
-      <p className="text-sm font-medium text-muted">{title}</p>
-      {description && <p className="mt-1 text-xs text-faint">{description}</p>}
+    <div className="flex flex-col items-center justify-center gap-1.5 px-4 py-11 text-center text-faint">
+      <Inbox className="h-6 w-6" aria-hidden="true" />
+      <p className="text-[.8125rem]">{title}</p>
+      {description && <p className="text-[.6875rem]">{description}</p>}
     </div>
   );
 }

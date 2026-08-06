@@ -56,32 +56,36 @@ export function GroupHeaderRow<TRow extends object>({
           aria-expanded={!collapsed}
           className="flex cursor-pointer items-center gap-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
         >
+          {/* The chevron takes the accent when open — it is the one moving part that
+              says the group is expanded. */}
           <ChevronRight
-            className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform duration-150 ${
-              collapsed ? "" : "rotate-90"
+            className={`h-3.5 w-3.5 shrink-0 transition-[transform,color] duration-150 ${
+              collapsed ? "text-faint" : "rotate-90 text-accent"
             }`}
             aria-hidden
           />
           {group.color && (
             <span
               aria-hidden
-              className="h-2 w-2 shrink-0 rounded-full"
+              className="h-[7px] w-[7px] shrink-0 rounded-full"
               style={{ backgroundColor: group.color }}
             />
           )}
           <span className="truncate text-[.8125rem] font-semibold text-body">
             {group.label}
           </span>
-          <span className="rounded-full bg-surface-card px-1.5 py-0.5 font-mono text-[.6875rem] leading-none text-muted">
+          <span className="rounded-full bg-surface-card px-[7px] py-px font-mono text-[.6875rem] font-semibold leading-normal text-muted">
             {group.rows.length}
           </span>
         </button>
       </th>
 
       {trailing.map((c) => (
+        /* `.og-gh .agg` — a muted mono total. Bold body weight belongs to tree-mode
+           subtree roll-ups, which are a different, stronger claim. */
         <td
           key={c.id}
-          className="border-b border-border-default px-3 text-right align-middle font-mono text-xs font-semibold text-body"
+          className="border-b border-border-default px-3 text-right align-middle font-mono text-[.75rem] text-muted"
         >
           {isAgg(c) ? fmt.format(group.sums[c.id] ?? 0) : null}
         </td>

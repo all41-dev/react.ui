@@ -40,6 +40,7 @@ import {
 } from "react";
 import { DataGridPagination } from "./ui/DataGridPagination";
 import { FacetChips, type FacetChip } from "./ui/FacetChips";
+import { SelectionPill } from "./ui/SelectionPill";
 import { CardsView } from "./ui/CardsView";
 import { KanbanView } from "./ui/KanbanView";
 import { useAggColumnIds, useGroupBuckets } from "./hooks/useGrouping";
@@ -651,7 +652,18 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   return (
     <DataGridContext.Provider value={contextValue}>
       <div
-        className={["flex flex-col rounded-lg border bg-surface-card", className]
+        /*
+         * `.og` in the prototype. `overflow-hidden` is load-bearing — without it the
+         * sticky header and footer paint over the rounded corners. The font and colour
+         * were missing entirely, which meant `--rui-font-sans` and `--rui-text-body`
+         * never reached the component and a consumer got their host page's type.
+         */
+        className={[
+          "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-surface",
+          "border border-border-default bg-surface-card shadow-[var(--elev-2)]",
+          "font-sans text-[.8125rem] text-body",
+          className,
+        ]
           .filter(Boolean)
           .join(" ")}
       >
@@ -691,7 +703,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         >
           {isLoading && (
             <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-surface-card/50">
-              <div className="pointer-events-auto rounded-md border bg-surface-card px-3 py-2 shadow-sm">
+              <div className="pointer-events-auto rounded-control border border-border-default bg-surface-card px-3 py-2 shadow-[var(--elev-1)]">
                 <Spinner label="Loading…" />
               </div>
             </div>
@@ -785,18 +797,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         )}
         {/* Cards view has no pager, but the bulk pill still needs somewhere to live. */}
         {showCards && selectable && selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 border-t border-border-default bg-surface-card px-3.5 py-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent py-0.5 pl-2.5 pr-1 text-[.6875rem] font-semibold text-accent-contrast">
-              {selectedIds.size} selected
-              <button
-                type="button"
-                onClick={clearSelection}
-                className="cursor-pointer rounded-full px-1.5 font-medium underline-offset-2 transition-opacity hover:underline hover:opacity-90"
-              >
-                Clear
-              </button>
-            </span>
-            <span className="text-xs text-muted">
+          <div className="flex items-center gap-3 border-t border-border-default bg-surface-card px-3.5 py-[9px] text-[.75rem] text-muted">
+            <SelectionPill count={selectedIds.size} onClear={clearSelection} />
+            <span className="text-[.75rem] text-muted">
               {table.getFilteredRowModel().rows.length} shown
             </span>
           </div>

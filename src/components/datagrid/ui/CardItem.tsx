@@ -21,14 +21,16 @@ export function CardItem<TRow extends object>({
     <div
       onClick={() => onRowClick?.(row.original)}
       aria-selected={selected || undefined}
+      /*
+       * `.og-card` — selection is an accent border plus a 1px ring, NOT a tinted fill.
+       * The card's own content sits on the card surface; repainting it accent-subtle
+       * changed the contrast of everything inside it just to signal a checkbox.
+       */
       className={[
-        "group/card relative flex flex-col rounded-lg border transition-all duration-150",
-        "hover:-translate-y-px hover:shadow-md",
-        // Exclusive — emitting both bg utilities would leave the winner to stylesheet
-        // order rather than intent.
-        selected
-          ? "border-accent bg-accent-subtle"
-          : "border-border-default bg-surface-card",
+        "group/card relative flex flex-col rounded-control border transition-[transform,box-shadow,border-color] duration-150",
+        "bg-surface-card shadow-[var(--elev-1)]",
+        "hover:-translate-y-px hover:border-border-translucent hover:shadow-[0_6px_16px_-8px_rgba(0,0,0,.45)]",
+        selected ? "border-accent shadow-[0_0_0_1px_var(--rui-accent)]" : "border-border-default",
         onRowClick ? "cursor-pointer" : "",
       ].join(" ")}
     >
@@ -36,7 +38,7 @@ export function CardItem<TRow extends object>({
         <div
           // Visible on hover or while selected, per spec.
           className={[
-            "absolute right-2 top-2 z-10 transition-opacity",
+            "absolute right-2.5 top-2.5 z-10 transition-opacity",
             selected
               ? "opacity-100"
               : "opacity-0 group-hover/card:opacity-100 focus-within:opacity-100",
@@ -47,18 +49,17 @@ export function CardItem<TRow extends object>({
         </div>
       )}
 
-      <div className="min-w-0 flex-1 p-4">{card(row.original)}</div>
+      <div className="min-w-0 flex-1 p-3">{card(row.original)}</div>
 
       {actionCell && (
-        // Always visible here — no hover-reveal, unlike table rows.
-        //
-        // `relative` + a floor height are load-bearing: the action cell's own content is
-        // `md:absolute top-0 right-0 h-full`, so without a positioned ancestor it would
-        // anchor to the card and land on top of the checkbox. Containing it here pins it
-        // to the footer's right edge, and the floor keeps the footer from collapsing now
-        // that its only child is taken out of flow.
+        /*
+         * `.og-card-foot` — actions stay visible here, unlike the table row's hover pill.
+         * The prototype CSS hover-reveals them, but the handoff says always-visible and
+         * that wins: a touch device has no hover, and the footer has room the row didn't.
+         * `mt-auto` keeps the footer pinned to the bottom of uneven cards in a grid row.
+         */
         <div
-          className="relative min-h-[38px] border-t border-border-default px-2"
+          className="mt-auto flex items-center justify-end gap-2 border-t border-[color-mix(in_srgb,var(--rui-border-default)_70%,transparent)] px-3 py-2"
           onClick={(e) => e.stopPropagation()}
         >
           {flexRender(actionCell.column.columnDef.cell, actionCell.getContext())}

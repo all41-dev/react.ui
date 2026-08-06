@@ -82,7 +82,7 @@ function HeaderCellInner<TRow extends object>({
       <th
         scope="col"
         data-col-id="__select__"
-        className="w-[36px] border-b px-2.5 py-2 text-left align-middle"
+        className="h-[34px] w-[36px] border-b border-border-default px-2.5 text-left align-middle"
       >
         {flexRender(h.column.columnDef.header, h.getContext())}
       </th>
@@ -113,10 +113,14 @@ function HeaderCellInner<TRow extends object>({
               ? "descending"
               : "none"
       }
+      /* `.og th` — 34px, uppercase micro-label in the faint tone, on the inset surface.
+         The header used to render at body size and weight, which read as a first data
+         row rather than a header. */
       className={[
         "relative group/hd",
-        "border-b text-left text-sm font-medium align-top",
-        "px-3 py-2 select-none",
+        "h-[34px] whitespace-nowrap border-b border-border-default px-3 select-none",
+        "text-left align-middle text-[.6875rem] font-semibold uppercase tracking-[.05em] text-faint",
+        canSort ? "cursor-pointer hover:text-muted" : "",
         m?.hideOnMobile ? "hidden md:table-cell" : "",
         m?.headerClassName ?? "",
       ].join(" ")}
@@ -149,7 +153,7 @@ function HeaderCellInner<TRow extends object>({
           <button
             type="button"
             onClick={h.column.getToggleSortingHandler()}
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-[5px] text-left uppercase outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
           >
             <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
               {flexRender(h.column.columnDef.header, h.getContext())}

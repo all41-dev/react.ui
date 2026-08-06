@@ -38,23 +38,51 @@
   --radius-surface: var(--rui-radius-surface);
 }
 
+/*
+ * Elevation. Deliberately NOT part of the `--rui-*` contract — shadows are the
+ * component's design, not the consumer's. But they must still differ per theme: the
+ * original values were tuned for a dark shell and read as a black pit on white, which
+ * is why nothing ever used them.
+ *
+ * Light lives here in `@theme`; dark overrides below. That ordering works because
+ * `@theme` output lands in `@layer theme` and unlayered CSS always beats layered CSS —
+ * the same rule `tokens.css` relies on.
+ *
+ * Consumed as `shadow-[var(--elev-2)]`, not `shadow-elev-2`: Tailwind's shadow
+ * utilities inline the theme value at build time, which would freeze the light variant
+ * into the class and defeat the override.
+ */
 @theme {
-  --elev-1: 0 6px 20px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
-  --elev-2: 0 14px 36px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.04) inset;
-  --elev-3: 0 24px 56px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.5),
-    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --elev-2: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --elev-3: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
 
-  --inset-1: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+  /*
+   * Inset wells. Named `--elev-inset-*`, NOT `--inset-*` — `--inset-*` is a Tailwind 4
+   * theme namespace, and defining entries in it silently redefined the whole inset
+   * spacing scale: `.right-2` compiled to `right: var(--inset-2)`, i.e. `right:` set to
+   * a box-shadow string, which the parser drops. Every `top/right/bottom/left/inset-1..3`
+   * utility in the library was a no-op because of this. `--elev-*` is safe for the same
+   * reason it needs `shadow-[var(--elev-2)]`: Tailwind claims no such namespace.
+   */
+  --elev-inset-1: inset 0 1px 0 rgba(255, 255, 255, 0.06),
     inset 0 0 0 1px rgba(255, 255, 255, 0.04), inset 0 -10px 22px rgba(0, 0, 0, 0.38);
-  --inset-2: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+  --elev-inset-2: inset 0 1px 0 rgba(255, 255, 255, 0.08),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 -18px 34px rgba(0, 0, 0, 0.5);
-  --inset-3: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+  --elev-inset-3: inset 0 1px 0 rgba(255, 255, 255, 0.1),
     inset 0 0 0 1px rgba(255, 255, 255, 0.06), inset 0 -26px 48px rgba(0, 0, 0, 0.6);
 
   --scrollbar-thumb: rgb(70 70 80 / 0.6);
   --scrollbar-track: transparent;
   --scrollbar-thumb-hover: rgb(120 120 130 / 0.7);
+}
+
+[data-theme="dark"] {
+  --elev-1: 0 6px 20px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --elev-2: 0 14px 36px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --elev-3: 0 24px 56px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 @layer utilities {
@@ -152,4 +180,37 @@
 }
 .animate-backdrop-in {
   animation: ruiFadeIn 0.15s ease-out;
+}
+
+/*
+ * Loading skeleton. The spec's `.og-sk` is a shimmer — a gradient swept across the bar
+ * by animating background-position — not an opacity pulse. Colours come from the
+ * surface tokens so it themes with everything else.
+ */
+@keyframes ruiShimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
+}
+
+.rui-skeleton {
+  height: 9px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    var(--rui-surface-raised),
+    color-mix(in srgb, var(--rui-surface-raised) 45%, transparent),
+    var(--rui-surface-raised)
+  );
+  background-size: 200% 100%;
+  animation: ruiShimmer 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rui-skeleton {
+    animation: none;
+  }
 }

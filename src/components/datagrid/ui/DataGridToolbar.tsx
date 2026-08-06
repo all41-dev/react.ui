@@ -3,6 +3,22 @@ import { memo, useEffect, useState } from "react";
 
 export type GridView = "list" | "cards";
 
+/*
+ * `.og-btn` — the 30px toolbar control. Transparent at rest so the toolbar reads as one
+ * surface; on hover it lifts to `--surface-raised` with a translucent edge rather than
+ * jumping to an accent border, which previously made every hover look like a selection.
+ */
+const BTN =
+  "inline-flex h-[30px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-control " +
+  "border px-2.5 text-[.8125rem] outline-none transition-colors " +
+  "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]";
+
+const BTN_OFF =
+  "border-border-default bg-transparent text-muted hover:border-border-translucent hover:bg-surface-raised hover:text-body";
+
+const BTN_ON =
+  "border-[color-mix(in_srgb,var(--rui-accent)_50%,transparent)] bg-accent-subtle font-semibold text-accent";
+
 type DataGridToolbarProps = {
   title: string;
   subtitle?: string;
@@ -65,24 +81,24 @@ export const DataGridToolbar = memo(function DataGridToolbar({
 
   return (
     <>
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 border-b border-border-default px-3.5 py-[11px]">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-2.5 border-b border-border-default bg-surface-card px-3.5 py-[11px]">
         {/* Title block: title + count pill + subtitle */}
-        <div className="flex min-w-0 items-baseline gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <h2 className="whitespace-nowrap text-[.9375rem] font-semibold text-body">
             {title}
           </h2>
           {typeof count === "number" && (
-            <span className="rounded-full bg-surface-inset px-2 py-0.5 font-mono text-[.6875rem] leading-none text-muted">
+            <span className="rounded-full bg-surface-inset px-[7px] py-px font-mono text-[.6875rem] font-semibold leading-normal text-muted">
               {count}
             </span>
           )}
           {subtitle && (
-            <span className="min-w-0 truncate text-xs text-faint">{subtitle}</span>
+            <span className="min-w-0 truncate text-[.75rem] text-faint">{subtitle}</span>
           )}
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {toolbar}
 
           {searchable && onSearchChange && (
@@ -94,13 +110,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
               type="button"
               onClick={onToggleFilters}
               aria-pressed={filtersShown}
-              className={[
-                "flex h-[30px] cursor-pointer items-center gap-1.5 rounded-control border px-2.5 text-[.8125rem] outline-none transition-colors",
-                "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
-                filtersShown
-                  ? "border-accent/40 bg-accent-subtle font-semibold text-accent"
-                  : "border-border-default text-muted hover:border-accent hover:text-body",
-              ].join(" ")}
+              className={[BTN, filtersShown ? BTN_ON : BTN_OFF].join(" ")}
             >
               <Funnel className="h-3.5 w-3.5" aria-hidden />
               Filters
@@ -119,11 +129,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
                 value={groupBy}
                 onChange={(e) => onGroupByChange(e.target.value)}
                 aria-label="Group by"
-                className={`h-[30px] cursor-pointer rounded-control border bg-surface-card px-1.5 text-[.8125rem] outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] ${
-                  groupBy
-                    ? "border-accent/40 bg-accent-subtle font-semibold text-accent"
-                    : "border-border-default text-body"
-                }`}
+                className={[BTN, groupBy ? BTN_ON : BTN_OFF].join(" ")}
               >
                 <option value="">None</option>
                 {groupOptions.map((g) => (
@@ -136,10 +142,13 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           )}
 
           {view && onViewChange && (
+            /* `.og-seg` — an inset trough with the active tab lifted onto the card
+               surface. It was a flat bordered pair, which read as two buttons rather
+               than one control with a current state. */
             <div
               role="group"
               aria-label="View"
-              className="inline-flex overflow-hidden rounded-control border border-border-default"
+              className="inline-flex gap-0.5 rounded-control border border-border-default bg-surface-inset p-0.5"
             >
               {([
                 { id: "list" as const, Icon: List, label: "List view" },
@@ -152,10 +161,10 @@ export const DataGridToolbar = memo(function DataGridToolbar({
                   aria-label={label}
                   aria-pressed={view === id}
                   title={label}
-                  className={`grid h-[30px] w-[30px] cursor-pointer place-items-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] ${
+                  className={`grid h-6 w-7 cursor-pointer place-items-center rounded-[5px] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] ${
                     view === id
-                      ? "bg-accent-subtle text-accent"
-                      : "text-muted hover:bg-surface-inset hover:text-body"
+                      ? "bg-surface-card text-accent shadow-[0_1px_2px_rgba(0,0,0,.18)]"
+                      : "text-faint hover:text-body"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -170,19 +179,21 @@ export const DataGridToolbar = memo(function DataGridToolbar({
               onClick={onRetry}
               aria-label="Refresh"
               title="Refresh"
-              className="grid h-[30px] w-[30px] cursor-pointer place-items-center rounded-control border border-border-default text-muted outline-none transition-colors hover:border-accent hover:text-body focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
+              className={[BTN, BTN_OFF, "!px-2.5"].join(" ")}
             >
               <RefreshCw className="h-3.5 w-3.5" aria-hidden />
             </button>
           )}
 
           {editContainer !== "none" && (
+            /* `.og-add` — flat accent fill. The shadow and `active:scale-95` were an
+               invention; nothing else in the grid moves on press. */
             <button
               onClick={onAddClick}
               /* Tied to the visible banner, not to `error` — dismissing the banner used
                  to leave Add disabled forever. */
               disabled={showError}
-              className="inline-flex h-[30px] cursor-pointer select-none items-center gap-1.5 rounded-control bg-accent px-3 text-[.8125rem] font-medium text-accent-contrast shadow-sm transition-all hover:bg-accent-hover hover:shadow active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-[30px] cursor-pointer select-none items-center gap-1.5 whitespace-nowrap rounded-control bg-accent px-3 text-[.8125rem] font-semibold text-accent-contrast outline-none transition-colors hover:bg-accent-hover focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" aria-hidden />
               <span className="hidden sm:inline">Add</span>
@@ -192,32 +203,30 @@ export const DataGridToolbar = memo(function DataGridToolbar({
       </div>
 
       {showError && (
+        /* `.og-err` — a full-bleed band directly under the toolbar, not a floating card
+           inset from the edges. It is part of the grid's chrome stack. */
         <div
-          className="mx-3 mt-3 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
+          className="flex items-center gap-2.5 border-b border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-3.5 py-[11px] text-[.8125rem] text-danger"
           role="alert"
         >
-          <div className="flex items-center justify-between gap-3">
-            <span className="truncate">{errorMessage}</span>
-            <div className="flex shrink-0 items-center gap-1">
-              {onRetry && (
-                <button
-                  onClick={onRetry}
-                  className="rounded border border-danger/40 bg-surface-card px-2 py-1 text-xs font-medium text-danger hover:bg-danger/20"
-                >
-                  Retry
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setDismissedMessage(errorMessage)}
-                className="rounded p-1 text-danger transition-colors hover:bg-danger/20"
-                aria-label="Dismiss error"
-                title="Dismiss"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+          <span className="min-w-0 flex-1 truncate">{errorMessage}</span>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="shrink-0 cursor-pointer rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_40%,transparent)] px-2 py-0.5 text-[.75rem] font-semibold text-danger transition-colors hover:bg-[color-mix(in_srgb,var(--rui-danger)_18%,transparent)]"
+            >
+              Retry
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setDismissedMessage(errorMessage)}
+            className="grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded text-danger transition-colors hover:bg-[color-mix(in_srgb,var(--rui-danger)_18%,transparent)]"
+            aria-label="Dismiss error"
+            title="Dismiss"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       )}
     </>
@@ -242,19 +251,18 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
     return () => clearTimeout(id);
   }, [input, value, onChange]);
 
+  /* `.og-search` — the focus ring belongs to the wrapper, so the icon is inside the
+     highlighted field rather than sitting outside a ring drawn around the input alone. */
   return (
-    <div className="relative">
-      <Search
-        className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint"
-        aria-hidden
-      />
+    <div className="flex h-[30px] min-w-0 flex-[0_1_200px] items-center gap-1.5 rounded-control border border-border-default bg-surface-inset px-[9px] text-faint transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_2px_var(--rui-focus-ring)]">
+      <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <input
         type="search"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Search…"
         aria-label="Search all columns"
-        className="h-[30px] w-40 rounded-control border border-border-default bg-surface-inset pl-7 pr-2 text-[.8125rem] text-body outline-none transition-colors placeholder:text-faint focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] md:w-48"
+        className="w-full min-w-[60px] border-0 bg-transparent text-[.8125rem] text-body outline-none placeholder:text-faint"
       />
     </div>
   );

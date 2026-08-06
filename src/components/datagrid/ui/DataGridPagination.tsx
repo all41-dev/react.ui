@@ -1,6 +1,7 @@
 import type { Table, TableState } from "@tanstack/react-table";
 import { memo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { SelectionPill } from "./SelectionPill";
 
 type Props<TRow extends object> = {
   table: Table<TRow>;
@@ -104,43 +105,32 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
       onKeyDown={onKeyDown}
       tabIndex={0}
       aria-label="Pagination"
+      /* `.og-foot` — 9px/14px, .75rem, on the card surface. */
       className={[
-        "bg-surface-card border-t border-border-default px-3.5 py-2",
-        "flex flex-wrap items-center justify-between gap-2",
+        "bg-surface-card border-t border-border-default px-3.5 py-[9px]",
+        "flex flex-wrap items-center justify-between gap-3 text-[.75rem] text-muted",
         "outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
         sticky ? "sticky bottom-0 z-10" : "",
         className,
       ].join(" ")}
     >
       {/* LEFT: bulk-selection pill + range of the FILTERED set */}
-      <div className="flex items-center gap-2">
-        {selectedCount > 0 && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent py-0.5 pl-2.5 pr-1 text-[.6875rem] font-semibold text-accent-contrast">
-            {selectedCount} selected
-            {onClearSelection && (
-              <button
-                type="button"
-                onClick={onClearSelection}
-                className="cursor-pointer rounded-full px-1.5 font-medium underline-offset-2 transition-opacity hover:underline hover:opacity-90"
-              >
-                Clear
-              </button>
-            )}
-          </span>
-        )}
-        <span aria-live="polite" className="text-xs text-muted">
+      <div className="flex items-center gap-3">
+        <SelectionPill count={selectedCount} onClear={onClearSelection} />
+        <span aria-live="polite" className="text-[.75rem] text-muted">
           {rangeMsg}
         </span>
       </div>
 
       {/* RIGHT: page size + windowed pages (absent while grouping) */}
       <div className={`flex flex-wrap items-center gap-3 ${totalOnly ? "hidden" : ""}`}>
-        <label className="flex items-center gap-1.5 text-xs text-muted">
+        <label className="flex items-center gap-1.5 text-[.75rem] text-muted">
           Rows
+          {/* `.og-size` — inset surface, matching the search and filter controls. */}
           <select
             value={pageSize}
             onChange={(e) => table.setPageSize(Number(e.target.value))}
-            className="h-[26px] cursor-pointer rounded-control border border-border-default bg-surface-card px-1.5 text-xs text-body outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)]"
+            className="h-[26px] cursor-pointer rounded-control border border-border-default bg-surface-inset px-1.5 text-[.75rem] text-body outline-none focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)]"
           >
             {pageSizeOptions.map((n) => (
               <option key={n} value={n}>
@@ -164,18 +154,20 @@ export const DataGridPagination = memo(function DataGridPagination<TRow extends 
                   onClick={() => table.setPageIndex(p - 1)}
                   aria-label={`Page ${p}`}
                   aria-current={p === current ? "page" : undefined}
+                  /* `.og-pages button` — every page carries a border, so the strip reads
+                     as a set of controls rather than loose numerals. */
                   className={[
-                    "h-[26px] min-w-[26px] cursor-pointer rounded-control px-1.5 text-xs outline-none transition-colors",
+                    "h-[26px] min-w-[26px] cursor-pointer rounded-control border px-1.5 text-[.75rem] outline-none transition-colors",
                     "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",
                     p === current
-                      ? "bg-accent font-semibold text-accent-contrast"
-                      : "text-muted hover:bg-surface-inset hover:text-body",
+                      ? "border-accent bg-accent font-bold text-accent-contrast"
+                      : "border-border-default bg-transparent text-body hover:bg-surface-raised",
                   ].join(" ")}
                 >
                   {p}
                 </button>
               ) : (
-                <span key={p} aria-hidden className="px-1 text-xs text-faint">
+                <span key={p} aria-hidden className="px-1 text-[.75rem] text-faint">
                   …
                 </span>
               )
@@ -208,7 +200,7 @@ function PagerButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-control text-muted outline-none transition-colors hover:bg-surface-inset hover:text-body focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
+      className="grid h-[26px] w-[26px] cursor-pointer place-items-center rounded-control border border-border-default text-body outline-none transition-colors hover:bg-surface-raised focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
     >
       {children}
     </button>

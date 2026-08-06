@@ -24,7 +24,7 @@ export function KanbanView<TRow extends object>({
   onRowClick,
 }: KanbanViewProps<TRow>) {
   return (
-    <div className="flex max-h-[70vh] gap-3 overflow-x-auto bg-surface-inset p-3 scrollbar">
+    <div className="flex max-h-[70vh] gap-3 overflow-x-auto bg-surface-inset p-3.5 scrollbar">
       {groups.map((group) => (
         <KanbanColumn
           key={group.key}
@@ -65,14 +65,16 @@ function KanbanColumn<TRow extends object>({
 
   return (
     <section className="flex min-w-[268px] max-w-[320px] flex-1 shrink-0 flex-col">
+      {/* `.og-khead` — the coloured rule IS the column's identity, so the count is a
+          plain faint numeral pushed to the far end rather than a second pill. */}
       <header
-        className="flex items-center gap-2 border-b-2 pb-1.5"
+        className="flex items-center gap-2 border-b-2 px-0.5 pb-2"
         style={{ borderBottomColor: group.color ?? "var(--rui-border-default)" }}
       >
-        <span className="truncate text-[.8125rem] font-semibold text-body">
+        <span className="truncate text-[.75rem] font-semibold tracking-[.02em] text-body">
           {group.label}
         </span>
-        <span className="rounded-full bg-surface-card px-1.5 py-0.5 font-mono text-[.6875rem] leading-none text-muted">
+        <span className="ml-auto font-mono text-[.6875rem] text-faint">
           {group.rows.length}
         </span>
       </header>

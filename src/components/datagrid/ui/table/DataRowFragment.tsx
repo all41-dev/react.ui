@@ -7,7 +7,6 @@ import React from "react";
 type DataRowFragmentProps<TRow extends object> = {
   row: Row<TRow>;
   leafColCount: number;
-  rowBgClass: string;
   isEditing: boolean;
   isSelected: boolean;
   isExpanded: boolean;
@@ -19,7 +18,6 @@ type DataRowFragmentProps<TRow extends object> = {
 function DataRowFragmentInner<TRow extends object>({
   row,
   leafColCount,
-  rowBgClass,
   isEditing,
   isSelected,
   isExpanded,
@@ -32,11 +30,19 @@ function DataRowFragmentInner<TRow extends object>({
   return (
     <>
       <tr
-        className={`group transition-colors duration-150 hover:bg-surface-inset cursor-pointer ${
-          isEditing ? "bg-accent-subtle" : ""
-        } ${isSelected ? "bg-accent-subtle" : ""}`}
+        /*
+         * Hover is a 5% wash of the body colour, per `.og tbody tr.og-row:hover` — it
+         * has to work over both the card surface and an accent-subtle selected row,
+         * which a fixed `bg-surface-inset` did not.
+         */
+        className={[
+          "group cursor-pointer transition-colors duration-100",
+          isEditing || isSelected
+            ? "bg-accent-subtle"
+            : "hover:bg-[color-mix(in_srgb,var(--rui-text-body)_5%,transparent)]",
+        ].join(" ")}
         style={
-          isSelected
+          isSelected || isEditing
             ? { boxShadow: "inset 3px 0 0 0 var(--rui-accent)" }
             : undefined
         }
@@ -45,15 +51,13 @@ function DataRowFragmentInner<TRow extends object>({
       >
         {cells.map((c) => {
           if (c.column.id === "__actions__") {
-            return (
-              <ActionsOverlayCell key={c.id} c={c} rowBgClass={rowBgClass} />
-            );
+            return <ActionsOverlayCell key={c.id} c={c} />;
           }
           if (c.column.id === "__select__") {
             return (
               <td
                 key={c.id}
-                className="w-[36px] border-b border-border-default px-2.5 align-middle"
+                className="h-10 w-[36px] border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)] px-2.5 align-middle"
                 // Checkbox clicks must never double as row clicks.
                 onClick={(e) => e.stopPropagation()}
               >
@@ -66,9 +70,14 @@ function DataRowFragmentInner<TRow extends object>({
       </tr>
 
       {isExpanded && renderExpandedRow && (
+        /* `.og-exp` — inset surface, hairline cast downward from the row above, and the
+           left inset aligns the detail with the first data column, not the chevron. */
         <tr className="bg-surface-inset">
-          <td colSpan={leafColCount} className="p-0 border-b border-border-default">
-            <div className="px-4 py-3 animate-slide-down">
+          <td
+            colSpan={leafColCount}
+            className="h-auto p-0 shadow-[inset_0_1px_0_var(--rui-border-default)]"
+          >
+            <div className="animate-slide-down pb-4 pl-11 pr-3.5 pt-3.5">
               {renderExpandedRow(row.original)}
             </div>
           </td>
@@ -76,12 +85,12 @@ function DataRowFragmentInner<TRow extends object>({
       )}
 
       {isEditing && inlineEditor && (
-        <tr className="bg-surface-card border-b border-border-default">
-          <td colSpan={leafColCount} className="p-0 overflow-hidden">
-            <div className="animate-slide-down">
-              <div className="border-l-2 border-accent bg-linear-to-r from-accent-subtle to-surface-card shadow-sm">
-                {inlineEditor}
-              </div>
+        /* `.og-ipanel` — the inline form hangs off the edited row, tied to it by an
+           accent-tinted top border rather than a gradient. */
+        <tr>
+          <td colSpan={leafColCount} className="h-auto overflow-hidden p-0">
+            <div className="animate-slide-down border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset">
+              {inlineEditor}
             </div>
           </td>
         </tr>
@@ -106,7 +115,6 @@ export const DataRowFragment = React.memo(
 
     // Layout props
     if (prev.leafColCount !== next.leafColCount) return false;
-    if (prev.rowBgClass !== next.rowBgClass) return false;
 
     // Callbacks & renderers
     if (prev.inlineEditor !== next.inlineEditor) return false;

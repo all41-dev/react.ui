@@ -54,8 +54,8 @@ export function CodeEditor({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border-default bg-surface-card focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]">
-      <div className="flex items-center justify-between border-b border-border-default bg-surface-inset px-2 py-1">
+    <div className="flex flex-col overflow-hidden rounded-control border border-border-default bg-surface-inset focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]">
+      <div className="flex items-center justify-between border-b border-border-default bg-surface-card px-2 py-1">
         <span className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-[.6875rem] font-semibold uppercase tracking-wide text-muted">
           {language}
         </span>
@@ -68,7 +68,7 @@ export function CodeEditor({
         <div
           ref={gutterRef}
           aria-hidden
-          className="select-none overflow-hidden border-r border-border-default bg-surface-inset px-2 py-3 text-right font-mono text-xs leading-5 text-faint"
+          className="select-none overflow-hidden whitespace-pre border-r border-border-default bg-[color-mix(in_srgb,var(--rui-text-body)_4%,transparent)] py-[9px] pl-2.5 pr-2 text-right font-mono text-[.75rem] leading-[1.6] text-faint"
         >
           {Array.from({ length: lineCount }, (_, i) => (
             <div key={i}>{i + 1}</div>
@@ -94,11 +94,11 @@ export function CodeEditor({
           placeholder={placeholder}
           spellCheck={false}
           wrap="off"
-          className="block w-full resize-none overflow-auto whitespace-pre bg-surface-card p-3 pt-3 font-mono text-xs leading-5 text-body outline-none placeholder:text-faint"
+          className="block w-full resize-none overflow-auto whitespace-pre bg-transparent px-2.5 py-[9px] font-mono text-[.75rem] leading-[1.6] text-body outline-none [tab-size:2] placeholder:text-faint"
         />
       </div>
 
-      <div className="border-t border-border-default bg-surface-inset px-2 py-1 text-right font-mono text-[.6875rem] text-faint">
+      <div className="border-t border-border-default bg-surface-card px-2 py-1 text-right font-mono text-[.6875rem] text-faint">
         Ln {caret.ln}, Col {caret.col}
       </div>
     </div>

@@ -72,8 +72,20 @@ export function renderEditor<T extends FieldValues>(opts: {
         render={({ field, fieldState }) => {
           const hasError = !!fieldState.error;
           const errorMsg = fieldState.error?.message as string | undefined;
+          /*
+           * `.og-in` — 32px on the INSET surface at the control radius. It was a 40px
+           * `rounded-lg` field on the card surface, i.e. the same colour as the panel
+           * behind it, so the field edge was doing all the work of saying "input".
+           * `hover:border-accent` also went: hover is not a state a text field has.
+           */
           const baseClass =
-            "w-full rounded-lg border border-border-default bg-surface-card px-3 py-2 text-sm text-body placeholder:text-faint transition-all duration-200 focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] focus:outline-none hover:border-accent";
+            "w-full h-8 rounded-control border border-border-default bg-surface-inset px-[9px] text-[.8125rem] text-body placeholder:text-faint transition-[border-color,box-shadow] focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] focus:outline-none";
+          // `textarea.og-in` opts out of the fixed control height.
+          const shapeClass =
+            editor === "textarea"
+              ? "!h-auto min-h-[74px] resize-y !py-2 leading-[1.5]"
+              : "";
+
           const invalidClass = hasError
             ? "border-danger focus:border-danger focus:ring-[var(--rui-focus-ring)]"
             : "";
@@ -81,8 +93,13 @@ export function renderEditor<T extends FieldValues>(opts: {
           // Ids for the hint and error text so the control can point at whichever is
           // showing. Without these, assistive tech reads the input with no indication
           // that it is invalid or why.
+          // The hint is hidden while an error shows, so it must drop out of
+          // `aria-describedby` too — pointing at a removed node describes nothing.
           const describedBy =
-            [hasError ? `${String(name)}-error` : null, description ? `${String(name)}-desc` : null]
+            [
+              hasError ? `${String(name)}-error` : null,
+              description && !hasError ? `${String(name)}-desc` : null,
+            ]
               .filter(Boolean)
               .join(" ") || undefined;
 
@@ -93,7 +110,7 @@ export function renderEditor<T extends FieldValues>(opts: {
             "aria-required": meta.required || undefined,
             className: isRich
               ? (meta.editorProps as any)?.className
-              : [baseClass, invalidClass, (meta.editorProps as any)?.className]
+              : [baseClass, shapeClass, invalidClass, (meta.editorProps as any)?.className]
                   .filter(Boolean)
                   .join(" "),
             ...meta.editorProps,
@@ -107,6 +124,9 @@ export function renderEditor<T extends FieldValues>(opts: {
                   htmlFor={String(name)}
                   className="flex items-center gap-3 cursor-pointer group"
                 >
+                  {/* `.og-sw` — a 38×21 track with a 15px knob, on the raised surface
+                      with a translucent edge. The 44×24 default read as a mobile
+                      toggle next to 32px fields. */}
                   <div className="relative inline-flex items-center">
                     <input
                       type="checkbox"
@@ -118,16 +138,16 @@ export function renderEditor<T extends FieldValues>(opts: {
                       className="sr-only peer"
                       {...(meta.editorProps as any)}
                     />
-                    <div className="w-11 h-6 bg-surface-inset peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[var(--rui-focus-ring)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-accent-contrast after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-surface-card after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                    <div className="h-[21px] w-[38px] rounded-full border border-border-translucent bg-surface-raised transition-[background-color,border-color] duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--rui-focus-ring)] peer-checked:border-accent peer-checked:bg-accent after:absolute after:left-0.5 after:top-0.5 after:h-[15px] after:w-[15px] after:rounded-full after:bg-muted after:transition-[transform,background-color] after:duration-200 after:content-[''] peer-checked:after:translate-x-[17px] peer-checked:after:bg-accent-contrast"></div>
                   </div>
                   <div className="flex-1 min-w-0">
                     {label && (
-                      <span className="text-sm font-medium text-body group-hover:text-body">
+                      <span className="text-[.8125rem] font-medium text-body">
                         {label}
                       </span>
                     )}
                     {description && (
-                      <p className="text-xs text-muted mt-0.5">
+                      <p className="mt-0.5 text-[.6875rem] text-faint">
                         {description}
                       </p>
                     )}
@@ -137,7 +157,7 @@ export function renderEditor<T extends FieldValues>(opts: {
                   <p
                     id={`${String(name)}-error`}
                     role="alert"
-                    className="text-xs text-danger mt-1.5 ml-14"
+                    className="ml-[50px] mt-1 text-[.6875rem] font-semibold text-danger"
                   >
                     {errorMsg}
                   </p>
@@ -152,11 +172,13 @@ export function renderEditor<T extends FieldValues>(opts: {
           }
 
           return (
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-[5px]">
+              {/* `.og-fl .l` — a .625rem/700 micro-label in the faint tone. A .75rem
+                  semibold body-coloured label competed with the value it introduces. */}
               {label && (
                 <label
                   htmlFor={String(name)}
-                  className="block text-xs font-semibold text-body uppercase tracking-wide"
+                  className="block text-[.625rem] font-bold uppercase tracking-[.05em] text-faint"
                 >
                   {label}
                   {meta.required && (
@@ -173,8 +195,13 @@ export function renderEditor<T extends FieldValues>(opts: {
                   value={field.value ?? ""}
                   onChange={field.onChange}
                 />
-                {description && (
-                  <p id={`${String(name)}-desc`} className="text-xs text-muted mt-1.5">
+                {/* The error replaces the hint rather than stacking under it — one
+                    line of guidance per field, per spec. */}
+                {description && !hasError && (
+                  <p
+                    id={`${String(name)}-desc`}
+                    className="mt-1 text-[.6875rem] text-faint"
+                  >
                     {description}
                   </p>
                 )}
@@ -182,7 +209,7 @@ export function renderEditor<T extends FieldValues>(opts: {
                   <p
                     id={`${String(name)}-error`}
                     role="alert"
-                    className="text-xs text-danger mt-1.5 font-medium"
+                    className="mt-1 text-[.6875rem] font-semibold text-danger"
                   >
                     {errorMsg}
                   </p>

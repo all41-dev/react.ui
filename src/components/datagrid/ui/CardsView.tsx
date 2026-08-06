@@ -19,7 +19,7 @@ type CardsViewProps<TRow extends object> = {
 /** Matches the spec's `minmax(268px, 1fr)` grid, in numbers the virtualizer can use. */
 const CARD_MIN_WIDTH = 268;
 const GAP = 12;
-const PADDING = 12;
+const PADDING = 14;
 const ESTIMATED_CARD_HEIGHT = 170;
 
 /**
@@ -71,14 +71,14 @@ export function CardsView<TRow extends object>({
 
   if (isLoading && rows.length === 0) {
     return (
-      <div className="grid gap-3 bg-surface-inset p-3" style={gridStyle}>
+      <div className="grid gap-3 bg-surface-inset p-3.5" style={gridStyle}>
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="animate-pulse space-y-2 rounded-lg border border-border-default bg-surface-card p-4"
+            className="space-y-2 rounded-control border border-border-default bg-surface-card p-3"
           >
-            <div className="h-4 w-3/4 rounded bg-surface-inset" />
-            <div className="h-4 w-1/2 rounded bg-surface-inset" />
+            <div className="rui-skeleton w-3/4" />
+            <div className="rui-skeleton w-1/2" />
           </div>
         ))}
       </div>
@@ -99,7 +99,7 @@ export function CardsView<TRow extends object>({
   return (
     <div
       ref={scrollRef}
-      className="max-h-[70vh] overflow-y-auto bg-surface-inset p-3 scrollbar"
+      className="max-h-[70vh] overflow-y-auto bg-surface-inset p-3.5 scrollbar"
     >
       <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualizer.getVirtualItems().map((vi) => (

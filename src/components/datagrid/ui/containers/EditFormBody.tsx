@@ -14,6 +14,27 @@ export function getRowId<T>(row?: T) {
   return (row as any)?.id ?? (row as any)?.uuid ?? "";
 }
 
+/**
+ * `.og-sec` + `.og-cap` + `.og-swrow` — switches get their own captioned section, each
+ * one a bordered card. A bare `flex-wrap gap-6` of naked toggles gave no indication
+ * where one option ended and the next began.
+ *
+ * Module scope, not a closure inside the form: a component created during render is a
+ * new type every render, so React unmounts and remounts the whole subtree each time.
+ */
+function OptionsSection({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="flex min-w-0 flex-col gap-[9px]">
+      <h4 className="flex items-center gap-2 text-[.625rem] font-bold uppercase tracking-[.06em] text-faint after:h-px after:flex-1 after:bg-[color-mix(in_srgb,var(--rui-border-default)_80%,transparent)] after:content-['']">
+        Options
+      </h4>
+      <div className="flex flex-wrap gap-[10px_14px] [&>*]:min-w-0 [&>*]:flex-[0_1_260px] [&>*]:rounded-control [&>*]:border [&>*]:border-border-default [&>*]:bg-surface-card [&>*]:px-[11px] [&>*]:py-[9px] [&>*]:transition-colors hover:[&>*]:border-border-translucent">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 export type FormLayoutConfig = {
   columns?: 1 | 2 | 3 | 4;
   gap?: string;
@@ -149,36 +170,32 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
     [sortedFields]
   );
 
-  // Variant-specific class names
   const isInline = variant === "inline";
-  const actionsContainerClass = isInline
-    ? "flex items-center justify-end gap-3 px-4 py-3 border-t border-border-default bg-gradient-to-r from-surface-inset to-surface-card"
-    : variant === "modal"
-    ? "mt-auto flex items-center justify-end gap-2 pt-2 border-t"
-    : "mt-auto flex items-center justify-end gap-2 pt-2";
 
-  const cancelBtnClass = isInline
-    ? "cursor-pointer rounded-lg border border-border-default bg-surface-card px-4 py-2 text-sm font-medium text-body shadow-sm disabled:opacity-50 hover:bg-surface-inset hover:border-accent transition-all duration-200"
-    : variant === "modal"
-    ? "cursor-pointer rounded-md border px-4 py-2 text-sm disabled:opacity-60 hover:bg-surface-inset"
-    : "cursor-pointer rounded-md border px-3 py-2 disabled:opacity-60";
+  /*
+   * One button vocabulary across all four containers. They used to differ by variant in
+   * radius, padding, weight and shadow for no reason anyone could point at, and two of
+   * the three cancel buttons had no border colour at all (Tailwind 4's bare `border` is
+   * `currentColor`).
+   */
+  const cancelBtnClass =
+    "cursor-pointer rounded-control border border-border-default bg-surface-card px-3 py-1.5 text-[.8125rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised disabled:opacity-50";
 
-  const submitBtnClass = isInline
-    ? "cursor-pointer rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-contrast shadow-sm disabled:opacity-50 hover:bg-accent-hover hover:shadow-md transition-all duration-200"
-    : variant === "modal"
-    ? "cursor-pointer rounded-md bg-accent px-4 py-2 text-sm text-accent-contrast disabled:opacity-60 hover:bg-accent-hover"
-    : "cursor-pointer rounded-md bg-accent px-3 py-2 text-accent-contrast disabled:opacity-60 hover:bg-accent-hover";
+  const submitBtnClass =
+    "cursor-pointer rounded-control bg-accent px-3 py-1.5 text-[.8125rem] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50";
 
-  const serverErrorClass = isInline
-    ? "rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger shadow-sm"
-    : "rounded-md border border-danger/30 bg-danger/10 p-2 text-sm text-danger";
+  // `.og-eroot` — a danger-tinted band, sized to the form's own type scale.
+  const serverErrorClass =
+    "flex items-start gap-2 rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger";
+
 
   // Inline variant renders differently (flat form without header)
   if (isInline) {
     return (
       <FormProvider {...(form as unknown as UseFormReturn)}>
+        {/* `.og-ipanel` — the inline form's own body/footer bands. */}
         <form onSubmit={submit} className="w-full">
-          <div className="p-4 space-y-4">
+          <div className="flex flex-col gap-4 px-4 pb-4 pt-3.5">
             {regularFields.length > 0 && (
               <FormLayout
                 fields={regularFields}
@@ -190,7 +207,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
             )}
 
             {switchFields.length > 0 && (
-              <div className="flex flex-wrap items-start gap-6 pt-2 border-t border-border-default">
+              <OptionsSection>
                 {switchFields.map((c) => (
                   <div key={(c as any).accessorKey || c.id}>
                     {renderEditor<TForm>({
@@ -199,34 +216,19 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
                     })}
                   </div>
                 ))}
-              </div>
+              </OptionsSection>
             )}
 
             {formError && (
-              <div className={serverErrorClass} role="alert">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="h-5 w-5 shrink-0 mt-0.5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 
-                      1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 
-                      11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 
-                      10l1.293-1.293a1 1 0 00-1.414-1.414L10 
-                      8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span>{formError}</span>
-                </div>
-              </div>
+              <p className={serverErrorClass} role="alert">
+                {formError}
+              </p>
             )}
           </div>
 
-          <div className={actionsContainerClass}>
+          {/* `.og-ifoot` — a 3% wash over the card surface, so the actions read as a
+              footer without introducing a fourth surface token. */}
+          <div className="flex items-center justify-end gap-2 border-t border-border-default bg-[color-mix(in_srgb,var(--rui-text-body)_3%,var(--rui-surface-card))] px-3.5 py-[11px]">
             <button
               type="button"
               onClick={onCancel}
@@ -240,36 +242,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
               disabled={isSubmitting}
               className={submitBtnClass}
             >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 
-                      0 5.373 0 12h4zm2 5.291A7.962 7.962 0 
-                      014 12H0c0 3.042 1.135 5.824 3 
-                      7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Saving…
-                </span>
-              ) : (
-                "Save"
-              )}
+              {isSubmitting ? <SavingLabel /> : "Save"}
             </button>
           </div>
         </form>
@@ -277,20 +250,23 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
     );
   }
 
-  // Drawer / Modal variant: includes header + scrollable form area
+  /*
+   * Drawer / modal / sheet: header band, scrolling body, footer band.
+   *
+   * The actions used to sit INSIDE the scrolling area, so on a long form Save scrolled
+   * out of sight. `.og-ehead` / `.og-ebody` / `.og-efoot` are three flex children —
+   * only the middle one scrolls.
+   */
   return (
     <FormProvider {...(form as unknown as UseFormReturn)}>
-      <div className="flex h-full flex-col">
-        <div className="border-b border-border-default p-4">
-          <h3 id={titleId} className="text-lg font-semibold text-body">
+      <form onSubmit={submit} className="flex h-full min-h-0 flex-col">
+        <div className="flex flex-none items-center gap-[9px] border-b border-border-default px-4 py-[13px]">
+          <h3 id={titleId} className="text-[.9375rem] font-semibold text-body">
             {mode === "edit" ? "Edit" : "Create"}
           </h3>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="flex flex-1 flex-col gap-4 overflow-y-auto p-4"
-        >
+        <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-4 scrollbar">
           {regularFields.length > 0 && (
             <FormLayout
               fields={regularFields}
@@ -302,7 +278,7 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
           )}
 
           {switchFields.length > 0 && (
-            <div className="flex flex-wrap items-start gap-6 pt-2 border-t border-border-default">
+            <OptionsSection>
               {switchFields.map((c) => (
                 <div key={(c as any).accessorKey || c.id}>
                   {renderEditor<TForm>({
@@ -311,35 +287,59 @@ function EditFormBodyInner<TRow extends object, TForm extends object>({
                   })}
                 </div>
               ))}
-            </div>
+            </OptionsSection>
           )}
 
           {formError && (
-            <div className={serverErrorClass} role="alert">
+            <p className={serverErrorClass} role="alert">
               {formError}
-            </div>
+            </p>
           )}
+        </div>
 
-          <div className={actionsContainerClass}>
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className={cancelBtnClass}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={submitBtnClass}
-            >
-              {isSubmitting ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* `.og-efoot` */}
+        <div className="flex flex-none items-center justify-end gap-2 border-t border-border-default bg-surface-inset px-4 py-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className={cancelBtnClass}
+          >
+            Cancel
+          </button>
+          <button type="submit" disabled={isSubmitting} className={submitBtnClass}>
+            {isSubmitting ? <SavingLabel /> : "Save"}
+          </button>
+        </div>
+      </form>
     </FormProvider>
+  );
+}
+
+/** Spinner + label for the pending Save button, shared by every container. */
+function SavingLabel() {
+  return (
+    <span className="flex items-center gap-2">
+      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" aria-hidden>
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="3"
+          fill="none"
+        />
+        <path
+          className="opacity-75"
+          d="M4 12a8 8 0 018-8"
+          stroke="currentColor"
+          strokeWidth="3"
+          fill="none"
+        />
+      </svg>
+      Saving…
+    </span>
   );
 }
 

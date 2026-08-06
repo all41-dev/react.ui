@@ -1,4 +1,5 @@
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
+import { Pencil, Trash2 } from "lucide-react";
 import { type FC, type ReactNode, useState } from "react";
 
 export type ActionColumnOpts<T> = {
@@ -27,7 +28,7 @@ export type ActionColumnOpts<T> = {
 function ActionSpinner() {
   return (
     <svg
-      className="h-4 w-4 animate-spin"
+      className="h-3.5 w-3.5 animate-spin"
       viewBox="0 0 24 24"
       aria-hidden="true"
     >
@@ -52,11 +53,20 @@ function ActionSpinner() {
 }
 
 export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
+  /*
+   * `.og-act button` — 26px, transparent until hover. These live inside the floating
+   * pill, which already supplies the surface and border; giving each button its own
+   * made the pill read as a toolbar.
+   */
   const btnBase =
-    "inline-flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded cursor-pointer " +
-    "bg-surface-card hover:bg-surface-inset border border-border-default hover:border-accent transition-colors " +
-    "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-surface-card";
+    "inline-flex h-[26px] w-[26px] items-center justify-center rounded-control cursor-pointer " +
+    "border border-transparent bg-transparent text-faint transition-colors " +
+    "group-hover:text-muted hover:!bg-surface-raised hover:!border-border-default hover:!text-body " +
+    "outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] " +
+    "disabled:opacity-50 disabled:cursor-not-allowed";
 
+  // Icons, not words — the design specifies lucide pencil / trash-2, and word buttons
+  // do not fit a 26px control. A caller passing `labels` still wins.
   const EditButton: FC<{ row: T }> = ({ row }) => (
     <button
       type="button"
@@ -68,7 +78,7 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
         opts.onEdit?.(row);
       }}
     >
-      {opts.labels?.edit ?? "Edit"}
+      {opts.labels?.edit ?? <Pencil className="h-3.5 w-3.5" aria-hidden />}
     </button>
   );
 
@@ -85,7 +95,7 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
             ? opts.labels?.delete
             : "Delete"
         }
-        className={`${btnBase} text-danger hover:text-danger hover:bg-danger/10`}
+        className={`${btnBase} hover:!border-[color-mix(in_srgb,var(--rui-danger)_45%,transparent)] hover:!bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] hover:!text-danger`}
         disabled={isDeleting}
         onClick={async (e) => {
           e.stopPropagation();
@@ -99,7 +109,11 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
           }
         }}
       >
-        {isDeleting ? <ActionSpinner /> : (opts.labels?.delete ?? "Delete")}
+        {isDeleting ? (
+          <ActionSpinner />
+        ) : (
+          (opts.labels?.delete ?? <Trash2 className="h-3.5 w-3.5" aria-hidden />)
+        )}
       </button>
     );
   };
@@ -124,23 +138,14 @@ export function makeActionColumn<T>(opts: ActionColumnOpts<T>): ColumnDef<T> {
       </>
     );
 
+    /*
+     * `.og-act` — just the row of buttons. Positioning and reveal belong to the
+     * container: `ActionsOverlayCell` floats it against the row, `CardItem` drops it in
+     * the footer. This used to carry its own `md:absolute top-0 right-0 h-full`, which
+     * fought both of them.
+     */
     if (isOverlay) {
-      return (
-        <div
-          className="
-            static md:absolute top-0 right-0 h-full
-            flex items-center gap-1
-            transition-opacity duration-150
-            pointer-events-none
-            bg-inherit
-            mt-2 md:mt-0 justify-end md:justify-start w-full md:w-auto
-          "
-        >
-          <div className="pointer-events-auto flex items-center gap-1 ">
-            {inner}
-          </div>
-        </div>
-      );
+      return <div className="flex items-center gap-[3px]">{inner}</div>;
     }
 
     return <div className="flex items-center gap-2">{inner}</div>;

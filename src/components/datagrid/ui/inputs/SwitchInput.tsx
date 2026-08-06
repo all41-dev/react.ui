@@ -21,7 +21,7 @@ export function SwitchInput({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className={["h-4 w-4 rounded border", className]
+        className={["h-[15px] w-[15px] rounded border border-border-translucent accent-[var(--rui-accent)]", className]
           .filter(Boolean)
           .join(" ")}
         {...rest}

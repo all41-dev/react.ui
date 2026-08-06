@@ -82,7 +82,7 @@ export function useConfirm() {
   const Dialog = s.open
     ? createPortal(
         <div
-          className="fixed inset-0 z-1000 grid place-items-center bg-black/40 animate-backdrop-in"
+          className="fixed inset-0 z-1000 grid place-items-center bg-black/50 animate-backdrop-in"
           onKeyDown={onKeyDown}
           role="dialog"
           aria-modal="true"
@@ -90,16 +90,16 @@ export function useConfirm() {
           <div
             ref={trapRef}
             tabIndex={-1}
-            className="w-full max-w-sm rounded-xl bg-surface-card p-4 shadow-2xl outline-none animate-pop-in"
+            className="w-full max-w-sm rounded-surface border border-border-default bg-surface-card p-4 font-sans text-[.8125rem] text-body shadow-[var(--elev-3)] outline-none animate-pop-in"
           >
-            <h3 className="text-base font-semibold">{s.title}</h3>
+            <h3 className="text-[.9375rem] font-semibold text-body">{s.title}</h3>
             {s.description && (
-              <p className="mt-1 text-sm text-muted">{s.description}</p>
+              <p className="mt-1 text-[.8125rem] text-muted">{s.description}</p>
             )}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-md border border-border-default px-3 py-1.5 text-sm text-body hover:bg-surface-inset"
+                className="cursor-pointer rounded-control border border-border-default px-3 py-1.5 text-[.8125rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised"
                 onClick={() => close(false)}
                 autoFocus
               >
@@ -108,7 +108,7 @@ export function useConfirm() {
               <button
                 type="button"
                 className={
-                  "rounded-md px-3 py-1.5 text-sm text-accent-contrast transition-colors " +
+                  "cursor-pointer rounded-control px-3 py-1.5 text-[.8125rem] font-semibold text-accent-contrast transition-colors " +
                   (s.isDestructive
                     ? "bg-danger hover:opacity-90"
                     : "bg-accent hover:bg-accent-hover")
