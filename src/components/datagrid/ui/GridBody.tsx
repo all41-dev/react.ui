@@ -81,6 +81,8 @@ export function GridBody<TRow extends object>({
           card={card!}
           selectedRowIds={selectedRowIds}
           onRowClick={onRowClick}
+          expandedRowIds={expandedRowIds}
+          renderExpandedRow={renderExpandedRow}
         />
       ) : showCards ? (
         <CardsView
@@ -92,6 +94,8 @@ export function GridBody<TRow extends object>({
           emptyLabel={emptyLabel}
           selectedRowIds={selectedRowIds}
           onRowClick={onRowClick}
+          expandedRowIds={expandedRowIds}
+          renderExpandedRow={renderExpandedRow}
         />
       ) : (
         <TableView

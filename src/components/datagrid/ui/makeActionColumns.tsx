@@ -4,6 +4,9 @@ import { type FC, type ReactNode, useContext, useState } from "react";
 
 import { DataGridContext } from "../DataGridContext";
 
+/** Which grid body the action cell is rendering into right now. */
+export type ActionView = "list" | "cards" | "kanban";
+
 export type ActionColumnOpts<T> = {
   getId: (r: T) => string | number | undefined;
   onEdit?: (row: T) => void;
@@ -21,6 +24,12 @@ export type ActionColumnOpts<T> = {
       EditButton: FC<{ row: T }>;
       DeleteButton: FC<{ row: T }>;
     };
+    /*
+     * A custom button is only as view-portable as the feature it drives — one that
+     * targets a table-only render (row expansion in a popover-less layout, say) can
+     * check this and hide or swap itself in cards/kanban.
+     */
+    view: ActionView;
   }) => ReactNode;
 
   presentation?: "inline" | "overlay";
@@ -138,11 +147,13 @@ const DeleteButton: FC<{ row: any }> = ({ row }) => {
 
 function ActionCell({ row, isOverlay }: { row: any; isOverlay: boolean }) {
   const opts = useRowActions();
+  const view = useContext(DataGridContext)?.view ?? "list";
   const inner = opts.renderActions ? (
     opts.renderActions({
       row,
       id: opts.getId(row),
       defaults: { EditButton, DeleteButton },
+      view,
     })
   ) : (
     <>

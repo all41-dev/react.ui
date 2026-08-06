@@ -24,10 +24,10 @@ import { ColumnsPopover } from "./ui/ColumnsPopover";
 import { DataGridToolbar } from "./ui/DataGridToolbar";
 import { GridBody } from "./ui/GridBody";
 import { GridFooter } from "./ui/GridFooter";
-import { EditContainer } from "./ui/containers/EditContainers";
+import { EditContainer, type EditContainerKind } from "./ui/containers/EditContainers";
 import { EditInline } from "./ui/containers/EditInline";
 import { CellEditPopover } from "./ui/table/CellEditPopover";
-import type { ActionColumnOpts } from "./ui/makeActionColumns";
+import type { ActionColumnOpts, ActionView } from "./ui/makeActionColumns";
 import { getRowKey } from "./utils/getRowKey";
 
 export type { DataGridProps, DataGridHandle } from "./types/grid";
@@ -186,6 +186,39 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
     [getId, onRowClick]
   );
 
+  const showCards = !!card && view === "cards";
+
+  /*
+   * Which body is actually on screen — "kanban" when cards meet a group-by. Handed to
+   * consumer `renderActions` so a button whose target can't render in the current view
+   * can hide or swap itself.
+   */
+  const activeView: ActionView = showCards
+    ? grouping.groups
+      ? "kanban"
+      : "cards"
+    : "list";
+
+  /*
+   * "Inline" names a table-row placement that has no cards equivalent. Left as-is, an
+   * inline session started from cards had nowhere to render: the click looked dead and
+   * the live session re-opened the editor on the next switch to list. In cards the same
+   * session opens as a modal instead.
+   */
+  const effectiveContainer: EditContainerKind =
+    showCards && editContainer === "inline" ? "modal" : editContainer;
+  const inlineEditing = effectiveContainer === "inline";
+
+  const handleViewChange = useCallback(
+    (v: "list" | "cards") => {
+      // A session that straddles the toggle changes shell mid-flight (inline ↔ modal)
+      // and loses its form state anyway when the host view unmounts — close it instead.
+      edit.close();
+      setView(v);
+    },
+    [edit.close]
+  );
+
   /*
    * How a parent drives the edit session it doesn't own. See `DataGridHandle`.
    */
@@ -229,17 +262,15 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       startCellEdit: startCellEditFromCell,
       getId: getId as (row: unknown) => string | number | undefined,
       rowActions: rowActions as ActionColumnOpts<any>,
+      view: activeView,
     }),
-    [tooltipId, canCellEdit, startCellEditFromCell, getId, rowActions]
+    [tooltipId, canCellEdit, startCellEditFromCell, getId, rowActions, activeView]
   );
 
   const facetChips = useMemo(
     () => filters.buildFacetChips(grouping.activeGroupOption, grouping.clearGroupBy),
     [filters, grouping.activeGroupOption, grouping.clearGroupBy]
   );
-
-  const showCards = !!card && view === "cards";
-  const inlineEditing = editContainer === "inline";
 
   const inlineEditor =
     inlineEditing && edit.session.kind !== "idle" && edit.session.kind !== "cell" ? (
@@ -294,7 +325,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
               <ColumnsPopover table={table} onReset={gridColumns.resetPrefs} />
             }
             view={card ? view : undefined}
-            onViewChange={card ? setView : undefined}
+            onViewChange={card ? handleViewChange : undefined}
             groupOptions={groupOptions}
             groupBy={grouping.groupBy}
             onGroupByChange={grouping.setGroupBy}
@@ -338,7 +369,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
           {!inlineEditing && (
             <EditContainer<TRow, TForm>
-              kind={editContainer}
+              kind={effectiveContainer}
               open={edit.isFormOpen}
               mode={edit.formMode}
               row={edit.editingRow}

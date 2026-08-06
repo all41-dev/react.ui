@@ -152,7 +152,14 @@ meta: { filter: { type: "dateRange" } }
 
 **Cards view** — pass `card={(row) => <YourCard {...row} />}` and a list/cards toggle
 appears in the toolbar. The grid still owns search, filters and selection; you just
-provide the card body.
+provide the card body. Create/edit/delete work from cards too: overlay containers open
+as usual, and `editContainer="inline"` — which names a table-row placement with no cards
+equivalent — opens as a modal while cards are shown. Expanded rows render inside the
+card, between body and footer, scrolling sideways if the panel is wider than the card.
+Switching views closes any open editor. Custom action buttons receive the active view
+(`renderActions` gets `view: "list" | "cards" | "kanban"`), so a button whose target
+only exists in one view can hide or swap itself. Cell editing stays table-only — cards
+render no cells.
 
 **Grouping** — pass `groupOptions` and a Group-by list appears in the caret menu:
 
@@ -206,7 +213,7 @@ forces one even when it isn't.
 | `"right"` (default) | Drawer sliding in from the right |
 | `"bottom"` | Bottom sheet |
 | `"modal"` | Centred dialog |
-| `"inline"` | Panel that expands under the edited row |
+| `"inline"` | Panel that expands under the edited row (opens as a modal while cards view is active) |
 | `"none"` | No form at all — read-only grid, no Add button |
 
 The form's contents come from your columns and schema. `formLayout` on the grid controls

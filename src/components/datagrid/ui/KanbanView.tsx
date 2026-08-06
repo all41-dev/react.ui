@@ -10,6 +10,8 @@ type KanbanViewProps<TRow extends object> = {
   card: (row: TRow) => ReactNode;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
+  expandedRowIds?: ReadonlySet<string | number>;
+  renderExpandedRow?: (row: TRow) => ReactNode;
 };
 
 const ESTIMATED_CARD_HEIGHT = 170;
@@ -22,6 +24,8 @@ export function KanbanView<TRow extends object>({
   card,
   selectedRowIds,
   onRowClick,
+  expandedRowIds,
+  renderExpandedRow,
 }: KanbanViewProps<TRow>) {
   return (
     <div className="flex max-h-[70vh] gap-3 overflow-x-auto bg-surface-inset p-3.5 scrollbar">
@@ -33,6 +37,8 @@ export function KanbanView<TRow extends object>({
           card={card}
           selectedRowIds={selectedRowIds}
           onRowClick={onRowClick}
+          expandedRowIds={expandedRowIds}
+          renderExpandedRow={renderExpandedRow}
         />
       ))}
     </div>
@@ -45,12 +51,16 @@ function KanbanColumn<TRow extends object>({
   card,
   selectedRowIds,
   onRowClick,
+  expandedRowIds,
+  renderExpandedRow,
 }: {
   group: GroupBucket<Row<TRow>>;
   getId: (row: TRow) => string | number | undefined;
   card: (row: TRow) => ReactNode;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
+  expandedRowIds?: ReadonlySet<string | number>;
+  renderExpandedRow?: (row: TRow) => ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -89,7 +99,8 @@ function KanbanColumn<TRow extends object>({
           >
             {virtualizer.getVirtualItems().map((vi) => {
               const r = group.rows[vi.index];
-              const id = String(getId(r.original) ?? r.id);
+              const rawKey = getId(r.original) ?? r.id;
+              const id = String(rawKey);
               return (
                 <div
                   key={id}
@@ -103,6 +114,8 @@ function KanbanColumn<TRow extends object>({
                     card={card}
                     selected={selectedRowIds?.has(id) ?? false}
                     onRowClick={onRowClick}
+                    expanded={expandedRowIds?.has(rawKey) ?? false}
+                    renderExpandedRow={renderExpandedRow}
                   />
                 </div>
               );

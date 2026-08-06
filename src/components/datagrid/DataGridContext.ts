@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
 
-import type { ActionColumnOpts } from "./ui/makeActionColumns";
+import type { ActionColumnOpts, ActionView } from "./ui/makeActionColumns";
 
 /**
  * Everything the injected select/action columns and the body cells need, delivered
@@ -30,6 +30,8 @@ export type DataGridContextValue = {
   getId: (row: unknown) => string | number | undefined;
   /** Row action handlers and labels, read at cell-render time rather than closed over. */
   rowActions: ActionColumnOpts<any>;
+  /** The body currently on screen, forwarded into consumer `renderActions`. */
+  view: ActionView;
 };
 
 export const DataGridContext = createContext<DataGridContextValue | null>(null);

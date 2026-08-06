@@ -14,6 +14,8 @@ type CardsViewProps<TRow extends object> = {
   emptyLabel?: string;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
+  expandedRowIds?: ReadonlySet<string | number>;
+  renderExpandedRow?: (row: TRow) => ReactNode;
 };
 
 /** Matches the spec's `minmax(268px, 1fr)` grid, in numbers the virtualizer can use. */
@@ -44,6 +46,8 @@ export function CardsView<TRow extends object>({
   emptyLabel,
   selectedRowIds,
   onRowClick,
+  expandedRowIds,
+  renderExpandedRow,
 }: CardsViewProps<TRow>) {
   const rows = table.getFilteredRowModel().rows;
   const { ref: scrollRef, width } = useContainerWidth<HTMLDivElement>();
@@ -130,7 +134,9 @@ export function CardsView<TRow extends object>({
               {/* `columns` is derived from the measured width; if it changes between the
                   virtualizer's count and this render the chunk can be gone. */}
               {chunks[vi.index]?.map((r) => {
-                const id = String(getId(r.original) ?? r.id);
+                // Raw key for the expansion lookup — TableView compares unstringified.
+                const rawKey = getId(r.original) ?? r.id;
+                const id = String(rawKey);
                 return (
                   <CardItem
                     key={id}
@@ -138,6 +144,8 @@ export function CardsView<TRow extends object>({
                     card={card}
                     selected={selectedRowIds?.has(id) ?? false}
                     onRowClick={onRowClick}
+                    expanded={expandedRowIds?.has(rawKey) ?? false}
+                    renderExpandedRow={renderExpandedRow}
                   />
                 );
               })}

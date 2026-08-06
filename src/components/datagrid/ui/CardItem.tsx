@@ -7,11 +7,15 @@ export function CardItem<TRow extends object>({
   card,
   selected,
   onRowClick,
+  expanded = false,
+  renderExpandedRow,
 }: {
   row: Row<TRow>;
   card: (row: TRow) => ReactNode;
   selected: boolean;
   onRowClick?: (row: TRow) => void;
+  expanded?: boolean;
+  renderExpandedRow?: (row: TRow) => ReactNode;
 }) {
   const cells = row.getVisibleCells();
   const selectCell = cells.find((c) => c.column.id === "__select__");
@@ -49,6 +53,20 @@ export function CardItem<TRow extends object>({
       )}
 
       <div className="min-w-0 flex-1 p-3">{card(row.original)}</div>
+
+      {expanded && renderExpandedRow && (
+        /*
+         * The table's expansion panel, relocated between body and footer. The panel is
+         * usually table-shaped and wider than a 268px card, so it scrolls sideways
+         * inside its own box rather than stretching the card's grid column.
+         */
+        <div
+          className="animate-slide-down overflow-x-auto border-t border-[color-mix(in_srgb,var(--rui-border-default)_70%,transparent)] bg-surface-inset px-3 py-2.5 scrollbar"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {renderExpandedRow(row.original)}
+        </div>
+      )}
 
       {actionCell && (
         /*
