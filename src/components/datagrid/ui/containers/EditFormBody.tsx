@@ -41,6 +41,104 @@ export type FormLayoutConfig = {
   className?: string;
 };
 
+/*
+ * One button vocabulary across all four containers. They used to differ by variant in
+ * radius, padding, weight and shadow for no reason anyone could point at, and two of
+ * the three cancel buttons had no border colour at all (Tailwind 4's bare `border` is
+ * `currentColor`).
+ */
+const cancelBtnClass =
+  "cursor-pointer rounded-control border border-border-default bg-surface-card px-3 py-1.5 text-[.8125rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised disabled:opacity-50";
+
+const submitBtnClass =
+  "cursor-pointer rounded-control bg-accent px-3 py-1.5 text-[.8125rem] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50";
+
+// `.og-eroot` — a danger-tinted band, sized to the form's own type scale.
+const serverErrorClass =
+  "flex items-start gap-2 rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger";
+
+type FormFieldsProps<TRow extends object, TForm extends object> = {
+  regularFields: WithMeta<TRow, TForm>[];
+  switchFields: WithMeta<TRow, TForm>[];
+  control: unknown;
+  formLayout?: FormLayoutConfig;
+  formError?: string;
+};
+
+/**
+ * The form's field content: laid-out editors, then the switches in their own captioned
+ * section, then the server error.
+ *
+ * The inline and drawer/modal branches rendered this identically and separately — ~40
+ * duplicated lines each, free to drift apart. They differ only in the wrapper around
+ * this, which is why only the wrapper is still branched below.
+ */
+function FormFields<TRow extends object, TForm extends object>({
+  regularFields,
+  switchFields,
+  control,
+  formLayout,
+  formError,
+}: FormFieldsProps<TRow, TForm>) {
+  return (
+    <>
+      {regularFields.length > 0 && (
+        <FormLayout
+          fields={regularFields}
+          control={control as any}
+          columns={formLayout?.columns}
+          gap={formLayout?.gap}
+          className={formLayout?.className}
+        />
+      )}
+
+      {switchFields.length > 0 && (
+        <OptionsSection>
+          {switchFields.map((c) => (
+            <div key={(c as any).accessorKey || c.id}>
+              {renderEditor<TForm>({
+                column: c as any,
+                control: control as any,
+              })}
+            </div>
+          ))}
+        </OptionsSection>
+      )}
+
+      {formError && (
+        <p className={serverErrorClass} role="alert">
+          {formError}
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Cancel + Save. Identical in both branches; only the surrounding band differs. */
+function FormActions({
+  onCancel,
+  isSubmitting,
+}: {
+  onCancel: () => void;
+  isSubmitting: boolean;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isSubmitting}
+        className={cancelBtnClass}
+      >
+        Cancel
+      </button>
+      <button type="submit" disabled={isSubmitting} className={submitBtnClass}>
+        {isSubmitting ? <SavingLabel /> : "Save"}
+      </button>
+    </>
+  );
+}
+
 type EditFormBodyProps<TRow extends object, TForm extends object> = {
   mode: "create" | "edit";
   row?: TRow;
@@ -175,80 +273,33 @@ export function EditFormBody<TRow extends object, TForm extends object>({
     [sortedFields]
   );
 
-  const isInline = variant === "inline";
-
-  /*
-   * One button vocabulary across all four containers. They used to differ by variant in
-   * radius, padding, weight and shadow for no reason anyone could point at, and two of
-   * the three cancel buttons had no border colour at all (Tailwind 4's bare `border` is
-   * `currentColor`).
-   */
-  const cancelBtnClass =
-    "cursor-pointer rounded-control border border-border-default bg-surface-card px-3 py-1.5 text-[.8125rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised disabled:opacity-50";
-
-  const submitBtnClass =
-    "cursor-pointer rounded-control bg-accent px-3 py-1.5 text-[.8125rem] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50";
-
-  // `.og-eroot` — a danger-tinted band, sized to the form's own type scale.
-  const serverErrorClass =
-    "flex items-start gap-2 rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger";
-
+  /* Built once and placed into whichever wrapper the variant calls for. Named apart from
+     the `fields` column list above — they are different things. */
+  const fieldsContent = (
+    <FormFields<TRow, TForm>
+      regularFields={regularFields}
+      switchFields={switchFields}
+      control={(form as any).control}
+      formLayout={formLayout}
+      formError={formError}
+    />
+  );
+  const actionsContent = (
+    <FormActions onCancel={onCancel} isSubmitting={isSubmitting} />
+  );
 
   // Inline variant renders differently (flat form without header)
-  if (isInline) {
+  if (variant === "inline") {
     return (
       <FormProvider {...(form as unknown as UseFormReturn)}>
         {/* `.og-ipanel` — the inline form's own body/footer bands. */}
         <form onSubmit={submit} className="w-full">
-          <div className="flex flex-col gap-4 px-4 pb-4 pt-3.5">
-            {regularFields.length > 0 && (
-              <FormLayout
-                fields={regularFields}
-                control={(form as any).control}
-                columns={formLayout?.columns}
-                gap={formLayout?.gap}
-                className={formLayout?.className}
-              />
-            )}
-
-            {switchFields.length > 0 && (
-              <OptionsSection>
-                {switchFields.map((c) => (
-                  <div key={(c as any).accessorKey || c.id}>
-                    {renderEditor<TForm>({
-                      column: c as any,
-                      control: (form as any).control,
-                    })}
-                  </div>
-                ))}
-              </OptionsSection>
-            )}
-
-            {formError && (
-              <p className={serverErrorClass} role="alert">
-                {formError}
-              </p>
-            )}
-          </div>
+          <div className="flex flex-col gap-4 px-4 pb-4 pt-3.5">{fieldsContent}</div>
 
           {/* `.og-ifoot` — a 3% wash over the card surface, so the actions read as a
               footer without introducing a fourth surface token. */}
           <div className="flex items-center justify-end gap-2 border-t border-border-default bg-[color-mix(in_srgb,var(--rui-text-body)_3%,var(--rui-surface-card))] px-3.5 py-[11px]">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className={cancelBtnClass}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={submitBtnClass}
-            >
-              {isSubmitting ? <SavingLabel /> : "Save"}
-            </button>
+            {actionsContent}
           </div>
         </form>
       </FormProvider>
@@ -272,49 +323,12 @@ export function EditFormBody<TRow extends object, TForm extends object>({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-4 scrollbar">
-          {regularFields.length > 0 && (
-            <FormLayout
-              fields={regularFields}
-              control={(form as any).control}
-              columns={formLayout?.columns}
-              gap={formLayout?.gap}
-              className={formLayout?.className}
-            />
-          )}
-
-          {switchFields.length > 0 && (
-            <OptionsSection>
-              {switchFields.map((c) => (
-                <div key={(c as any).accessorKey || c.id}>
-                  {renderEditor<TForm>({
-                    column: c as any,
-                    control: (form as any).control,
-                  })}
-                </div>
-              ))}
-            </OptionsSection>
-          )}
-
-          {formError && (
-            <p className={serverErrorClass} role="alert">
-              {formError}
-            </p>
-          )}
+          {fieldsContent}
         </div>
 
         {/* `.og-efoot` */}
         <div className="flex flex-none items-center justify-end gap-2 border-t border-border-default bg-surface-inset px-4 py-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSubmitting}
-            className={cancelBtnClass}
-          >
-            Cancel
-          </button>
-          <button type="submit" disabled={isSubmitting} className={submitBtnClass}>
-            {isSubmitting ? <SavingLabel /> : "Save"}
-          </button>
+          {actionsContent}
         </div>
       </form>
     </FormProvider>
