@@ -22,7 +22,6 @@ import { useRowSelection } from "./hooks/useRowSelection";
 import type { DataGridProps } from "./types/grid";
 import { ColumnsPopover } from "./ui/ColumnsPopover";
 import { DataGridToolbar } from "./ui/DataGridToolbar";
-import { FacetChips } from "./ui/FacetChips";
 import { GridBody } from "./ui/GridBody";
 import { GridFooter } from "./ui/GridFooter";
 import { EditContainer } from "./ui/containers/EditContainers";
@@ -89,7 +88,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
 
   const getId = useCallback((r: TRow) => getRowKey(r, idAccessor), [idAccessor]);
 
-  const { rows, replaceRow, addRow, removeRow } = useGridRows({
+  const { rows, replaceRow, addRow, removeRow, changedRowId } = useGridRows({
     initialData,
     getId,
   });
@@ -290,6 +289,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             filtersShown={filters.showFilters}
             activeFilterCount={filters.columnFilters.length}
             onToggleFilters={filters.toggleFilters}
+            onClearFilters={filters.clearAllFilters}
             columnsControl={
               <ColumnsPopover table={table} onReset={gridColumns.resetPrefs} />
             }
@@ -298,9 +298,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             groupOptions={groupOptions}
             groupBy={grouping.groupBy}
             onGroupByChange={grouping.setGroupBy}
+            facets={facetChips}
           />
-
-          <FacetChips chips={facetChips} />
 
           <GridBody<TRow>
             table={table}
@@ -321,6 +320,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             }
             inlineEditor={inlineEditor}
             isCreating={inlineEditing && edit.session.kind === "create"}
+            changedRowId={changedRowId}
             expandedRowIds={expandedRowIds}
             renderExpandedRow={renderExpandedRow}
           />

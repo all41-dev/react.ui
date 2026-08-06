@@ -35,6 +35,7 @@ type TableViewProps<TRow extends object> = {
   onRowClick?: (row: TRow) => void;
   expandedRowIds?: ReadonlySet<string | number>;
   renderExpandedRow?: (row: TRow) => ReactNode;
+  changedRowId?: string | number;
 };
 
 export function TableView<TRow extends object>({
@@ -56,6 +57,7 @@ export function TableView<TRow extends object>({
   onRowClick,
   expandedRowIds,
   renderExpandedRow,
+  changedRowId,
 }: TableViewProps<TRow>) {
   const { ref: wrapperRef, width: containerW } =
     useContainerWidth<HTMLDivElement>();
@@ -197,7 +199,9 @@ export function TableView<TRow extends object>({
                 the CARD surface, not the inset one — the inset is reserved for the
                 header above it, and stacking two insets erased the boundary. */}
             {showFilters && (
-              <tr className="bg-surface-card">
+              /* Entry only — the row unmounts on close, so there is nothing to animate
+                 out. Enough to show the row arriving rather than appearing instantly. */
+              <tr className="animate-slide-down bg-surface-card">
                 {table
                   .getHeaderGroups()
                   .at(-1)!
@@ -245,8 +249,12 @@ export function TableView<TRow extends object>({
             </tbody>
           )}
 
-          {!isLoading &&
-            virtualItems.map((virtualRow) => {
+          {/* Rows stay mounted while loading. Gating them on `!isLoading` blanked the body
+              on every refresh — the skeleton above only covers the first load, when there
+              is nothing to keep — so the grid collapsed to header height and snapped back
+              when the data returned. GridBody's scrim is what says "loading"; the rows
+              underneath stay put, which is what CardsView already does. */}
+          {virtualItems.map((virtualRow) => {
               const item = items[virtualRow.index];
               if (!item) return null;
 
@@ -277,6 +285,9 @@ export function TableView<TRow extends object>({
                   String(selectedRowId) === String(key)) ||
                 (selectedRowIds?.has(String(key)) ?? false);
               const isExpanded = expandedRowIds?.has(key) ?? false;
+              const isChanged =
+                changedRowId !== undefined &&
+                String(changedRowId) === String(key);
 
               return (
                 /* No zebra striping — rows sit on the card surface, separated by the
@@ -295,6 +306,7 @@ export function TableView<TRow extends object>({
                     isEditing={isEditing}
                     isSelected={isSelected}
                     isExpanded={isExpanded}
+                    isChanged={isChanged}
                     inlineEditor={isEditing ? inlineEditor : undefined}
                     renderExpandedRow={renderExpandedRow}
                     onRowClick={onRowClick}

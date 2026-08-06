@@ -10,6 +10,8 @@ type DataRowFragmentProps<TRow extends object> = {
   isEditing: boolean;
   isSelected: boolean;
   isExpanded: boolean;
+  /** Just written to — flashed briefly so the change is locatable. */
+  isChanged?: boolean;
   inlineEditor?: ReactNode;
   renderExpandedRow?: (row: TRow) => ReactNode;
   onRowClick?: (row: TRow) => void;
@@ -23,6 +25,7 @@ function DataRowFragmentInner<TRow extends object>({
   isEditing,
   isSelected,
   isExpanded,
+  isChanged,
   inlineEditor,
   renderExpandedRow,
   onRowClick,
@@ -46,6 +49,9 @@ function DataRowFragmentInner<TRow extends object>({
           isEditing || isSelected
             ? "bg-accent-subtle"
             : "hover:bg-[color-mix(in_srgb,var(--rui-text-body)_5%,transparent)]",
+          /* Runs on the cells, not the row: a `<tr>` background sits behind the `<td>`
+             backgrounds and the wash would not be visible. */
+          isChanged ? "rui-row-changed" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -142,6 +148,9 @@ export const DataRowFragment = React.memo(
     if (prev.isEditing !== next.isEditing) return false;
     if (prev.isSelected !== next.isSelected) return false;
     if (prev.isExpanded !== next.isExpanded) return false;
+    // Without this the flash never paints: a save that only changed a hidden column
+    // leaves `row.original` looking equal enough for every other check here to pass.
+    if (prev.isChanged !== next.isChanged) return false;
 
     // Layout props
     if (prev.leafColCount !== next.leafColCount) return false;

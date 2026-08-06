@@ -1,4 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+/** How long a just-written row stays marked. Matches `ruiRowFlash` in base.css. */
+const FLASH_MS = 1600;
 
 /** Row ids arrive as string | number depending on the accessor; compare them as text. */
 export const sameRowId = (
@@ -31,6 +34,23 @@ export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
     setRows(initialData ?? []);
   }
 
+  /*
+   * The row a write just landed on, cleared after the flash. Without it a save that only
+   * touched a hidden or off-screen column looks like it did nothing — the form closes and
+   * the table appears unchanged.
+   */
+  const [changedRowId, setChangedRowId] = useState<string | number>();
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const flash = useCallback((id: string | number | undefined) => {
+    if (id === undefined) return;
+    clearTimeout(flashTimer.current);
+    setChangedRowId(id);
+    flashTimer.current = setTimeout(() => setChangedRowId(undefined), FLASH_MS);
+  }, []);
+
+  useEffect(() => () => clearTimeout(flashTimer.current), []);
+
   /** Replace the row matching `prevRow`'s id with the server's version. */
   const replaceRow = useCallback(
     (prevRow: TRow, saved: TRow) => {
@@ -38,13 +58,18 @@ export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
       setRows((prev) =>
         prev.map((r) => (sameRowId(getId(r), prevId) ? saved : r))
       );
+      flash(getId(saved) ?? prevId);
     },
-    [getId]
+    [getId, flash]
   );
 
-  const addRow = useCallback((created: TRow) => {
-    setRows((prev) => [...prev, created]);
-  }, []);
+  const addRow = useCallback(
+    (created: TRow) => {
+      setRows((prev) => [...prev, created]);
+      flash(getId(created));
+    },
+    [getId, flash]
+  );
 
   /*
    * Dropped locally so a plain `onDelete` consumer (no query adapter re-supplying
@@ -58,5 +83,5 @@ export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
     [getId]
   );
 
-  return { rows, replaceRow, addRow, removeRow };
+  return { rows, replaceRow, addRow, removeRow, changedRowId };
 }

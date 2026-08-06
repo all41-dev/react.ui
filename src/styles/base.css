@@ -183,6 +183,45 @@
 }
 
 /*
+ * A field the user has actually modified, marked while the form is open. The bar is an
+ * absolutely positioned pseudo-element rather than a real border so turning it on costs
+ * no layout — the field must not shift sideways the moment you type in it.
+ */
+.rui-field::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 1px;
+  bottom: 1px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--rui-accent);
+  opacity: 0;
+  transition: opacity 0.18s ease-out;
+}
+
+.rui-field[data-changed="true"]::before {
+  opacity: 1;
+}
+
+/*
+ * Where a write landed. A row that was just created or saved washes accent and fades
+ * back, so an edit to an off-screen or hidden column still tells you which row moved.
+ */
+@keyframes ruiRowFlash {
+  from {
+    background-color: color-mix(in srgb, var(--rui-accent) 22%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.rui-row-changed > td {
+  animation: ruiRowFlash 1.6s ease-out;
+}
+
+/*
  * Loading skeleton. The spec's `.og-sk` is a shimmer — a gradient swept across the bar
  * by animating background-position — not an opacity pulse. Colours come from the
  * surface tokens so it themes with everything else.
@@ -225,6 +264,17 @@
 
   .animate-slide-down {
     animation: none;
+  }
+
+  /* The marker and the flash both still need to be SEEN — they carry information the
+     user has no other way to get — so they lose their transition, not their visibility.
+     The flash holds a static tint briefly instead of washing out. */
+  .rui-field::before {
+    transition: none;
+  }
+
+  .rui-row-changed > td {
+    animation: ruiRowFlash 1.6s step-end;
   }
 
   .animate-drawer-in,

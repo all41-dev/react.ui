@@ -1,23 +1,11 @@
-import { Funnel, LayoutGrid, List, Plus, RefreshCw, Search, X } from "lucide-react";
-import { memo, useEffect, useState } from "react";
+import { LayoutGrid, List, Plus, X } from "lucide-react";
+import { memo, useState } from "react";
+
+import type { FacetChip } from "../types/facets";
+import { SearchBar } from "./SearchBar";
+import { hasOverflowItems, ToolbarOverflowMenu } from "./ToolbarOverflowMenu";
 
 export type GridView = "list" | "cards";
-
-/*
- * The 30px toolbar control. Transparent at rest so the toolbar reads as one surface, and
- * on hover it lifts to `--surface-raised` with a translucent edge — an accent border here
- * would make every hover look like a selection.
- */
-const BTN =
-  "inline-flex h-[30px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-control " +
-  "border px-2.5 text-[.8125rem] outline-none transition-colors " +
-  "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]";
-
-const BTN_OFF =
-  "border-border-default bg-transparent text-muted hover:border-border-translucent hover:bg-surface-raised hover:text-body";
-
-const BTN_ON =
-  "border-[color-mix(in_srgb,var(--rui-accent)_50%,transparent)] bg-accent-subtle font-semibold text-accent";
 
 type DataGridToolbarProps = {
   title: string;
@@ -37,6 +25,8 @@ type DataGridToolbarProps = {
   filtersShown?: boolean;
   activeFilterCount?: number;
   onToggleFilters?: () => void;
+  /** Drops every column filter at once, from the menu's Filter section. */
+  onClearFilters?: () => void;
   /** The Columns popover. A slot rather than props, so the toolbar stays presentational. */
   columnsControl?: React.ReactNode;
   /** Rendered only when the consumer supplies a `card` renderer. */
@@ -46,6 +36,8 @@ type DataGridToolbarProps = {
   groupOptions?: { key: string; label: string }[];
   groupBy?: string;
   onGroupByChange?: (key: string) => void;
+  /** Active filters and grouping, rendered as pills inside the search field. */
+  facets?: FacetChip[];
 };
 
 export const DataGridToolbar = memo(function DataGridToolbar({
@@ -64,12 +56,14 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   filtersShown,
   activeFilterCount = 0,
   onToggleFilters,
+  onClearFilters,
   columnsControl,
   view,
   onViewChange,
   groupOptions,
   groupBy = "",
   onGroupByChange,
+  facets = [],
 }: DataGridToolbarProps) {
   /*
    * Dismissal is tracked by message rather than by a boolean reset from an effect.
@@ -81,6 +75,39 @@ export const DataGridToolbar = memo(function DataGridToolbar({
     error == null ? null : typeof error === "string" ? error : error.message;
   const [dismissedMessage, setDismissedMessage] = useState<string | null>(null);
   const showError = errorMessage !== null && errorMessage !== dismissedMessage;
+
+  /*
+   * Search field and overflow trigger are one welded control, so the trigger has to know
+   * whether the field is beside it and the field whether the trigger is. When the grid is
+   * neither searchable nor carrying facets there is no field to weld to, and the trigger
+   * stands alone as a normal button.
+   */
+  const menuShown = hasOverflowItems({
+    hasFilterableColumns,
+    onToggleFilters,
+    columnsControl,
+    groupOptions,
+    onGroupByChange,
+    onRetry,
+  });
+  const searchShown = !!(searchable && onSearchChange);
+  const barShown = searchShown || facets.length > 0;
+
+  const overflowMenu = (
+    <ToolbarOverflowMenu
+      hasFilterableColumns={hasFilterableColumns}
+      filtersShown={filtersShown}
+      activeFilterCount={activeFilterCount}
+      onToggleFilters={onToggleFilters}
+      onClearFilters={onClearFilters}
+      columnsControl={columnsControl}
+      groupOptions={groupOptions}
+      groupBy={groupBy}
+      onGroupByChange={onGroupByChange}
+      onRetry={onRetry}
+      attached={barShown}
+    />
+  );
 
   return (
     <>
@@ -100,50 +127,20 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* Controls. Deliberately no `flex-wrap`: secondary controls live in the overflow
+            menu precisely so this stays one line at any width. `flex-1` so the search bar
+            has room to be the primary element of the row rather than a 200px afterthought. */}
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           {toolbar}
 
-          {searchable && onSearchChange && (
-            <SearchBox value={searchValue} onChange={onSearchChange} />
-          )}
-
-          {hasFilterableColumns && onToggleFilters && (
-            <button
-              type="button"
-              onClick={onToggleFilters}
-              aria-pressed={filtersShown}
-              className={[BTN, filtersShown ? BTN_ON : BTN_OFF].join(" ")}
-            >
-              <Funnel className="h-3.5 w-3.5" aria-hidden />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="rounded-full bg-accent px-1.5 font-mono text-[.6875rem] font-semibold leading-4 text-accent-contrast">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          )}
-
-          {columnsControl}
-
-          {groupOptions && groupOptions.length > 0 && onGroupByChange && (
-            <label className="flex items-center gap-1.5 text-[.8125rem] text-muted">
-              <span className="hidden sm:inline">Group</span>
-              <select
-                value={groupBy}
-                onChange={(e) => onGroupByChange(e.target.value)}
-                aria-label="Group by"
-                className={[BTN, groupBy ? BTN_ON : BTN_OFF].join(" ")}
-              >
-                <option value="">None</option>
-                {groupOptions.map((g) => (
-                  <option key={g.key} value={g.key}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {barShown && (
+            <SearchBar
+              value={searchValue}
+              onChange={onSearchChange ?? noop}
+              facets={facets}
+              searchable={searchShown}
+              trailing={menuShown ? overflowMenu : undefined}
+            />
           )}
 
           {view && onViewChange && (
@@ -177,17 +174,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
             </div>
           )}
 
-          {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              aria-label="Refresh"
-              title="Refresh"
-              className={[BTN, BTN_OFF, "!px-2.5"].join(" ")}
-            >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          )}
+          {/* Only stands on its own when there is no field to weld it to. */}
+          {!barShown && overflowMenu}
 
           {editContainer !== "none" && (
             /* Flat accent fill, and no press animation — nothing else in the grid
@@ -237,37 +225,5 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   );
 });
 
-/**
- * Search input with a short local debounce. External resets (the facet chip's ×, for
- * instance) are reconciled during render, the same way HeaderFilter does it.
- */
-function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [input, setInput] = useState(value);
-  const [lastExternal, setLastExternal] = useState(value);
-  if (value !== lastExternal) {
-    setLastExternal(value);
-    setInput(value);
-  }
-
-  useEffect(() => {
-    if (input === value) return;
-    const id = setTimeout(() => onChange(input), 200);
-    return () => clearTimeout(id);
-  }, [input, value, onChange]);
-
-  /* The focus ring belongs to the wrapper, so the icon sits inside the highlighted
-     field rather than outside a ring drawn around the input alone. */
-  return (
-    <div className="flex h-[30px] min-w-0 flex-[0_1_200px] items-center gap-1.5 rounded-control border border-border-default bg-surface-inset px-[9px] text-faint transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_2px_var(--rui-focus-ring)]">
-      <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <input
-        type="search"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Search…"
-        aria-label="Search all columns"
-        className="w-full min-w-[60px] border-0 bg-transparent text-[.8125rem] text-body outline-none placeholder:text-faint"
-      />
-    </div>
-  );
-}
+/** The bar renders with facets but no input when the grid isn't searchable. */
+function noop() {}

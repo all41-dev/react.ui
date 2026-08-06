@@ -9,7 +9,39 @@ type FormLayoutProps<TForm extends object> = {
   columns?: 1 | 2 | 3 | 4;
   gap?: string;
   className?: string;
+  /** Accessor keys the user has actually changed, marked while the form is open. */
+  dirtyKeys?: ReadonlySet<string>;
 };
+
+/**
+ * Wraps one field so a modified one can announce itself. Without this a long form gives
+ * no answer to "what did I just change?" — and when the changed column is hidden from the
+ * table, saving otherwise looks like it did nothing at all.
+ */
+function Field({
+  changed,
+  className,
+  children,
+}: {
+  changed: boolean;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`rui-field relative ${className}`}
+      data-changed={changed ? "true" : undefined}
+    >
+      {changed && (
+        <span className="pointer-events-none absolute right-0 top-0 flex items-center gap-1 text-[.625rem] font-medium uppercase tracking-[.04em] text-accent">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+          changed
+        </span>
+      )}
+      {children}
+    </div>
+  );
+}
 
 export function FormLayout<TForm extends object>({
   fields,
@@ -17,6 +49,7 @@ export function FormLayout<TForm extends object>({
   columns = 2,
   gap = "gap-4",
   className = "",
+  dirtyKeys,
 }: FormLayoutProps<TForm>) {
   const sortedFields = useMemo(() => {
     return [...fields].sort((a, b) => {
@@ -75,14 +108,16 @@ export function FormLayout<TForm extends object>({
             const colSpan = c.meta?.formLayout?.colSpan;
             const fieldClassName = c.meta?.formLayout?.className || "";
             const colSpanClass = getColSpanClass(colSpan);
+            const key = (c as any).accessorKey as string | undefined;
 
             return (
-              <div
-                key={(c as any).accessorKey || c.id}
+              <Field
+                key={key || c.id}
+                changed={!!key && !!dirtyKeys?.has(key)}
                 className={`${colSpanClass} ${fieldClassName}`}
               >
                 {renderEditor<TForm>({ column: c as any, control })}
-              </div>
+              </Field>
             );
           })}
         </div>
@@ -92,13 +127,15 @@ export function FormLayout<TForm extends object>({
         <div className={`space-y-4 ${gap.replace("gap-", "space-y-")}`}>
           {fullWidthFields.map((c: WithMeta<any, TForm>) => {
             const fieldClassName = c.meta?.formLayout?.className || "";
+            const key = (c as any).accessorKey as string | undefined;
             return (
-              <div
-                key={(c as any).accessorKey || c.id}
+              <Field
+                key={key || c.id}
+                changed={!!key && !!dirtyKeys?.has(key)}
                 className={fieldClassName}
               >
                 {renderEditor<TForm>({ column: c as any, control })}
-              </div>
+              </Field>
             );
           })}
         </div>

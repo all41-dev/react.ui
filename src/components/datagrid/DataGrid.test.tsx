@@ -75,6 +75,13 @@ const dataRows = () =>
 const visibleLeafCount = () =>
   document.querySelectorAll("thead tr:first-child th").length;
 
+/**
+ * Filters, Columns, Group-by and Refresh live behind the toolbar's overflow menu, so a
+ * test has to open it before reaching any of them.
+ */
+const openOverflowMenu = (user: ReturnType<typeof userEvent.setup>) =>
+  user.click(screen.getByRole("button", { name: /filters, columns and grouping/i }));
+
 /* ------------------------------------------------------------------ */
 
 describe("DataGrid", () => {
@@ -90,7 +97,8 @@ describe("DataGrid", () => {
       renderGrid();
       await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
 
-      await user.click(screen.getByRole("button", { name: /filters/i }));
+      await openOverflowMenu(user);
+      await user.click(screen.getByRole("switch", { name: /filter row/i }));
       const select = await screen.findByRole("combobox", {
         name: "Filter by Role",
       });
@@ -102,6 +110,130 @@ describe("DataGrid", () => {
       // A substring match would let "Active" also match "Inactive".
       expect(screen.getByText("Clementine")).toBeInTheDocument();
       expect(screen.queryByText("Leanne")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("the search bar holds the active criteria", () => {
+    /** Applies the Role=Active column filter through the toolbar. */
+    const applyRoleFilter = async (user: ReturnType<typeof userEvent.setup>) => {
+      await openOverflowMenu(user);
+      await user.click(screen.getByRole("switch", { name: /filter row/i }));
+      await user.selectOptions(
+        await screen.findByRole("combobox", { name: "Filter by Role" }),
+        "active"
+      );
+    };
+
+    it("an active filter becomes a pill in the field, and its × clears it", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await applyRoleFilter(user);
+
+      const clear = await screen.findByRole("button", { name: /clear role filter/i });
+      // The pill lives inside the search field itself, not in a band of its own:
+      // same wrapper as the input.
+      const box = screen.getByRole("searchbox", { name: /search/i });
+      const field = box.parentElement!;
+      expect(field).toContainElement(clear);
+      // The option's label, not the "active" the filter actually stores — the pill has to
+      // name the criterion the way the control that set it does.
+      expect(within(field).getByText("Active")).toBeInTheDocument();
+      expect(within(field).queryByText("active")).not.toBeInTheDocument();
+
+      await user.click(clear);
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+      expect(
+        screen.queryByRole("button", { name: /clear role filter/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("Backspace in an empty field removes the last pill", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await applyRoleFilter(user);
+      await screen.findByRole("button", { name: /clear role filter/i });
+
+      await user.click(screen.getByRole("searchbox", { name: /search/i }));
+      await user.keyboard("{Backspace}");
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: /clear role filter/i })
+        ).not.toBeInTheDocument()
+      );
+      expect(screen.getByText("Leanne")).toBeInTheDocument();
+    });
+
+    it("Backspace with text in the field edits the text instead", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await applyRoleFilter(user);
+      const box = screen.getByRole("searchbox", { name: /search/i });
+      await user.type(box, "ab{Backspace}");
+
+      expect(box).toHaveValue("a");
+      expect(
+        screen.getByRole("button", { name: /clear role filter/i })
+      ).toBeInTheDocument();
+    });
+
+    it("Clear all drops every column filter, and only shows while there is one", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await openOverflowMenu(user);
+      // Nothing to clear yet, so the row isn't there to be clicked.
+      expect(
+        screen.queryByRole("button", { name: /clear all/i })
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("switch", { name: /filter row/i }));
+      await user.selectOptions(
+        await screen.findByRole("combobox", { name: "Filter by Role" }),
+        "active"
+      );
+
+      // Setting the filter means clicking the header row, which is outside the panel —
+      // so the panel closes, exactly as an outside click should.
+      await openOverflowMenu(user);
+      await user.click(await screen.findByRole("button", { name: /clear all/i }));
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: /clear role filter/i })
+        ).not.toBeInTheDocument()
+      );
+      expect(screen.getByText("Leanne")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /clear all/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it("the overflow menu stays open while criteria are applied", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await openOverflowMenu(user);
+      const filterRow = screen.getByRole("switch", { name: /filter row/i });
+      await user.click(filterRow);
+
+      // Stacking criteria used to mean reopening the menu for each one.
+      expect(screen.getByRole("switch", { name: /filter row/i })).toBeInTheDocument();
+
+      await user.keyboard("{Escape}");
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("switch", { name: /filter row/i })
+        ).not.toBeInTheDocument()
+      );
     });
   });
 
@@ -416,7 +548,8 @@ describe("DataGrid", () => {
       await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
 
       const before = visibleLeafCount();
-      await user.click(screen.getByRole("button", { name: /columns/i }));
+      await openOverflowMenu(user);
+      await user.click(screen.getByRole("button", { name: "Columns" }));
       const panel = await screen.findByRole("dialog", { name: "Columns" });
 
       await user.click(within(panel).getByRole("checkbox", { name: /name/i }));
@@ -431,7 +564,8 @@ describe("DataGrid", () => {
       renderGrid({ columns: [COLUMNS[0]] });
       await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
 
-      await user.click(screen.getByRole("button", { name: /columns/i }));
+      await openOverflowMenu(user);
+      await user.click(screen.getByRole("button", { name: "Columns" }));
       const panel = await screen.findByRole("dialog", { name: "Columns" });
       // Hiding it would leave an empty rectangle with no way back but Reset.
       expect(within(panel).getByRole("checkbox", { name: /name/i })).toBeDisabled();

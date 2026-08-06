@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 build-output
+coverage
 *.local
 
 .env
@@ -37,3 +38,8 @@ claude_docs
 # are not. Share these files with colleagues directly, never through git.
 # See src/app/styles/README.md.
 src/app/styles/*.local.css
+
+# Articles demo — product data, kept out of the library repo.
+# NOTE: src/app/App.tsx imports this folder, so a fresh clone will not build until
+# either the folder is restored or that import and its tab are removed.
+# src/app/demos/articles/

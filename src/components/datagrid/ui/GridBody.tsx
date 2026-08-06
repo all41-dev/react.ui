@@ -29,6 +29,8 @@ type GridBodyProps<TRow extends object> = {
   isCreating: boolean;
   expandedRowIds: ReadonlySet<string | number>;
   renderExpandedRow?: (row: TRow) => ReactNode;
+  /** The row a write just landed on, flashed so the change is locatable. */
+  changedRowId?: string | number;
 };
 
 /**
@@ -56,6 +58,7 @@ export function GridBody<TRow extends object>({
   isCreating,
   expandedRowIds,
   renderExpandedRow,
+  changedRowId,
 }: GridBodyProps<TRow>) {
   return (
     <div
@@ -110,6 +113,7 @@ export function GridBody<TRow extends object>({
           onRowClick={onRowClick}
           expandedRowIds={expandedRowIds}
           renderExpandedRow={renderExpandedRow}
+          changedRowId={changedRowId}
         />
       )}
     </div>

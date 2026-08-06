@@ -58,6 +58,7 @@ type FormFieldsProps<TRow extends object, TForm extends object> = {
   control: unknown;
   formLayout?: FormLayoutConfig;
   formError?: string;
+  dirtyKeys?: ReadonlySet<string>;
 };
 
 /**
@@ -70,6 +71,7 @@ function FormFields<TRow extends object, TForm extends object>({
   control,
   formLayout,
   formError,
+  dirtyKeys,
 }: FormFieldsProps<TRow, TForm>) {
   return (
     <>
@@ -80,13 +82,20 @@ function FormFields<TRow extends object, TForm extends object>({
           columns={formLayout?.columns}
           gap={formLayout?.gap}
           className={formLayout?.className}
+          dirtyKeys={dirtyKeys}
         />
       )}
 
       {switchFields.length > 0 && (
         <OptionsSection>
           {switchFields.map((c) => (
-            <div key={(c as any).accessorKey || c.id}>
+            <div
+              key={(c as any).accessorKey || c.id}
+              className="rui-field relative"
+              data-changed={
+                dirtyKeys?.has((c as any).accessorKey) ? "true" : undefined
+              }
+            >
               {renderEditor<TForm>({
                 column: c as any,
                 control: control as any,
@@ -183,7 +192,9 @@ export function EditFormBody<TRow extends object, TForm extends object>({
     [columns]
   );
 
-  const { isSubmitting, errors } = form.formState;
+  /* `dirtyFields` has to be read off formState here for react-hook-form to subscribe to
+     it — destructuring is the subscription. */
+  const { isSubmitting, errors, dirtyFields } = form.formState;
 
   React.useEffect(() => {
     onSubmittingChange?.(isSubmitting);
@@ -261,6 +272,22 @@ export function EditFormBody<TRow extends object, TForm extends object>({
     [sortedFields]
   );
 
+  /*
+   * Which fields the user actually touched. `dirtyFields` compares against the form's
+   * defaults, so typing a value and putting the original back clears the mark — it
+   * tracks real changes rather than "was focused".
+   *
+   * Rebuilt every render on purpose. react-hook-form mutates this object in place, so
+   * memoising on its identity pinned the set to whatever the FIRST dirty field was and
+   * every later change went unmarked. It is a handful of keys — recomputing is cheaper
+   * than getting it wrong.
+   */
+  const dirtyKeys = new Set(
+    Object.entries(dirtyFields)
+      .filter(([, v]) => !!v)
+      .map(([k]) => k)
+  );
+
   /* Built once, then placed into whichever wrapper the variant calls for. */
   const fieldsContent = (
     <FormFields<TRow, TForm>
@@ -269,6 +296,7 @@ export function EditFormBody<TRow extends object, TForm extends object>({
       control={(form as any).control}
       formLayout={formLayout}
       formError={formError}
+      dirtyKeys={dirtyKeys}
     />
   );
   const actionsContent = (
