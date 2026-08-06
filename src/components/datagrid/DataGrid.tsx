@@ -1,59 +1,44 @@
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  type ColumnFiltersState,
-  getFilteredRowModel,
-  type PaginationState,
-  getPaginationRowModel,
-  type OnChangeFn,
-  type SortingState,
-} from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import type { ZodType } from "zod";
+import { Pencil, Trash2 } from "lucide-react";
+import { Tooltip } from "react-tooltip";
+import { toast } from "sonner";
+import { useCallback, useId, useMemo, useState, type ReactNode } from "react";
 
-import type { WithMeta } from "./types/column";
+import { getApiMessage } from "../../api/errors";
 import {
-  makeActionColumn,
-  type ActionColumnOpts,
-} from "./ui/makeActionColumns";
+  DataGridContext,
+  DataGridSelectionContext,
+  type DataGridContextValue,
+} from "./DataGridContext";
+import { useConfirm } from "./hooks/useConfirm";
+import { useDataGridTable } from "./hooks/useDataGridTable";
+import { useEditSession } from "./hooks/useEditSession";
+import { getColId, useGridColumns } from "./hooks/useGridColumns";
+import { useGridFilters } from "./hooks/useGridFilters";
+import { useGridGrouping } from "./hooks/useGridGrouping";
+import { useGridPagination, type PaginationProp } from "./hooks/useGridPagination";
+import { useGridRows } from "./hooks/useGridRows";
+import { useRowSelection } from "./hooks/useRowSelection";
+import type { WithMeta } from "./types/column";
+import type { GroupOption } from "./types/grouping";
+import { CardsView } from "./ui/CardsView";
+import { ColumnsPopover } from "./ui/ColumnsPopover";
+import { DataGridPagination } from "./ui/DataGridPagination";
+import { DataGridToolbar } from "./ui/DataGridToolbar";
+import { FacetChips } from "./ui/FacetChips";
+import { Spinner } from "./ui/GridStates";
+import { KanbanView } from "./ui/KanbanView";
+import { SelectionPill } from "./ui/SelectionPill";
+import { TableView } from "./ui/TableView";
 import {
   EditContainer,
   type EditContainerKind,
 } from "./ui/containers/EditContainers";
 import { EditInline } from "./ui/containers/EditInline";
+import { CellEditPopover } from "./ui/table/CellEditPopover";
+import type { ActionColumnOpts } from "./ui/makeActionColumns";
 import { getRowKey } from "./utils/getRowKey";
-import { filterFnFor } from "./utils/filterFns";
-import { makeSelectColumn } from "./ui/table/SelectionCells";
-import { toast } from "sonner";
-import { getApiMessage } from "../../api/errors";
-import { useConfirm } from "./hooks/useConfirm";
-import { Spinner } from "./ui/GridStates";
-import { TableView } from "./ui/TableView";
-import { DataGridToolbar } from "./ui/DataGridToolbar";
-import { useColumnPrefs } from "./hooks/useColumnPrefs";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-  type ReactNode,
-} from "react";
-import { DataGridPagination } from "./ui/DataGridPagination";
-import { FacetChips, type FacetChip } from "./ui/FacetChips";
-import { SelectionPill } from "./ui/SelectionPill";
-import { CardsView } from "./ui/CardsView";
-import { KanbanView } from "./ui/KanbanView";
-import { useAggColumnIds, useGroupBuckets } from "./hooks/useGrouping";
-import type { GroupOption } from "./types/grouping";
-import {
-  CellEditPopover,
-  type CellEditState,
-} from "./ui/table/CellEditPopover";
-import { Pencil, Trash2 } from "lucide-react";
-import { Tooltip } from "react-tooltip";
-import { DataGridContext } from "./DataGridContext";
-import { useId } from "react";
 
 export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   title?: string;
@@ -90,13 +75,7 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   error?: string | Error | null;
   onRetry?: () => void | Promise<void>;
   actionColumnOptions?: Partial<ActionColumnOpts<TRow>>;
-  pagination?: {
-    enabled?: boolean; // default true
-    pageSizeOptions?: number[]; // default [5,10,20,50,100]
-    initialState?: Partial<PaginationState>; // default { pageIndex:0, pageSize:10 }
-    state?: PaginationState;
-    onChange?: OnChangeFn<PaginationState>;
-  };
+  pagination?: PaginationProp;
   initialSorting?: SortingState; // Initial sorting state
   storageKey?: string;
   formLayout?: {
@@ -113,15 +92,24 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   cancelEditTrigger?: number; // When this changes, cancel editing
 };
 
-const getColId = (c: any) => (c.id ?? c.accessorKey ?? "").toString();
-
-/** Row ids arrive as string | number depending on the accessor; compare them as text. */
-const sameRowId = (a: string | number | undefined, b: string | number | undefined) =>
-  a !== undefined && b !== undefined && String(a) === String(b);
 const EMPTY_EXPANDED_SET = new Set<string | number>();
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100];
+/*
+ * Icons, not words — the design specifies lucide pencil / trash-2, and word buttons do
+ * not fit a 26px control. Module scope so the elements aren't rebuilt every render.
+ */
+const DEFAULT_ACTION_LABELS = {
+  edit: <Pencil className="h-4 w-4" aria-hidden />,
+  delete: <Trash2 className="h-4 w-4" aria-hidden />,
+};
 
+/**
+ * Composition only. Every piece of state lives in a hook next door — `useGridRows`,
+ * `useEditSession`, `useRowSelection`, `useGridFilters`, `useGridPagination`,
+ * `useGridColumns`, `useGridGrouping`, `useDataGridTable` — because when all of it lived
+ * here as thirteen independent `useState`s, facts about the same thing drifted apart
+ * from each other (the drawer that outlived its edit session being the clearest case).
+ */
 export function DataGrid<TRow extends object, TForm extends object = TRow>({
   title = "Data",
   subtitle,
@@ -157,168 +145,103 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   onCancelEdit,
   cancelEditTrigger,
 }: DataGridProps<TRow, TForm>) {
-  const [rows, setRows] = useState<TRow[]>(() => initialData ?? []);
-  const [editing, setEditing] = useState<{
-    mode: "create" | "edit";
-    row?: TRow;
-  } | null>(null);
-  const [open, setOpen] = useState(false);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<"list" | "cards">(defaultView);
-  const [groupBy, setGroupBy] = useState(defaultGroupBy);
-  const [collapsedGroups, setCollapsedGroups] = useState<ReadonlySet<string>>(new Set());
-  const [sorting, setSorting] = useState<SortingState>(initialSorting ?? []);
-  const [selectedRowId, setSelectedRowId] = useState<
-    string | number | undefined
-  >(undefined);
-  // Checkbox selection (multi), ids stored as strings. Survives paging and filtering.
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
-  // Single-cell edit popover (columns with `cellEdit` meta).
-  const [cellEdit, setCellEdit] = useState<CellEditState<TRow> | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | number | undefined>(
+    undefined
+  );
 
   // Use external expandedRowIds if provided, otherwise use empty set
   // (Internal state management removed since expansion is controlled from column buttons)
   const expandedRowIds = externalExpandedRowIds ?? EMPTY_EXPANDED_SET;
-  const paginationEnabled = paginationProp?.enabled ?? true;
-  const [uncontrolledPagination, setUncontrolledPagination] =
-    useState<PaginationState>({
-      pageIndex: paginationProp?.initialState?.pageIndex ?? 0,
-      pageSize: paginationProp?.initialState?.pageSize ?? 10,
-    });
-
-  const pagination = paginationProp?.state ?? uncontrolledPagination;
-  const onPaginationChange: OnChangeFn<PaginationState> =
-    paginationProp?.onChange ?? setUncontrolledPagination;
-  const setPagination = paginationProp?.onChange ?? setUncontrolledPagination;
-
-  /*
-   * `rows` is seeded from `initialData` and then owned locally so create/edit/delete can
-   * be reflected immediately (see handleSubmit / handleDelete). Reconciled during render
-   * rather than in an effect: no extra render pass, and no window in which the grid shows
-   * data the parent has already replaced.
-   *
-   * `initialData` must be a stable reference — the same contract TanStack Table places on
-   * its own `data` prop. Rebuilding the array inline on every render discards any pending
-   * local mutation.
-   */
-  const [syncedData, setSyncedData] = useState(initialData);
-  if (initialData !== syncedData) {
-    setSyncedData(initialData);
-    setRows(initialData ?? []);
-    // Prune the checkbox selection to ids that still exist: a refetch keeps the
-    // selection, a dataset swap effectively clears it.
-    setSelectedIds((prev) => {
-      if (prev.size === 0) return prev;
-      const alive = new Set(
-        (initialData ?? []).map((r) => String(getRowKey(r, idAccessor)))
-      );
-      const next = new Set([...prev].filter((id) => alive.has(id)));
-      return next.size === prev.size ? prev : next;
-    });
-  }
-
-  /*
-   * `cancelEditTrigger` is an imperative signal: the parent bumps the number to cancel.
-   * The ref is seeded with the incoming value so mounting never counts as a change, and
-   * it advances on EVERY change rather than only while something is being edited —
-   * otherwise a bump that arrives with no editor open leaves the ref stale, and the next
-   * editor the user opens is cancelled the moment it appears.
-   */
-  const prevCancelTriggerRef = useRef<number | undefined>(cancelEditTrigger);
-  const editingRef = useRef(editing);
-  editingRef.current = editing;
-  useEffect(() => {
-    if (prevCancelTriggerRef.current === cancelEditTrigger) return;
-    prevCancelTriggerRef.current = cancelEditTrigger;
-    if (cancelEditTrigger === undefined || cancelEditTrigger <= 0) return;
-    if (editingRef.current === null) return;
-    setEditing(null);
-    // `open` describes the same session as `editing` and has to be torn down with it:
-    // leaving it true re-rendered EditContainer with `mode={editing?.mode ?? "create"}`,
-    // so the drawer stayed on screen and silently became a blank Create form (#B2).
-    setOpen(false);
-    onCancelEdit?.();
-  }, [cancelEditTrigger, onCancelEdit]);
 
   const getId = useCallback(
     (r: TRow) => getRowKey(r, idAccessor),
     [idAccessor]
   );
 
+  const { rows, replaceRow, addRow, removeRow } = useGridRows({
+    initialData,
+    getId,
+  });
+
+  const selection = useRowSelection({
+    initialData,
+    rows,
+    getId,
+    onSelectionChange,
+  });
+
+  const edit = useEditSession<TRow>({
+    getId,
+    onEditStart,
+    onCancelEdit,
+    cancelEditTrigger,
+  });
+
+  const filters = useGridFilters<TRow, TForm>({
+    columns,
+    getColId,
+    initialSorting,
+  });
+
+  const pagination = useGridPagination({
+    pagination: paginationProp,
+    columnFilters: filters.columnFilters,
+    globalFilter: filters.globalFilter,
+    sorting: filters.sorting,
+  });
+
+  /*
+   * A read-only grid carried an empty overlay action column for nothing. It is added
+   * only when something could actually render into it.
+   */
+  const hasRowActions =
+    editContainer !== "none" ||
+    !!onDelete ||
+    !!actionColumnOptions?.onEdit ||
+    !!actionColumnOptions?.renderActions;
+
+  const userKey =
+    storageKey ?? `dg:${title.toLowerCase().replace(/\s+/g, "-")}`;
+
+  const gridColumns = useGridColumns<TRow, TForm>({
+    columns,
+    selectable,
+    hasRowActions,
+    actionPresentation: actionColumnOptions?.presentation ?? "overlay",
+    storageKey: userKey,
+  });
+
+  const table = useDataGridTable<TRow, TForm>({
+    data: rows,
+    columns: gridColumns.orderedColumns,
+    prefs: gridColumns.prefs,
+    prefHandlers: gridColumns.prefHandlers,
+    columnFilters: filters.columnFilters,
+    onColumnFiltersChange: filters.setColumnFilters,
+    globalFilter: filters.globalFilter,
+    onGlobalFilterChange: filters.setGlobalFilter,
+    sorting: filters.sorting,
+    onSortingChange: filters.setSorting,
+    paginationEnabled: pagination.enabled,
+    pagination: pagination.state,
+    onPaginationChange: pagination.onPaginationChange,
+  });
+
+  const grouping = useGridGrouping({ table, groupOptions, defaultGroupBy });
+
+  const { confirm, ConfirmDialog } = useConfirm();
+
   const handleRowClick = useCallback(
     (row: TRow) => {
       const rowId = getId(row);
-      setSelectedRowId((prev) => {
-        if (prev !== undefined && String(prev) === String(rowId)) {
-          return undefined;
-        }
-        return rowId;
-      });
-
+      setSelectedRowId((prev) =>
+        prev !== undefined && String(prev) === String(rowId) ? undefined : rowId
+      );
       onRowClick?.(row);
     },
     [getId, onRowClick]
   );
-
-  const toggleRowSelected = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const setPageSelected = useCallback((pageIds: string[], selected: boolean) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      for (const id of pageIds) {
-        if (selected) next.add(id);
-        else next.delete(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
-
-  // Notify the consumer with row objects (not ids). Refs keep this effect off the
-  // rows/callback identities; the initial empty selection is not announced.
-  const onSelectionChangeRef = useRef(onSelectionChange);
-  onSelectionChangeRef.current = onSelectionChange;
-  const rowsRef = useRef(rows);
-  rowsRef.current = rows;
-  const selectionAnnouncedRef = useRef(false);
-  useEffect(() => {
-    if (!selectionAnnouncedRef.current) {
-      selectionAnnouncedRef.current = true;
-      if (selectedIds.size === 0) return;
-    }
-    onSelectionChangeRef.current?.(
-      rowsRef.current.filter((r) => selectedIds.has(String(getId(r))))
-    );
-  }, [selectedIds, getId]);
-
-  const handleCreate = useCallback(() => {
-    setEditing({ mode: "create" });
-    if (editContainer !== "none" && editContainer !== "inline") setOpen(true);
-  }, [editContainer]);
-
-  const handleEdit = useCallback(
-    (row: TRow) => {
-      const rowId = getId(row);
-      setEditing({ mode: "edit", row });
-      if (editContainer !== "none" && editContainer !== "inline") setOpen(true);
-      if (rowId !== undefined) {
-        onEditStart?.(rowId);
-      }
-    },
-    [editContainer, getId, onEditStart]
-  );
-
-  const { confirm, ConfirmDialog } = useConfirm();
 
   const handleDelete = useCallback(
     async (row: TRow) => {
@@ -332,166 +255,13 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       });
       if (!ok) return;
       await onDelete(row);
-      // Drop the row locally so a plain `onDelete` consumer (no query adapter re-supplying
-      // `initialData`) doesn't watch a successfully deleted row stay on screen.
       // Errors deliberately propagate: the action button owns the catch, the toast and
       // its own spinner state.
-      const deletedId = getId(row);
-      setRows((prev) => prev.filter((r) => !sameRowId(getId(r), deletedId)));
-      if (deletedId !== undefined) {
-        setSelectedIds((prev) => {
-          if (!prev.has(String(deletedId))) return prev;
-          const next = new Set(prev);
-          next.delete(String(deletedId));
-          return next;
-        });
-      }
+      removeRow(row);
+      selection.deselect(getId(row));
     },
-    [onDelete, getId, confirm]
+    [onDelete, confirm, removeRow, selection, getId]
   );
-
-
-
-  const actionCol = useMemo(
-    () =>
-      makeActionColumn<TRow>({
-        presentation: "overlay",
-        getId,
-        onEdit: handleEdit,
-        onDelete: onDelete ? handleDelete : undefined,
-        onError: (err) => toast.error(getApiMessage(err, "Delete failed")),
-        labels: {
-          edit: <Pencil className="h-4 w-4" aria-hidden />,
-          delete: <Trash2 className="h-4 w-4" aria-hidden />,
-        },
-        ...actionColumnOptions,
-      }),
-    [getId, handleEdit, handleDelete, onDelete, actionColumnOptions]
-  );
-
-  const userKey =
-    storageKey ?? `dg:${title.toLowerCase().replace(/\s+/g, "-")}`;
-  /*
-   * A column declaring `meta.filter` gets the matching filter function attached here.
-   * Left to TanStack's `auto`, the fn is inferred from the first row's value type and
-   * has no idea what shape the filter UI writes — select degraded to a substring match,
-   * multi-select and dateRange matched nothing at all (#B1). An explicit `filterFn` on
-   * the column always wins, so a consumer can still override.
-   */
-  const baseCols = useMemo(
-    () =>
-      columns
-        .filter((c) => getColId(c) !== "__actions__")
-        .map((c) => {
-          const cfg = c.meta?.filter;
-          if (!cfg || c.filterFn) return c;
-          const fn = filterFnFor(cfg);
-          return fn ? { ...c, filterFn: fn } : c;
-        }),
-    [columns]
-  );
-  const selectCol = useMemo(
-    () =>
-      selectable
-        ? makeSelectColumn<TRow>({
-            getId,
-            selectedIds,
-            onToggleRow: toggleRowSelected,
-            onSetPage: setPageSelected,
-          })
-        : null,
-    [selectable, getId, selectedIds, toggleRowSelected, setPageSelected]
-  );
-
-  const allColumnIds = useMemo(
-    () => [
-      ...(selectable ? ["__select__"] : []),
-      ...baseCols.map(getColId),
-      "__actions__",
-    ],
-    [baseCols, selectable]
-  );
-
-  const { state: colState, handlers: colHandlers } = useColumnPrefs(
-    userKey,
-    allColumnIds
-  );
-
-  const orderedColumns = useMemo(() => {
-    const byId = new Map<string, any>();
-    for (const c of baseCols) byId.set(getColId(c), c);
-    byId.set("__actions__", actionCol);
-    if (selectCol) byId.set("__select__", selectCol);
-    return colState.columnOrder
-      .map((id) => byId.get(id))
-      .filter(Boolean) as typeof columns;
-  }, [baseCols, actionCol, selectCol, colState.columnOrder]);
-
-  const defaultColumn = useMemo(
-    () => ({
-      enableResizing: true,
-      minSize: 40,
-      size: 150,
-      maxSize: 1000,
-    }),
-    []
-  );
-
-  const coreRowModel = useMemo(() => getCoreRowModel(), []);
-  const sortedRowModel = useMemo(() => getSortedRowModel(), []);
-  const filteredRowModel = useMemo(() => getFilteredRowModel(), []);
-  const paginationRowModel = useMemo(() => getPaginationRowModel(), []);
-
-  const table = useReactTable({
-    data: rows,
-    columns: orderedColumns,
-    getCoreRowModel: coreRowModel,
-    getSortedRowModel: sortedRowModel,
-    getFilteredRowModel: filteredRowModel,
-    ...(paginationEnabled ? { getPaginationRowModel: paginationRowModel } : {}),
-    defaultColumn,
-    columnResizeMode: "onChange",
-    columnResizeDirection: "ltr",
-    // Toolbar search: contains, case-insensitive, across every globally-filterable
-    // column — the built-in fn reads each column's accessor, which is the spec's
-    // "uses column.value(row) when defined".
-    globalFilterFn: "includesString",
-    state: {
-      columnSizing: colState.columnSizing,
-      columnVisibility: colState.columnVisibility,
-      columnOrder: colState.columnOrder,
-      columnFilters,
-      globalFilter,
-      sorting,
-      ...(paginationEnabled ? { pagination } : {}),
-    },
-    onColumnSizingChange: colHandlers.onColumnSizingChange,
-    onColumnVisibilityChange: colHandlers.onColumnVisibilityChange,
-    onColumnOrderChange: colHandlers.onColumnOrderChange,
-    onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
-    onSortingChange: setSorting,
-    ...(paginationEnabled ? { onPaginationChange: setPagination } : {}),
-  });
-  /*
-   * Filtering or sorting should send the user back to page 1 — but only when they
-   * actually change. Seeding the ref with the current values keeps this from firing on
-   * mount, which previously stomped a controlled parent's initial pageIndex, and the
-   * identity check keeps it from calling the parent's onChange for a no-op.
-   */
-  const prevFilterSortRef = useRef({ columnFilters, globalFilter, sorting });
-  useEffect(() => {
-    if (!paginationEnabled) return;
-    const prev = prevFilterSortRef.current;
-    if (
-      prev.columnFilters === columnFilters &&
-      prev.globalFilter === globalFilter &&
-      prev.sorting === sorting
-    )
-      return;
-    prevFilterSortRef.current = { columnFilters, globalFilter, sorting };
-    onPaginationChange((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
-  }, [columnFilters, globalFilter, sorting, paginationEnabled, onPaginationChange]);
 
   const handleSubmit = useCallback(
     async (values: TForm) => {
@@ -500,350 +270,321 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         // Reflect the result locally. A consumer using the query adapter will re-supply
         // `initialData` and overwrite this with server truth; a plain `onPersist`
         // consumer would otherwise see nothing happen at all.
-        if (editing?.mode === "edit" && editing.row) {
-          const prevRow = editing.row;
-          const saved = await onPersist("edit", values, prevRow);
-          const prevId = getId(prevRow);
-          if (saved) {
-            setRows((prev) =>
-              prev.map((r) => (sameRowId(getId(r), prevId) ? saved : r))
-            );
-          }
+        const editingRow = edit.editingRow;
+        if (editingRow) {
+          const saved = await onPersist("edit", values, editingRow);
+          if (saved) replaceRow(editingRow, saved);
         } else {
           const created = await onPersist("create", values);
-          if (created) setRows((prev) => [...prev, created]);
+          if (created) addRow(created);
         }
-        setOpen(false);
-        setEditing(null);
-        onCancelEdit?.();
+        edit.close();
       } catch (e) {
         toast.error(getApiMessage(e, "Save failed"));
         throw e;
       }
     },
-    [editing, onPersist, getId, onCancelEdit]
-  );
-
-  const startCellEdit = useCallback(
-    (row: unknown, columnId: string, cellEl: HTMLElement) => {
-      const r = cellEl.getBoundingClientRect();
-      setCellEdit({
-        row: row as TRow,
-        columnId,
-        anchor: { top: r.top, bottom: r.bottom, left: r.left, width: r.width },
-      });
-    },
-    []
+    [onPersist, edit, replaceRow, addRow]
   );
 
   const cellEditColumn = useMemo(
     () =>
-      cellEdit
-        ? columns.find((c) => getColId(c) === cellEdit.columnId)
+      edit.cell
+        ? columns.find((c) => getColId(c) === edit.cell!.columnId)
         : undefined,
-    [cellEdit, columns]
+    [edit.cell, columns]
   );
 
   const handleCellSave = useCallback(
     async (value: unknown) => {
-      if (!onPersist || !cellEdit || !cellEditColumn) return;
-      const key = cellEdit.columnId;
-      const meta = cellEditColumn.meta;
-      const prevRow = cellEdit.row;
-      const parsed = meta?.parse
-        ? meta.parse(value, { ...(prevRow as any), [key]: value })
+      const cell = edit.cell;
+      if (!onPersist || !cell || !cellEditColumn) return;
+      const key = cell.columnId;
+      const prevRow = cell.row;
+
+      /*
+       * `parse` runs on the edited column only. It is declared as the inverse of the
+       * form editor's output, and on this path every OTHER field still holds its stored
+       * row value rather than a form value — feeding those through `parse` would
+       * double-convert them. Reaching real parity with the form's submit path needs the
+       * `format` / `toForm` split (§3.6); until then, one field is the honest scope.
+       */
+      const parsed = cellEditColumn.meta?.parse
+        ? cellEditColumn.meta.parse(value, {
+            ...(prevRow as object),
+            [key]: value,
+          } as TForm)
         : value;
-      const candidate = { ...(prevRow as any), [key]: parsed };
+      const draft: Record<string, unknown> = {
+        ...(prevRow as Record<string, unknown>),
+        [key]: parsed,
+      };
 
       // Validate just this field: a full-schema failure on some OTHER field must not
       // block editing this one.
-      const result = (zodSchema as any).safeParse?.(candidate);
+      const result = (
+        zodSchema as unknown as {
+          safeParse?: (v: unknown) => {
+            success: boolean;
+            data?: unknown;
+            error: { issues: { path: (string | number)[]; message: string }[] };
+          };
+        }
+      ).safeParse?.(draft);
       if (result && !result.success) {
-        const own = result.error.issues.find(
-          (i: { path: (string | number)[] }) => String(i.path[0]) === key
-        );
+        const own = result.error.issues.find((i) => String(i.path[0]) === key);
         if (own) throw new Error(own.message);
       }
 
-      const saved = await onPersist("cell", candidate as TForm, prevRow);
-      const prevId = getId(prevRow);
-      if (saved) {
-        setRows((prev) =>
-          prev.map((r) => (sameRowId(getId(r), prevId) ? saved : r))
-        );
-      }
-      setCellEdit(null);
+      /*
+       * Prefer zod's OUTPUT to the raw draft. Only `success` used to be read, so a schema
+       * doing `z.string().transform(Number)` persisted the untransformed string — and
+       * because an object schema strips unknown keys, the parsed value is genuinely
+       * `TForm`-shaped rather than the row-shaped payload the cast used to claim.
+       * The draft is the fallback when the schema rejected some unrelated field.
+       */
+      const payload = (result?.success ? result.data : draft) as TForm;
+
+      const saved = await onPersist("cell", payload, prevRow);
+      if (saved) replaceRow(prevRow, saved);
+      edit.close();
     },
-    [onPersist, cellEdit, cellEditColumn, zodSchema, getId]
+    [onPersist, edit, cellEditColumn, zodSchema, replaceRow]
+  );
+
+  const startCellEditFromCell = useCallback(
+    (row: unknown, columnId: string, cellEl: HTMLElement) => {
+      if (!onPersist) return;
+      const r = cellEl.getBoundingClientRect();
+      edit.startCellEdit(row as TRow, columnId, {
+        top: r.top,
+        bottom: r.bottom,
+        left: r.left,
+        width: r.width,
+      });
+    },
+    [onPersist, edit]
+  );
+
+  const tooltipId = useId().replace(/:/g, "_");
+  const canCellEdit = !!onPersist;
+
+  const rowActions = useMemo<ActionColumnOpts<TRow>>(
+    () => ({
+      getId,
+      // With no container to open, an Edit button would do nothing visible.
+      onEdit: editContainer !== "none" ? edit.startEdit : undefined,
+      onDelete: onDelete ? handleDelete : undefined,
+      onError: (err) => toast.error(getApiMessage(err, "Delete failed")),
+      labels: DEFAULT_ACTION_LABELS,
+      ...actionColumnOptions,
+    }),
+    [getId, editContainer, edit.startEdit, onDelete, handleDelete, actionColumnOptions]
+  );
+
+  /*
+   * This value changes whenever the grid's own props do, and its consumers re-render —
+   * which they were doing anyway. The point of moving these out of the column closures
+   * is that `orderedColumns` no longer changes, so TanStack keeps its column model
+   * instead of rebuilding it on every render and every checkbox click.
+   */
+  const contextValue = useMemo<DataGridContextValue>(
+    () => ({
+      tooltipId,
+      canCellEdit,
+      startCellEdit: startCellEditFromCell,
+      getId: getId as (row: unknown) => string | number | undefined,
+      rowActions: rowActions as ActionColumnOpts<any>,
+    }),
+    [tooltipId, canCellEdit, startCellEditFromCell, getId, rowActions]
+  );
+
+  const facetChips = useMemo(
+    () =>
+      filters.buildFacetChips(grouping.activeGroupOption, grouping.clearGroupBy),
+    [filters, grouping.activeGroupOption, grouping.clearGroupBy]
   );
 
   const showCards = !!card && view === "cards";
+  const inlineEditing = editContainer === "inline";
 
-  const activeGroupOption = useMemo(
-    () => groupOptions?.find((g) => g.key === groupBy),
-    [groupOptions, groupBy]
-  );
-  const aggColumnIds = useAggColumnIds(table);
-  /*
-   * Grouping partitions the SORTED model, not `getRowModel()` — the latter is
-   * page-sliced, and grouping replaces pagination. Sorting therefore still applies,
-   * but within each group.
-   */
-  const groups = useGroupBuckets(
-    table.getSortedRowModel().rows,
-    activeGroupOption,
-    aggColumnIds
-  );
-
-  const toggleGroup = useCallback((key: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
-
-  const hasFilterableColumns = useMemo(
-    () => baseCols.some((c) => (c as any).meta?.filter),
-    [baseCols]
-  );
-
-  // One chip per active criterion: search first, then each column filter.
-  const facetChips = useMemo<FacetChip[]>(() => {
-    const labelOf = (id: string) => {
-      const col = baseCols.find((c) => getColId(c) === id) as any;
-      const header = col?.header;
-      return col?.meta?.label ?? (typeof header === "string" ? header : id);
-    };
-    const valueOf = (v: unknown): string => {
-      if (Array.isArray(v)) return v.join(", ");
-      if (typeof v === "boolean") return v ? "Yes" : "No";
-      if (v && typeof v === "object") {
-        const r = v as { from?: string; to?: string };
-        return [r.from, r.to].filter(Boolean).join(" → ");
-      }
-      return String(v ?? "");
-    };
-    const chips: FacetChip[] = [];
-    if (globalFilter.trim() !== "") {
-      chips.push({
-        id: "__search__",
-        label: "Search",
-        value: globalFilter,
-        onClear: () => setGlobalFilter(""),
-      });
-    }
-    if (activeGroupOption) {
-      chips.push({
-        id: "__group__",
-        label: "Group",
-        value: activeGroupOption.label,
-        onClear: () => setGroupBy(""),
-      });
-    }
-    for (const f of columnFilters) {
-      chips.push({
-        id: f.id,
-        label: labelOf(f.id),
-        value: valueOf(f.value),
-        onClear: () =>
-          setColumnFilters((prev) => prev.filter((x) => x.id !== f.id)),
-      });
-    }
-    return chips;
-  }, [globalFilter, columnFilters, baseCols, activeGroupOption]);
-
-  const tooltipId = useId().replace(/:/g, "_");
-
-  const contextValue = useMemo(
-    () => ({
-      tooltipId,
-      startCellEdit: onPersist ? startCellEdit : undefined,
-    }),
-    [tooltipId, startCellEdit, onPersist]
-  );
+  const inlineEditor =
+    inlineEditing && edit.session.kind !== "idle" && edit.session.kind !== "cell" ? (
+      <EditInline<TRow, TForm>
+        open
+        mode={edit.formMode}
+        row={edit.editingRow}
+        columns={columns}
+        zodSchema={zodSchema}
+        formLayout={formLayout}
+        onCancel={edit.close}
+        onSubmit={handleSubmit}
+      />
+    ) : undefined;
 
   return (
     <DataGridContext.Provider value={contextValue}>
-      <div
-        /*
-         * `.og` in the prototype. `overflow-hidden` is load-bearing — without it the
-         * sticky header and footer paint over the rounded corners. The font and colour
-         * were missing entirely, which meant `--rui-font-sans` and `--rui-text-body`
-         * never reached the component and a consumer got their host page's type.
-         */
-        className={[
-          "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-surface",
-          "border border-border-default bg-surface-card shadow-[var(--elev-2)]",
-          "font-sans text-[.8125rem] text-body",
-          className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        <DataGridToolbar
-          title={title}
-          subtitle={subtitle}
-          count={rows.length}
-          toolbar={toolbar}
-          editContainer={editContainer}
-          error={error ?? null}
-          onAddClick={handleCreate}
-          onRetry={onRetry}
-          searchable={searchable}
-          searchValue={globalFilter}
-          onSearchChange={setGlobalFilter}
-          hasFilterableColumns={hasFilterableColumns}
-          filtersShown={showFilters}
-          activeFilterCount={columnFilters.length}
-          onToggleFilters={() => setShowFilters((v) => !v)}
-          view={card ? view : undefined}
-          onViewChange={card ? setView : undefined}
-          groupOptions={groupOptions}
-          groupBy={groupBy}
-          onGroupByChange={(key) => {
-            setGroupBy(key);
-            // Collapse state is keyed by group value, which means nothing once the
-            // grouping criterion changes.
-            setCollapsedGroups(new Set());
-          }}
-        />
-
-        <FacetChips chips={facetChips} />
-
+      <DataGridSelectionContext.Provider value={selection.contextValue}>
         <div
-          className="relative overflow-x-auto overflow-y-visible isolate w-full"
-          aria-busy={!!isLoading}
+          /*
+           * `.og` in the prototype. `overflow-hidden` is load-bearing — without it the
+           * sticky header and footer paint over the rounded corners. The font and colour
+           * were missing entirely, which meant `--rui-font-sans` and `--rui-text-body`
+           * never reached the component and a consumer got their host page's type.
+           */
+          className={[
+            "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-surface",
+            "border border-border-default bg-surface-card shadow-[var(--elev-2)]",
+            "font-sans text-[.8125rem] text-body",
+            className,
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
-          {isLoading && (
-            <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-surface-card/50">
-              <div className="pointer-events-auto rounded-control border border-border-default bg-surface-card px-3 py-2 shadow-[var(--elev-1)]">
-                <Spinner label="Loading…" />
+          <DataGridToolbar
+            title={title}
+            subtitle={subtitle}
+            count={rows.length}
+            toolbar={toolbar}
+            editContainer={editContainer}
+            error={error ?? null}
+            onAddClick={edit.startCreate}
+            onRetry={onRetry}
+            searchable={searchable}
+            searchValue={filters.globalFilter}
+            onSearchChange={filters.setGlobalFilter}
+            hasFilterableColumns={filters.hasFilterableColumns}
+            filtersShown={filters.showFilters}
+            activeFilterCount={filters.columnFilters.length}
+            onToggleFilters={filters.toggleFilters}
+            columnsControl={
+              <ColumnsPopover table={table} onReset={gridColumns.resetPrefs} />
+            }
+            view={card ? view : undefined}
+            onViewChange={card ? setView : undefined}
+            groupOptions={groupOptions}
+            groupBy={grouping.groupBy}
+            onGroupByChange={grouping.setGroupBy}
+          />
+
+          <FacetChips chips={facetChips} />
+
+          <div
+            className="relative overflow-x-auto overflow-y-visible isolate w-full"
+            aria-busy={!!isLoading}
+          >
+            {isLoading && (
+              <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-surface-card/50">
+                <div className="pointer-events-auto rounded-control border border-border-default bg-surface-card px-3 py-2 shadow-[var(--elev-1)]">
+                  <Spinner label="Loading…" />
+                </div>
               </div>
+            )}
+
+            {showCards && grouping.groups ? (
+              // Cards + group-by renders as kanban columns, per spec.
+              <KanbanView
+                groups={grouping.groups}
+                getId={getId}
+                card={card!}
+                selectedRowIds={selectable ? selection.selectedIds : undefined}
+                onRowClick={onRowClick ? handleRowClick : undefined}
+              />
+            ) : showCards ? (
+              <CardsView
+                table={table}
+                getId={getId}
+                card={card!}
+                isLoading={isLoading ?? false}
+                error={error ?? null}
+                emptyLabel={emptyLabel}
+                selectedRowIds={selectable ? selection.selectedIds : undefined}
+                onRowClick={onRowClick ? handleRowClick : undefined}
+              />
+            ) : (
+              <TableView
+                table={table}
+                getId={getId}
+                isLoading={isLoading ?? false}
+                error={error ?? null}
+                showFilters={filters.showFilters && filters.hasFilterableColumns}
+                emptyLabel={emptyLabel}
+                selectedRowIds={selectable ? selection.selectedIds : undefined}
+                groups={grouping.groups}
+                collapsedGroups={grouping.collapsedGroups}
+                onToggleGroup={grouping.toggleGroup}
+                editingRowId={
+                  inlineEditing && edit.editingRow
+                    ? getId(edit.editingRow)
+                    : undefined
+                }
+                inlineEditor={inlineEditor}
+                isCreating={inlineEditing && edit.session.kind === "create"}
+                selectedRowId={selectedRowId}
+                onRowClick={onRowClick ? handleRowClick : undefined}
+                expandedRowIds={expandedRowIds}
+                renderExpandedRow={renderExpandedRow}
+              />
+            )}
+          </div>
+
+          {/* Pagination applies to the ungrouped list view only. The cards grid shows the
+              whole filtered set and grouping replaces pagination outright, so a pager under
+              either would be lying — grouping keeps the footer for the total. */}
+          {pagination.enabled && !showCards && (
+            <DataGridPagination
+              table={table}
+              /* The FILTERED count, not rows.length — otherwise page counts and the
+                 "X to Y of Z" range ignore any active column filter. */
+              totalCount={table.getFilteredRowModel().rows.length}
+              selectedCount={selectable ? selection.selectedIds.size : 0}
+              onClearSelection={selectable ? selection.clear : undefined}
+              totalOnly={!!grouping.groups}
+              pageSizeOptions={pagination.pageSizeOptions}
+              tableState={table.getState()}
+            />
+          )}
+
+          {/* Cards view has no pager, but the bulk pill still needs somewhere to live. */}
+          {showCards && selectable && selection.selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 border-t border-border-default bg-surface-card px-3.5 py-[9px] text-[.75rem] text-muted">
+              <SelectionPill
+                count={selection.selectedIds.size}
+                onClear={selection.clear}
+              />
+              <span className="text-[.75rem] text-muted">
+                {table.getFilteredRowModel().rows.length} shown
+              </span>
             </div>
           )}
 
-          {showCards && groups ? (
-            // Cards + group-by renders as kanban columns, per spec.
-            <KanbanView
-              groups={groups}
-              getId={getId}
-              card={card!}
-              selectedRowIds={selectable ? selectedIds : undefined}
-              onRowClick={onRowClick ? handleRowClick : undefined}
+          {!inlineEditing && (
+            <EditContainer<TRow, TForm>
+              kind={editContainer}
+              open={edit.isFormOpen}
+              mode={edit.formMode}
+              row={edit.editingRow}
+              columns={columns}
+              zodSchema={zodSchema}
+              formLayout={formLayout}
+              onCancel={edit.close}
+              onSubmit={handleSubmit}
             />
-          ) : showCards ? (
-            <CardsView
-              table={table}
-              getId={getId}
-              card={card!}
-              isLoading={isLoading ?? false}
-              error={error ?? null}
-              emptyLabel={emptyLabel}
-              selectedRowIds={selectable ? selectedIds : undefined}
-              onRowClick={onRowClick ? handleRowClick : undefined}
-            />
-          ) : (
-          <TableView
-            table={table}
-            getId={getId}
-            isLoading={isLoading ?? false}
-            error={error ?? null}
-            showFilters={showFilters && hasFilterableColumns}
-            emptyLabel={emptyLabel}
-            selectedRowIds={selectable ? selectedIds : undefined}
-            groups={groups}
-            collapsedGroups={collapsedGroups}
-            onToggleGroup={toggleGroup}
-            editingRowId={
-              editContainer === "inline" &&
-              editing?.mode === "edit" &&
-              editing.row
-                ? getId(editing.row)
-                : undefined
-            }
-            inlineEditor={
-              editContainer === "inline" && editing ? (
-                <EditInline<TRow, TForm>
-                  open={true}
-                  mode={editing.mode}
-                  row={editing.row}
-                  columns={columns}
-                  zodSchema={zodSchema}
-                  formLayout={formLayout}
-                  onCancel={() => {
-                    setEditing(null);
-                    onCancelEdit?.();
-                  }}
-                  onSubmit={handleSubmit}
-                />
-              ) : undefined
-            }
-            isCreating={
-              editContainer === "inline" && editing?.mode === "create"
-            }
-            selectedRowId={selectedRowId}
-            onRowClick={onRowClick ? handleRowClick : undefined}
-            expandedRowIds={expandedRowIds}
-            renderExpandedRow={renderExpandedRow}
-          />
           )}
+
+          {edit.cell && cellEditColumn && (
+            <CellEditPopover<TRow, TForm>
+              state={edit.cell}
+              column={cellEditColumn}
+              onCancel={edit.close}
+              onSave={handleCellSave}
+            />
+          )}
+
+          {ConfirmDialog}
+          <Tooltip id={tooltipId} />
         </div>
-        {/* Pagination applies to the ungrouped list view only. The cards grid shows the
-            whole filtered set and grouping replaces pagination outright, so a pager under
-            either would be lying — grouping keeps the footer for the total. */}
-        {paginationEnabled && !showCards && (
-          <DataGridPagination
-            table={table}
-            /* The FILTERED count, not rows.length — otherwise page counts and the
-               "X to Y of Z" range ignore any active column filter. */
-            totalCount={table.getFilteredRowModel().rows.length}
-            selectedCount={selectable ? selectedIds.size : 0}
-            onClearSelection={selectable ? clearSelection : undefined}
-            totalOnly={!!groups}
-            pageSizeOptions={
-              paginationProp?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS
-            }
-            tableState={table.getState()}
-          />
-        )}
-        {/* Cards view has no pager, but the bulk pill still needs somewhere to live. */}
-        {showCards && selectable && selectedIds.size > 0 && (
-          <div className="flex items-center gap-3 border-t border-border-default bg-surface-card px-3.5 py-[9px] text-[.75rem] text-muted">
-            <SelectionPill count={selectedIds.size} onClear={clearSelection} />
-            <span className="text-[.75rem] text-muted">
-              {table.getFilteredRowModel().rows.length} shown
-            </span>
-          </div>
-        )}
-        {editContainer !== "inline" && (
-          <EditContainer<TRow, TForm>
-            kind={editContainer}
-            open={open}
-            mode={editing?.mode ?? "create"}
-            row={editing?.row}
-            columns={columns}
-            zodSchema={zodSchema}
-            formLayout={formLayout}
-            onCancel={() => {
-              setOpen(false);
-              setEditing(null);
-            }}
-            onSubmit={handleSubmit}
-          />
-        )}
-        {cellEdit && cellEditColumn && (
-          <CellEditPopover<TRow, TForm>
-            state={cellEdit}
-            column={cellEditColumn}
-            onCancel={() => setCellEdit(null)}
-            onSave={handleCellSave}
-          />
-        )}
-        {ConfirmDialog}
-        <Tooltip id={tooltipId} />
-      </div>
+      </DataGridSelectionContext.Provider>
     </DataGridContext.Provider>
   );
 }

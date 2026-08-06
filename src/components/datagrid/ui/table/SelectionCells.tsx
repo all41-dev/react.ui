@@ -1,6 +1,11 @@
 import type { CellContext, ColumnDef, HeaderContext } from "@tanstack/react-table";
 import { Check, Minus } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
+
+import {
+  DataGridContext,
+  DataGridSelectionContext,
+} from "../../DataGridContext";
 
 /**
  * 15px custom checkbox per the design spec. A real <input type="checkbox"> underneath
@@ -51,22 +56,59 @@ function Checkbox({
   );
 }
 
-export type SelectColumnOpts<TRow extends object> = {
-  getId: (r: TRow) => string | number | undefined;
-  /** Ids stored as strings — row ids are compared as text everywhere in this grid. */
-  selectedIds: ReadonlySet<string>;
-  onToggleRow: (id: string) => void;
-  /** Header checkbox: select or unselect the CURRENT PAGE's rows only. */
-  onSetPage: (pageIds: string[], selected: boolean) => void;
-};
+/**
+ * TanStack renders `header` / `cell` through `flexRender`, which mounts a function as a
+ * real component — so these can hold hooks, and the selection state can arrive by
+ * context instead of being baked into the column def. That is the whole point: closing
+ * over `selectedIds` meant a brand-new column array on every checkbox click, and a new
+ * column array makes TanStack rebuild its entire column model.
+ */
+function useRowKey() {
+  const grid = useContext(DataGridContext);
+  return (r: { original: unknown; id: string }) =>
+    String(grid?.getId(r.original) ?? r.id);
+}
+
+function SelectAllHeader<TRow extends object>({
+  table,
+}: HeaderContext<TRow, unknown>) {
+  const selection = useContext(DataGridSelectionContext);
+  const rowKey = useRowKey();
+  if (!selection) return null;
+
+  // The paginated row model — the header checkbox is page-scoped by design.
+  const pageIds = table.getRowModel().rows.map(rowKey);
+  const selectedOnPage = pageIds.filter((id) => selection.selectedIds.has(id)).length;
+  const all = pageIds.length > 0 && selectedOnPage === pageIds.length;
+  const some = selectedOnPage > 0 && !all;
+
+  return (
+    <Checkbox
+      checked={all}
+      indeterminate={some}
+      onChange={() => selection.setPage(pageIds, !all)}
+      label={all ? "Unselect all rows on this page" : "Select all rows on this page"}
+    />
+  );
+}
+
+function SelectRowCell<TRow extends object>({ row }: CellContext<TRow, unknown>) {
+  const selection = useContext(DataGridSelectionContext);
+  const rowKey = useRowKey();
+  if (!selection) return null;
+
+  const id = rowKey(row);
+  return (
+    <Checkbox
+      checked={selection.selectedIds.has(id)}
+      onChange={() => selection.toggleRow(id)}
+      label="Select row"
+    />
+  );
+}
 
 /** Leading checkbox column. Page-scoped header checkbox with indeterminate state. */
-export function makeSelectColumn<TRow extends object>(
-  opts: SelectColumnOpts<TRow>
-): ColumnDef<TRow, unknown> {
-  const rowKey = (r: { original: TRow; id: string }) =>
-    String(opts.getId(r.original) ?? r.id);
-
+export function makeSelectColumn<TRow extends object>(): ColumnDef<TRow, unknown> {
   return {
     id: "__select__",
     size: 36,
@@ -76,30 +118,7 @@ export function makeSelectColumn<TRow extends object>(
     enableSorting: false,
     enableColumnFilter: false,
     enableGlobalFilter: false,
-    header: ({ table }: HeaderContext<TRow, unknown>) => {
-      // The paginated row model — the header checkbox is page-scoped by design.
-      const pageIds = table.getRowModel().rows.map(rowKey);
-      const selectedOnPage = pageIds.filter((id) => opts.selectedIds.has(id)).length;
-      const all = pageIds.length > 0 && selectedOnPage === pageIds.length;
-      const some = selectedOnPage > 0 && !all;
-      return (
-        <Checkbox
-          checked={all}
-          indeterminate={some}
-          onChange={() => opts.onSetPage(pageIds, !all)}
-          label={all ? "Unselect all rows on this page" : "Select all rows on this page"}
-        />
-      );
-    },
-    cell: ({ row }: CellContext<TRow, unknown>) => {
-      const id = rowKey(row);
-      return (
-        <Checkbox
-          checked={opts.selectedIds.has(id)}
-          onChange={() => opts.onToggleRow(id)}
-          label="Select row"
-        />
-      );
-    },
+    header: SelectAllHeader,
+    cell: SelectRowCell,
   };
 }

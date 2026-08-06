@@ -2,6 +2,7 @@ import { type Row, type Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { SkeletonRow, EmptyState, NoResultsState } from "./GridStates";
 import { useContainerWidth } from "../hooks/useContainerWidth";
+import { useElementHeight } from "../hooks/useElementHeight";
 import { useColumnLayout } from "../hooks/useColumnLayout";
 import { Colgroup } from "./table/Colgroup";
 import { HeaderCell } from "./table/HeaderCell";
@@ -110,22 +111,35 @@ export function TableView<TRow extends object>({
     return out;
   }, [groups, collapsedGroups, allRows]);
 
+  /*
+   * The scroll element is the wrapper div, but the virtualized rows start AFTER the
+   * sticky `<thead>` — so every offset the virtualizer computes was shifted by the
+   * header's height. `overscan: 10` hid it, but the window was wrong by ~34px (~70px
+   * with the filter row shown) and grew with the header. `scrollMargin` is the
+   * documented fix; measured rather than hard-coded because the filter row toggles.
+   */
+  const { ref: headRef, height: headerHeight } = useElementHeight<HTMLTableSectionElement>();
+
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => wrapperRef.current,
     // Spec heights: 40px data rows, 36px group headers.
     estimateSize: (i) => (items[i]?.kind === "group" ? 36 : 40),
     overscan: 10,
+    scrollMargin: headerHeight,
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
+  // getTotalSize() already nets out scrollMargin; `start`/`end` do not, so the padding
+  // rows — which live in normal flow below the header — have to subtract it themselves.
   const totalSize = rowVirtualizer.getTotalSize();
 
-  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0;
+  const paddingTop =
+    virtualItems.length > 0 ? virtualItems[0].start - headerHeight : 0;
 
   const paddingBottom =
     virtualItems.length > 0
-      ? totalSize - virtualItems[virtualItems.length - 1].end
+      ? totalSize - (virtualItems[virtualItems.length - 1].end - headerHeight)
       : 0;
 
   return (
@@ -160,7 +174,7 @@ export function TableView<TRow extends object>({
             lastColWidth={lastColWidth}
           />
 
-          <thead className="sticky top-0 z-1 bg-surface-inset">
+          <thead ref={headRef} className="sticky top-0 z-1 bg-surface-inset">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((h) => (

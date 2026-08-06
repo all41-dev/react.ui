@@ -28,9 +28,17 @@ export function GroupHeaderRow<TRow extends object>({
     ((c.columnDef as { meta?: ColumnMeta<any, any> }).meta?.agg) === "sum";
 
   const firstAggIndex = leafColumns.findIndex(isAgg);
-  // With no aggregates the label simply spans the whole row.
-  const labelSpan = firstAggIndex === -1 ? leafColumns.length : firstAggIndex;
-  const trailing = firstAggIndex === -1 ? [] : leafColumns.slice(firstAggIndex);
+  /*
+   * With no aggregates the label spans the whole row. Otherwise it spans everything
+   * before the first aggregate — but it always needs at least one cell of its own, so
+   * when the FIRST column is an aggregate the label takes column 0 and that one sum is
+   * dropped. `trailing` is sliced at `labelSpan` rather than `firstAggIndex` so the two
+   * always account for exactly `leafColumns.length` cells: the old pair clamped the span
+   * to 1 while still trailing EVERY column, emitting N+1 cells into an N-column table.
+   */
+  const labelSpan =
+    firstAggIndex === -1 ? leafColumns.length : Math.max(1, firstAggIndex);
+  const trailing = firstAggIndex === -1 ? [] : leafColumns.slice(labelSpan);
 
   return (
     <tr

@@ -37,6 +37,8 @@ type DataGridToolbarProps = {
   filtersShown?: boolean;
   activeFilterCount?: number;
   onToggleFilters?: () => void;
+  /** The Columns popover. A slot rather than props, so the toolbar stays presentational. */
+  columnsControl?: React.ReactNode;
   /** Rendered only when the consumer supplies a `card` renderer. */
   view?: GridView;
   onViewChange?: (v: GridView) => void;
@@ -62,6 +64,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   filtersShown,
   activeFilterCount = 0,
   onToggleFilters,
+  columnsControl,
   view,
   onViewChange,
   groupOptions,
@@ -121,6 +124,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
               )}
             </button>
           )}
+
+          {columnsControl}
 
           {groupOptions && groupOptions.length > 0 && onGroupByChange && (
             <label className="flex items-center gap-1.5 text-[.8125rem] text-muted">

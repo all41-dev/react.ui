@@ -14,7 +14,7 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
   const rendered = flexRender(c.column.columnDef.cell, c.getContext());
   const value = typeof c.getValue === "function" ? c.getValue() : undefined;
 
-  const canCellEdit = !!(m?.cellEdit && m?.editor && ctx?.startCellEdit);
+  const canCellEdit = !!(m?.cellEdit && m?.editor && ctx?.canCellEdit);
 
   return (
     <td
@@ -44,7 +44,7 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
           onClick={(e) => {
             // The row's own click (select/expand) must not fire alongside the editor.
             e.stopPropagation();
-            ctx!.startCellEdit!(c.row.original, c.column.id, e.currentTarget);
+            ctx!.startCellEdit(c.row.original, c.column.id, e.currentTarget);
           }}
           /* `.og-cellbtn` — a text cursor, not a pointer: it edits in place rather than
              navigating. The negative margin lets the hover chrome bleed into the cell

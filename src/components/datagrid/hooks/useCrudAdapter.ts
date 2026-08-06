@@ -15,8 +15,12 @@ export function useCrudAdapter<TRow extends object, TForm extends object = TRow>
     await tq.refetch();
   }, [tq.refetch]);
 
+  // The mode union has to match `DataGridProps.onPersist` exactly — narrower here and
+  // under `strictFunctionTypes` the library's own adapter fails to typecheck against the
+  // library's own grid the moment a column opts into cell editing. A single-cell save is
+  // an update like any other, so it shares the `edit` branch.
   const onPersist = useCallback(async (
-    mode: "create" | "edit",
+    mode: "create" | "edit" | "cell",
     values: TForm,
     prev?: TRow
   ): Promise<TRow> => {
