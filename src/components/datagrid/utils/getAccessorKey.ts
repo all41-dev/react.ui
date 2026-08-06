@@ -16,16 +16,15 @@ export function computeDefaults<T extends FieldValues>(
       if (!key) continue;
       const raw = (row as any)?.[key];
       /*
-       * `toForm`, not `format`. This used to call `format` — the DISPLAY hook — so a
-       * column formatting 1234 as "1 234 €" seeded the edit field with that string and
-       * submitted it back. `format` now never touches the form.
+       * `toForm`, never `format`. `format` is the display hook — seeding the editor with
+       * it would put "1 234 €" into the field and submit that back.
        */
       if (c.meta?.toForm) {
         d[key] = c.meta.toForm(raw, row ?? ({} as T));
       } else if (raw !== undefined) {
         d[key] = raw;
       } else if (!row && c.meta?.editor) {
-        // Creating: seed per spec — editor default, else false for switches, else "".
+        // Creating: the editor's own default, else false for switches, else "".
         d[key] = c.meta.default ?? (c.meta.editor === "switch" ? false : "");
       }
     }

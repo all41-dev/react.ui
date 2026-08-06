@@ -84,7 +84,7 @@ describe("DataGrid", () => {
     expect(screen.getByText("Clementine")).toBeInTheDocument();
   });
 
-  describe("B1 — column filters match their declared kind", () => {
+  describe("column filters match their declared kind", () => {
     it("a select filter matches exactly, not as a substring", async () => {
       const user = userEvent.setup();
       renderGrid();
@@ -99,13 +99,13 @@ describe("DataGrid", () => {
       await waitFor(() =>
         expect(screen.queryByText("Ervin")).not.toBeInTheDocument()
       );
-      // The whole point: picking "Active" used to also match "Inactive".
+      // A substring match would let "Active" also match "Inactive".
       expect(screen.getByText("Clementine")).toBeInTheDocument();
       expect(screen.queryByText("Leanne")).not.toBeInTheDocument();
     });
   });
 
-  describe("B4 — empty state comes from the filtered model", () => {
+  describe("empty state comes from the filtered model", () => {
     it("distinguishes no-results from no-data and offers a way back", async () => {
       const user = userEvent.setup();
       renderGrid();
@@ -135,7 +135,7 @@ describe("DataGrid", () => {
     });
   });
 
-  describe("B5 — row identity", () => {
+  describe("row identity", () => {
     it("checking one row does not check them all", async () => {
       const user = userEvent.setup();
       renderGrid({ selectable: true });
@@ -165,7 +165,7 @@ describe("DataGrid", () => {
     });
   });
 
-  describe("B6 — colSpan tracks the visible leaf columns", () => {
+  describe("colSpan tracks the visible leaf columns", () => {
     it("the empty state spans exactly the rendered columns", async () => {
       renderGrid({ initialData: [], selectable: true });
       await waitFor(() =>
@@ -176,7 +176,7 @@ describe("DataGrid", () => {
     });
   });
 
-  describe("B9 — controlled pagination needs both halves", () => {
+  describe("controlled pagination needs both halves", () => {
     it("warns when `state` is passed without `onChange`", async () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       renderGrid({ pagination: { state: { pageIndex: 0, pageSize: 10 } } });
@@ -201,7 +201,7 @@ describe("DataGrid", () => {
     });
   });
 
-  describe("B10 — group header rows fit the table", () => {
+  describe("group header rows fit the table", () => {
     it("emits exactly one cell per leaf column, even when the first is an aggregate", async () => {
       const cols: WithMeta<User, any>[] = [
         // An aggregate in position 0 is the case that produced N+1 cells.
@@ -234,7 +234,7 @@ describe("DataGrid", () => {
     });
   });
 
-  describe("B12 / §3.6 — the editing round-trip", () => {
+  describe("the editing round-trip", () => {
     /** A price stored in cents, edited in whole units. */
     const priceCols: WithMeta<any, any>[] = [
       { accessorKey: "name", header: "Name", meta: { editor: "text" } },
@@ -306,13 +306,13 @@ describe("DataGrid", () => {
       const [mode, values] = onPersist.mock.lastCall!;
       expect(mode).toBe("cell");
       // fromForm turned "20" into 2000, and zod's coercion produced a number —
-      // only `success` used to be read, so the raw string went to the server.
+      // Reading only `success` would send the untransformed string to the server.
       expect((values as { price: unknown }).price).toBe(2000);
       expect(typeof (values as { price: unknown }).price).toBe("number");
     });
   });
 
-  describe("imperative handle (§3.2)", () => {
+  describe("imperative handle", () => {
     it("opens and closes the editor through the ref", async () => {
       const ref = createRef<DataGridHandle<User>>();
       renderGrid({ ref, onPersist: vi.fn() });
@@ -336,7 +336,7 @@ describe("DataGrid", () => {
       expect(ref.current?.isEditing()).toBe(false);
     });
 
-    it("B2 — cancelling never leaves the drawer open as a blank Create form", async () => {
+    it("cancelling never leaves the drawer open as a blank Create form", async () => {
       const ref = createRef<DataGridHandle<User>>();
       renderGrid({ ref, onPersist: vi.fn() });
       await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
@@ -375,7 +375,7 @@ describe("DataGrid", () => {
   });
 
   describe("accessibility", () => {
-    it("A4/A2 — the grid has a name and valid row semantics", async () => {
+    it("the grid has a name and valid row semantics", async () => {
       renderGrid({ selectable: true });
       const grid = await screen.findByRole("grid", { name: "Users" });
       // `aria-selected` on a row is only meaningful inside a grid.
@@ -385,7 +385,7 @@ describe("DataGrid", () => {
       expect(rows[0]).toHaveAttribute("aria-rowindex");
     });
 
-    it("A1 — a clickable row is reachable and operable from the keyboard", async () => {
+    it("a clickable row is reachable and operable from the keyboard", async () => {
       const user = userEvent.setup();
       const onRowClick = vi.fn();
       renderGrid({ onRowClick });
@@ -402,14 +402,14 @@ describe("DataGrid", () => {
       expect(onRowClick).toHaveBeenCalledTimes(2);
     });
 
-    it("A1 — a non-interactive row stays out of the tab order", async () => {
+    it("a non-interactive row stays out of the tab order", async () => {
       renderGrid();
       await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
       expect(dataRows()[0]).not.toHaveAttribute("tabindex");
     });
   });
 
-  describe("Columns popover (§3.4)", () => {
+  describe("columns popover", () => {
     it("hides a column and restores it on reset", async () => {
       const user = userEvent.setup();
       renderGrid();

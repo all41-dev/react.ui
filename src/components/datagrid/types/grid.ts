@@ -8,12 +8,8 @@ import type { ActionColumnOpts } from "../ui/makeActionColumns";
 import type { WithMeta } from "./column";
 import type { GroupOption } from "./grouping";
 
-/*
- * The grid's public surface. Split out of DataGrid.tsx so that file is composition and
- * nothing else — these two types plus their documentation ran to ~95 lines, which is
- * most of what made it look large. Re-exported from DataGrid.tsx, so the published
- * import path (`@all41-dev/react.ui`) is unchanged.
- */
+/* The grid's public surface. Also re-exported from DataGrid.tsx, so either import
+   path works. */
 
 export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   title?: string;
@@ -61,19 +57,12 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   onRowClick?: (row: TRow) => void;
   renderExpandedRow?: (row: TRow) => ReactNode;
   /**
-   * Row expansion is fully controlled: the grid renders the panel for every id in this
-   * set and owns nothing else about it. The toggle affordance is yours to place — a
-   * chevron in one of your own columns, or `onRowClick`.
-   *
-   * (`onToggleExpanded` used to sit alongside this. It was declared in the props type
-   * and never read anywhere in the grid, so nothing could ever call it.)
+   * Row expansion is fully controlled: the grid renders a panel for every id in this set
+   * and owns nothing else about it. Placing the toggle is up to you — a chevron in one of
+   * your own columns, or `onRowClick`.
    */
   expandedRowIds?: ReadonlySet<string | number>;
-  /**
-   * Imperative control. Replaces `cancelEditTrigger` / `onEditStart` / `onCancelEdit` —
-   * a number the parent had to bump, plus two callbacks whose only job was to mirror
-   * state the grid already owns. See {@link DataGridHandle}.
-   */
+  /** Imperative control over the edit session and selection. See {@link DataGridHandle}. */
   ref?: Ref<DataGridHandle<TRow>>;
 };
 

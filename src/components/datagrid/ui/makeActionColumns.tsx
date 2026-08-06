@@ -57,9 +57,9 @@ function ActionSpinner() {
 }
 
 /*
- * `.og-act button` — 26px, transparent until hover. These live inside the floating
- * pill, which already supplies the surface and border; giving each button its own
- * made the pill read as a toolbar.
+ * 26px, transparent until hover. These sit inside the floating pill, which already
+ * supplies the surface and border — giving each button its own makes the pill read as
+ * a toolbar.
  */
 const btnBase =
   "inline-flex h-[26px] w-[26px] items-center justify-center rounded-control cursor-pointer " +
@@ -81,8 +81,8 @@ function useRowActions(): ActionColumnOpts<any> {
   return grid?.rowActions ?? EMPTY_ACTIONS;
 }
 
-// Icons, not words — the design specifies lucide pencil / trash-2, and word buttons
-// do not fit a 26px control. A caller passing `labels` still wins.
+// Icons rather than words — a text button doesn't fit the 26px control. A caller
+// passing `labels` still wins.
 const EditButton: FC<{ row: any }> = ({ row }) => {
   const opts = useRowActions();
   return (
@@ -152,10 +152,8 @@ function ActionCell({ row, isOverlay }: { row: any; isOverlay: boolean }) {
   );
 
   /*
-   * `.og-act` — just the row of buttons. Positioning and reveal belong to the
-   * container: `ActionsOverlayCell` floats it against the row, `CardItem` drops it in
-   * the footer. This used to carry its own `md:absolute top-0 right-0 h-full`, which
-   * fought both of them.
+   * Just the row of buttons — positioning and reveal belong to the container.
+   * `ActionsOverlayCell` floats it against the row, `CardItem` drops it in the footer.
    */
   return (
     <div className={isOverlay ? "flex items-center gap-[3px]" : "flex items-center gap-2"}>

@@ -113,9 +113,8 @@ function HeaderCellInner<TRow extends object>({
               ? "descending"
               : "none"
       }
-      /* `.og th` — 34px, uppercase micro-label in the faint tone, on the inset surface.
-         The header used to render at body size and weight, which read as a first data
-         row rather than a header. */
+      /* An uppercase micro-label in the faint tone. Deliberately not body size or
+         weight, which would read as a first data row rather than a header. */
       className={[
         "relative group/hd",
         "h-[34px] whitespace-nowrap border-b border-border-default px-3 select-none",

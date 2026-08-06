@@ -24,13 +24,7 @@ type Params<TRow extends object, TForm extends object> = {
   confirm: ReturnType<typeof useConfirm>["confirm"];
 };
 
-/**
- * Everything that writes: the form submit, the delete, and the single-cell commit.
- *
- * Split out of DataGrid.tsx because the cell commit below is the densest logic in the
- * grid — a full `toForm` / `fromForm` round-trip plus field-scoped zod validation — and
- * inside the component the only way to reach it was a complete render.
- */
+/** Everything that writes: the form submit, the delete, and the single-cell commit. */
 export function useGridMutations<TRow extends object, TForm extends object>({
   columns,
   zodSchema,
@@ -104,14 +98,10 @@ export function useGridMutations<TRow extends object, TForm extends object>({
       const prevRow = cell.row;
 
       /*
-       * Exactly the full form's round-trip, on one field: put the row through `toForm`
-       * to get form-shaped values, swap in what the popover produced, then run every
-       * column's `fromForm` back the other way.
-       *
-       * Doing this needed the §3.6 split. While `parse` was the only hook, running it
-       * over the other fields would have double-converted them — they held stored row
-       * values, not form values — so the cell path could only ever convert the one field
-       * and sent the rest in whatever shape they happened to be in.
+       * The full form's round-trip, on one field: run the row through `toForm` to get
+       * form-shaped values, swap in what the popover produced, then run every column's
+       * `fromForm` back the other way. `toForm` and `fromForm` have to be separate hooks
+       * for this — with one shared hook the other fields would get converted twice.
        */
       const formDraft: Record<string, unknown> = {
         ...(computeDefaults(prevRow as never, columns as never) as object),
@@ -141,11 +131,9 @@ export function useGridMutations<TRow extends object, TForm extends object>({
       }
 
       /*
-       * Prefer zod's OUTPUT to the raw draft. Only `success` used to be read, so a schema
-       * doing `z.string().transform(Number)` persisted the untransformed string — and
-       * because an object schema strips unknown keys, the parsed value is genuinely
-       * `TForm`-shaped rather than the row-shaped payload the cast used to claim.
-       * The draft is the fallback when the schema rejected some unrelated field.
+       * Use zod's output, not the raw draft, so a schema like `z.string().transform(Number)`
+       * persists the transformed value. Falls back to the draft when the schema rejected
+       * some unrelated field.
        */
       const payload = (result?.success ? result.data : draft) as TForm;
 

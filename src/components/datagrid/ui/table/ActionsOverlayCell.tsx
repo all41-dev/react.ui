@@ -2,7 +2,7 @@ import { flexRender, type Cell } from "@tanstack/react-table";
 import React from "react";
 
 /**
- * `.og-ovwrap` — a floating action pill, not a full-height strip.
+ * A floating action pill, not a full-height strip.
  *
  * It sits 8px off the right edge, vertically centred, on its own card surface with a
  * shadow cast leftward so it reads as hovering above the row rather than being part of

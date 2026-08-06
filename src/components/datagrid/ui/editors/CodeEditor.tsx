@@ -20,8 +20,8 @@ export type CodeEditorProps = {
 };
 
 /**
- * Plain-textarea code editor per spec: language chip + line count header,
- * scroll-synced line-number gutter, Tab inserts two spaces, Ln/Col footer.
+ * Code editor over a plain textarea: language chip and line count in the header, a
+ * scroll-synced line-number gutter, Tab inserts two spaces, Ln/Col in the footer.
  */
 export function CodeEditor({
   value,

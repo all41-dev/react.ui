@@ -86,10 +86,9 @@ export function useConfirm() {
   const Dialog = s.open
     ? createPortal(
         /*
-         * The dialog semantics belong to the PANEL, not the scrim. They used to sit on
-         * this backdrop div, which made `aria-modal` claim the whole viewport overlay was
-         * the dialog, and it carried no `aria-labelledby` — so screen readers announced
-         * an unnamed dialog and the heading was just loose text inside it.
+         * The dialog role and `aria-modal` belong on the panel, not on this backdrop —
+         * otherwise the whole viewport overlay claims to be the dialog, and it has no
+         * heading to be named by.
          */
         <div
           className="fixed inset-0 z-1000 grid place-items-center bg-black/50 animate-backdrop-in"

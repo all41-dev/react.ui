@@ -32,7 +32,7 @@ export function FormLayout<TForm extends object>({
 
     sortedFields.forEach((field) => {
       const colSpan = field.meta?.formLayout?.colSpan;
-      // Rich editors span full width by default per spec; an explicit colSpan overrides.
+      // Rich editors span the full width by default; an explicit colSpan overrides.
       const isRich =
         field.meta?.editor === "markdown" || field.meta?.editor === "code";
       if (colSpan === "full" || (isRich && colSpan == null)) {

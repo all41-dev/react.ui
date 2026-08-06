@@ -15,12 +15,11 @@ export function getRowId<T>(row?: T) {
 }
 
 /**
- * `.og-sec` + `.og-cap` + `.og-swrow` — switches get their own captioned section, each
- * one a bordered card. A bare `flex-wrap gap-6` of naked toggles gave no indication
- * where one option ended and the next began.
+ * Switches get their own captioned section, each one a bordered card, so it's clear
+ * where one option ends and the next begins.
  *
- * Module scope, not a closure inside the form: a component created during render is a
- * new type every render, so React unmounts and remounts the whole subtree each time.
+ * Module scope rather than a closure inside the form: a component defined during render
+ * is a new type each time, and React remounts the whole subtree.
  */
 function OptionsSection({ children }: { children: React.ReactNode }) {
   return (
@@ -41,19 +40,15 @@ export type FormLayoutConfig = {
   className?: string;
 };
 
-/*
- * One button vocabulary across all four containers. They used to differ by variant in
- * radius, padding, weight and shadow for no reason anyone could point at, and two of
- * the three cancel buttons had no border colour at all (Tailwind 4's bare `border` is
- * `currentColor`).
- */
+/* One button style across all four containers. Note the explicit border colour — a bare
+   `border` in Tailwind 4 resolves to `currentColor`. */
 const cancelBtnClass =
   "cursor-pointer rounded-control border border-border-default bg-surface-card px-3 py-1.5 text-[.8125rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised disabled:opacity-50";
 
 const submitBtnClass =
   "cursor-pointer rounded-control bg-accent px-3 py-1.5 text-[.8125rem] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50";
 
-// `.og-eroot` — a danger-tinted band, sized to the form's own type scale.
+// A danger-tinted band, sized to the form's own type scale.
 const serverErrorClass =
   "flex items-start gap-2 rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger";
 
@@ -66,12 +61,8 @@ type FormFieldsProps<TRow extends object, TForm extends object> = {
 };
 
 /**
- * The form's field content: laid-out editors, then the switches in their own captioned
- * section, then the server error.
- *
- * The inline and drawer/modal branches rendered this identically and separately — ~40
- * duplicated lines each, free to drift apart. They differ only in the wrapper around
- * this, which is why only the wrapper is still branched below.
+ * The form's field content: laid-out editors, the switches in their own section, then
+ * the server error. Shared by every variant — only the wrapper around it differs.
  */
 function FormFields<TRow extends object, TForm extends object>({
   regularFields,
@@ -114,7 +105,7 @@ function FormFields<TRow extends object, TForm extends object>({
   );
 }
 
-/** Cancel + Save. Identical in both branches; only the surrounding band differs. */
+/** Cancel + Save. Same in every variant; only the band around them differs. */
 function FormActions({
   onCancel,
   isSubmitting,
@@ -155,11 +146,8 @@ type EditFormBodyProps<TRow extends object, TForm extends object> = {
   onSubmittingChange?: (isSubmitting: boolean) => void;
 };
 
-/*
- * Not memoized. It receives `columns` (frequently an inline array) plus inline
- * `onCancel` / `onSubmit`, so the shallow compare failed on every render — the wrapper
- * cost a comparison and advertised an optimization that never happened.
- */
+/* Deliberately not memoized: `columns`, `onCancel` and `onSubmit` are usually inline,
+   so a shallow compare would never match and we'd pay for it every render. */
 export function EditFormBody<TRow extends object, TForm extends object>({
   mode,
   row,
@@ -273,8 +261,7 @@ export function EditFormBody<TRow extends object, TForm extends object>({
     [sortedFields]
   );
 
-  /* Built once and placed into whichever wrapper the variant calls for. Named apart from
-     the `fields` column list above — they are different things. */
+  /* Built once, then placed into whichever wrapper the variant calls for. */
   const fieldsContent = (
     <FormFields<TRow, TForm>
       regularFields={regularFields}
@@ -292,12 +279,11 @@ export function EditFormBody<TRow extends object, TForm extends object>({
   if (variant === "inline") {
     return (
       <FormProvider {...(form as unknown as UseFormReturn)}>
-        {/* `.og-ipanel` — the inline form's own body/footer bands. */}
         <form onSubmit={submit} className="w-full">
           <div className="flex flex-col gap-4 px-4 pb-4 pt-3.5">{fieldsContent}</div>
 
-          {/* `.og-ifoot` — a 3% wash over the card surface, so the actions read as a
-              footer without introducing a fourth surface token. */}
+          {/* A faint wash over the card surface, so the actions read as a footer
+              without needing another surface token. */}
           <div className="flex items-center justify-end gap-2 border-t border-border-default bg-[color-mix(in_srgb,var(--rui-text-body)_3%,var(--rui-surface-card))] px-3.5 py-[11px]">
             {actionsContent}
           </div>
@@ -307,11 +293,8 @@ export function EditFormBody<TRow extends object, TForm extends object>({
   }
 
   /*
-   * Drawer / modal / sheet: header band, scrolling body, footer band.
-   *
-   * The actions used to sit INSIDE the scrolling area, so on a long form Save scrolled
-   * out of sight. `.og-ehead` / `.og-ebody` / `.og-efoot` are three flex children —
-   * only the middle one scrolls.
+   * Drawer / modal / sheet: header, scrolling body, footer. Three flex children where
+   * only the middle one scrolls, which keeps Save in view on a long form.
    */
   return (
     <FormProvider {...(form as unknown as UseFormReturn)}>
@@ -326,7 +309,6 @@ export function EditFormBody<TRow extends object, TForm extends object>({
           {fieldsContent}
         </div>
 
-        {/* `.og-efoot` */}
         <div className="flex flex-none items-center justify-end gap-2 border-t border-border-default bg-surface-inset px-4 py-3">
           {actionsContent}
         </div>

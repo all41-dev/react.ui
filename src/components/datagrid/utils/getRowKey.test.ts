@@ -3,10 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { getRowKey } from "./getRowKey";
 
 /**
- * B5. `getRowKey` is the grid's single identity rule — checkbox selection, local
- * create/edit/delete reconciliation and the React key all read it. Falling straight
- * through to `uuid` meant `{ id }` rows resolved to `undefined`, and since everything
- * downstream compares `String(key)`, every row keyed to the literal "undefined".
+ * The grid's single identity rule — checkbox selection, local create/edit/delete
+ * reconciliation and the React key all read it. Everything downstream compares
+ * `String(key)`, so a row resolving to `undefined` keys to the literal "undefined".
  */
 describe("getRowKey", () => {
   it("prefers an explicit idAccessor over everything", () => {

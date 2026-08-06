@@ -46,12 +46,7 @@ function safeSave(key: string, prefs: ColumnPrefs) {
   }
 }
 
-/**
- * Column sizing / order / visibility, persisted per `storageKey`.
- *
- * The persistence here used to be entirely commented out while `storageKey` was still
- * threaded through the public API, so the prop silently did nothing.
- */
+/** Column sizing, order and visibility, persisted per `storageKey`. */
 export function useColumnPrefs(storageKey: string, allColumnIds: string[]) {
   const [prefs, setPrefs] = useState<ColumnPrefs>(() => safeLoad(storageKey));
 

@@ -15,7 +15,7 @@ type KanbanViewProps<TRow extends object> = {
 const ESTIMATED_CARD_HEIGHT = 170;
 const GAP = 12;
 
-/** Cards + group-by: one column per bucket, per spec (268–320px, coloured underline). */
+/** Cards plus a group-by: one 268–320px column per bucket, with a coloured underline. */
 export function KanbanView<TRow extends object>({
   groups,
   getId,
@@ -65,8 +65,8 @@ function KanbanColumn<TRow extends object>({
 
   return (
     <section className="flex min-w-[268px] max-w-[320px] flex-1 shrink-0 flex-col">
-      {/* `.og-khead` — the coloured rule IS the column's identity, so the count is a
-          plain faint numeral pushed to the far end rather than a second pill. */}
+      {/* The coloured rule is the column's identity, so the count stays a plain faint
+          numeral at the far end rather than becoming a second pill. */}
       <header
         className="flex items-center gap-2 border-b-2 px-0.5 pb-2"
         style={{ borderBottomColor: group.color ?? "var(--rui-border-default)" }}

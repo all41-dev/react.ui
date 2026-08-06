@@ -29,8 +29,7 @@ export type { LoadingScreenProps } from "./components/LoadingScreen";
 export { EmptyState } from "./components/datagrid/ui/GridStates";
 
 /*
- * `EditFormBody`, `getRowId`, `FormLayout`, `computeDefaults` and `toTooltipText` used to
- * be exported from here. They are implementation details of the grid — exporting them
- * froze their signatures into the published API, so every future change to any of them
- * was a breaking change. Nothing in the sandbox imported them from the package root.
+ * Keep `EditFormBody`, `getRowId`, `FormLayout`, `computeDefaults` and `toTooltipText`
+ * out of this file. They're internals of the grid, and exporting them would freeze their
+ * signatures into the published API — every change to one becomes a breaking change.
  */

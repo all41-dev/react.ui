@@ -61,10 +61,9 @@ export function useGridPagination({
     paginationProp?.onChange ?? setUncontrolled;
 
   /*
-   * Filtering or sorting should send the user back to page 1 — but only when they
-   * actually change. Seeding the ref with the current values keeps this from firing on
-   * mount, which previously stomped a controlled parent's initial pageIndex, and the
-   * identity check keeps it from calling the parent's onChange for a no-op.
+   * Filtering or sorting sends the user back to page 1, but only on a real change. The ref
+   * is seeded with the current values so this can't fire on mount and overwrite a
+   * controlled parent's initial pageIndex.
    */
   const prevRef = useRef({ columnFilters, globalFilter, sorting });
   useEffect(() => {

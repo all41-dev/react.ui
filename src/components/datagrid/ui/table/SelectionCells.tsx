@@ -38,8 +38,8 @@ function Checkbox({
         checked={checked}
         onChange={onChange}
         aria-label={label}
-        /* `.og-cb` — 4px radius on the inset surface with a translucent edge, so an
-           unchecked box recedes instead of drawing a hard rule in every row. */
+        /* Translucent edge on the inset surface, so an unchecked box recedes instead
+           of drawing a hard rule in every row. */
         className="peer h-[15px] w-[15px] cursor-pointer appearance-none rounded border border-border-translucent bg-surface-inset transition-colors checked:border-accent checked:bg-accent indeterminate:border-accent indeterminate:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
       />
       <Check

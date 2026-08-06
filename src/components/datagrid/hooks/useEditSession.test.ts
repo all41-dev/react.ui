@@ -9,9 +9,9 @@ const rowB: Row = { id: 2, name: "b" };
 const anchor = { top: 0, bottom: 20, left: 0, width: 100 };
 
 /**
- * B2 and B3 were both consequences of `editing`, `open` and `cellEdit` being three
- * independent facts about one session. These tests pin the property that replaced them:
- * the session is a single value, so the states that used to drift cannot be constructed.
+ * These pin the property the union buys us: the session is a single value, so the
+ * contradictory combinations that separate `editing` / `open` / `cellEdit` flags allow
+ * cannot be constructed at all.
  */
 describe("useEditSession", () => {
   it("starts idle", () => {
@@ -40,9 +40,9 @@ describe("useEditSession", () => {
     expect(result.current.editingRow).toBe(rowA);
   });
 
-  it("B2: closing clears the form and the row together", () => {
-    // The old pair let `editing` go null while `open` stayed true, and the drawer
-    // re-rendered as a blank Create form. One atom makes that unrepresentable.
+  it("closing clears the form and the row together", () => {
+    // Separate flags would let the row go null while the drawer stayed open, which
+    // re-renders as a blank Create form.
     const { result } = renderHook(() => useEditSession<Row>());
     act(() => result.current.startEdit(rowA));
     act(() => result.current.close());

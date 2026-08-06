@@ -11,9 +11,9 @@ import {
 } from "./filterFns";
 
 /**
- * These are the functions B1 was about: before them, TanStack inferred a filter from the
- * first row's value type and had no idea what shape the filter UI actually writes.
- * Each case below is one row of that mismatch table.
+ * Explicit filter functions, one per declared filter kind. Without them TanStack infers a
+ * filter from the first row's value type, which has nothing to do with what the filter UI
+ * actually writes. Each case below covers one of those mismatches.
  */
 
 /** Minimal stand-in for a TanStack Row — the fns only ever call `getValue`. */

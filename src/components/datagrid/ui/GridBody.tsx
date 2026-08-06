@@ -18,11 +18,7 @@ type GridBodyProps<TRow extends object> = {
   /** Present and `showCards` → the cards/kanban branch; absent → always the table. */
   card?: (row: TRow) => ReactNode;
   showCards: boolean;
-  /*
-   * The grouping hook's whole return value rather than six unpacked scalars. It is a
-   * cohesive thing the grid already holds, and passing it whole keeps this component's
-   * signature from turning into pure pass-through plumbing.
-   */
+  /** Passed whole rather than unpacked — six of these props would be pure plumbing. */
   grouping: ReturnType<typeof useGridGrouping<TRow>>;
   showFilters: boolean;
   selectedRowIds?: ReadonlySet<string>;
@@ -38,8 +34,8 @@ type GridBodyProps<TRow extends object> = {
 /**
  * Which of the three views renders, plus the loading scrim over whichever it is.
  *
- * `overflow-x-auto` with `overflow-y-visible` is deliberate: the header filters and cell
- * popovers must escape vertically while wide column sets still scroll sideways.
+ * `overflow-x-auto` with `overflow-y-visible` is deliberate: header filters and cell
+ * popovers need to escape vertically while wide column sets still scroll sideways.
  */
 export function GridBody<TRow extends object>({
   table,
@@ -75,7 +71,7 @@ export function GridBody<TRow extends object>({
       )}
 
       {showCards && grouping.groups ? (
-        // Cards + group-by renders as kanban columns, per spec.
+        // Cards plus a group-by become kanban columns.
         <KanbanView
           groups={grouping.groups}
           getId={getId}

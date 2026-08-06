@@ -1,26 +1,20 @@
 import type { ReactNode } from "react";
 
-/* ------------------------------------------------------------------ */
-/* Minimal markdown renderer.                                          */
-/* Produces React nodes directly, so no user input is ever parsed as   */
-/* HTML — but link TARGETS still need sanitizing: React will happily   */
-/* render href="javascript:…" and it executes on click.                */
-/*                                                                     */
-/* Pure functions, no component state, no icon imports — kept apart    */
-/* from MarkdownEditor so a read-only render path does not drag the    */
-/* editor and its lucide icons in behind it.                          */
-/* ------------------------------------------------------------------ */
+/*
+ * Minimal markdown renderer, kept separate from MarkdownEditor so rendering markdown
+ * doesn't pull the editor and its icons in with it.
+ *
+ * It builds React nodes directly, so user input is never parsed as HTML. Link targets
+ * still need checking though — React will render href="javascript:…" quite happily, and
+ * it runs on click.
+ */
 
 const INLINE = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*]+\*)|(\[[^\]]+\]\([^)\s]+\))/g;
 
 /*
- * Scheme allowlist for `[label](href)`. React renders whatever string it is given as
- * an href, so `[x](javascript:fetch('/api/keys'))` produced a working link in the
- * preview pane — a real XSS vector in a library that renders user-authored content.
- *
- * Allowlist rather than a `javascript:` denylist: `data:`, `vbscript:` and whatever a
- * browser ships next are all equally dangerous. Any future image support needs the
- * same check on its `src`.
+ * Scheme allowlist for `[label](href)`. An allowlist rather than blocking `javascript:`,
+ * because `data:`, `vbscript:` and whatever a browser ships next are just as dangerous.
+ * If we ever render images, their `src` needs the same check.
  */
 const ALLOWED_SCHEMES = /^(?:https?|mailto|tel|ftp):$/i;
 /** A URL is relative — and therefore safe — when nothing before the path is a scheme. */
@@ -63,8 +57,8 @@ function renderInline(text: string): ReactNode[] {
       const href = safeHref(tok.slice(tok.indexOf("(") + 1, -1));
       out.push(
         href === undefined ? (
-          // Disallowed scheme — show the source text so nothing is silently swallowed,
-          // but never as a clickable target.
+          // Disallowed scheme: show the source text rather than silently dropping it,
+          // but never as a clickable link.
           <span key={k++}>{tok}</span>
         ) : (
           <a

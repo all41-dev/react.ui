@@ -13,11 +13,8 @@ type EditInlineProps<TRow extends object, TForm extends object> = {
   onSubmit: (values: TForm) => void | Promise<void>;
 };
 
-/*
- * Not memoized. It receives `columns` (frequently an inline array) and an inline
- * `onCancel`, so a shallow compare failed every single time — the wrapper was pure
- * overhead advertising an optimization that never happened.
- */
+/* Deliberately not memoized: `columns` and `onCancel` are usually inline, so a shallow
+   compare would never match and we'd pay for it every render. */
 export function EditInline<TRow extends object, TForm extends object>({
   open,
   mode,

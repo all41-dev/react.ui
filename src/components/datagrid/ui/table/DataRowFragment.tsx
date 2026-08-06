@@ -35,9 +35,8 @@ function DataRowFragmentInner<TRow extends object>({
     <>
       <tr
         /*
-         * Hover is a 5% wash of the body colour, per `.og tbody tr.og-row:hover` — it
-         * has to work over both the card surface and an accent-subtle selected row,
-         * which a fixed `bg-surface-inset` did not.
+         * Hover is a faint wash of the body colour rather than a fixed background, because
+         * it has to work over both the card surface and a selected row's accent tint.
          */
         className={[
           "group transition-colors duration-100",
@@ -101,8 +100,8 @@ function DataRowFragmentInner<TRow extends object>({
       </tr>
 
       {isExpanded && renderExpandedRow && (
-        /* `.og-exp` — inset surface, hairline cast downward from the row above, and the
-           left inset aligns the detail with the first data column, not the chevron. */
+        /* Inset surface with a hairline cast down from the row above. The left inset
+           aligns the detail with the first data column, not the chevron. */
         <tr className="bg-surface-inset">
           <td
             colSpan={leafColCount}
@@ -116,8 +115,8 @@ function DataRowFragmentInner<TRow extends object>({
       )}
 
       {isEditing && inlineEditor && (
-        /* `.og-ipanel` — the inline form hangs off the edited row, tied to it by an
-           accent-tinted top border rather than a gradient. */
+        /* The inline form hangs off the edited row, tied to it by an accent-tinted
+           top border. */
         <tr>
           <td colSpan={leafColCount} className="h-auto overflow-hidden p-0">
             <div className="animate-slide-down border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset">

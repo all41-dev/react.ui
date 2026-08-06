@@ -34,10 +34,8 @@ export function renderEditor<T extends FieldValues>(opts: {
   const editor = meta.editor;
 
   /*
-   * "switch" is deliberately absent from this map: the branch further down renders the
-   * spec's 38x21 track inline, along with its own label, hint and error, and never
-   * reaches `Comp`. The `SwitchInput` that used to be mapped here was a plain 15px
-   * checkbox that nothing could reach and that matched nothing in the design.
+   * "switch" is deliberately absent from this map — the branch further down renders the
+   * track inline with its own label, hint and error, and never reaches `Comp`.
    */
   const isSwitch = editor === "switch";
 
@@ -81,14 +79,13 @@ export function renderEditor<T extends FieldValues>(opts: {
           const hasError = !!fieldState.error;
           const errorMsg = fieldState.error?.message as string | undefined;
           /*
-           * `.og-in` — 32px on the INSET surface at the control radius. It was a 40px
-           * `rounded-lg` field on the card surface, i.e. the same colour as the panel
-           * behind it, so the field edge was doing all the work of saying "input".
-           * `hover:border-accent` also went: hover is not a state a text field has.
+           * A 32px field on the inset surface, so it reads as an input against the panel
+           * behind it rather than relying on its edge alone. No hover style — hover isn't
+           * a state a text field has.
            */
           const baseClass =
             "w-full h-8 rounded-control border border-border-default bg-surface-inset px-[9px] text-[.8125rem] text-body placeholder:text-faint transition-[border-color,box-shadow] focus:border-accent focus:ring-2 focus:ring-[var(--rui-focus-ring)] focus:outline-none";
-          // `textarea.og-in` opts out of the fixed control height.
+          // A textarea opts out of the fixed control height.
           const shapeClass =
             editor === "textarea"
               ? "!h-auto min-h-[74px] resize-y !py-2 leading-[1.5]"
@@ -132,9 +129,8 @@ export function renderEditor<T extends FieldValues>(opts: {
                   htmlFor={String(name)}
                   className="flex items-center gap-3 cursor-pointer group"
                 >
-                  {/* `.og-sw` — a 38×21 track with a 15px knob, on the raised surface
-                      with a translucent edge. The 44×24 default read as a mobile
-                      toggle next to 32px fields. */}
+                  {/* A 38×21 track with a 15px knob. Smaller than a default toggle,
+                      which looks oversized next to 32px fields. */}
                   <div className="relative inline-flex items-center">
                     <input
                       type="checkbox"
@@ -181,8 +177,8 @@ export function renderEditor<T extends FieldValues>(opts: {
 
           return (
             <div className="flex flex-col gap-[5px]">
-              {/* `.og-fl .l` — a .625rem/700 micro-label in the faint tone. A .75rem
-                  semibold body-coloured label competed with the value it introduces. */}
+              {/* A micro-label in the faint tone, kept quiet so it doesn't compete
+                  with the value it introduces. */}
               {label && (
                 <label
                   htmlFor={String(name)}
@@ -203,8 +199,8 @@ export function renderEditor<T extends FieldValues>(opts: {
                   value={field.value ?? ""}
                   onChange={field.onChange}
                 />
-                {/* The error replaces the hint rather than stacking under it — one
-                    line of guidance per field, per spec. */}
+                {/* The error replaces the hint rather than stacking under it — one line
+                    of guidance per field. */}
                 {description && !hasError && (
                   <p
                     id={`${String(name)}-desc`}

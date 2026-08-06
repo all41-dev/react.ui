@@ -148,12 +148,9 @@ export function TableView<TRow extends object>({
   return (
     <>
       {/*
-       * Single scroll container for all breakpoints. There used to be a second,
-       * always-mounted `block md:hidden` card list here that mapped over EVERY row —
-       * on desktop with 10k rows it built 10k hidden card nodes alongside the
-       * virtualized table, defeating the virtualizer entirely (#13). Small screens
-       * scroll this table horizontally; consumers wanting a card layout pass `card`
-       * and get the real cards view.
+       * One scroll container at every breakpoint. Don't add a hidden mobile card list
+       * here — mapping every row into one defeats the virtualizer. Small screens scroll
+       * this table horizontally, and a consumer who wants cards passes `card`.
        */}
       <div
         ref={wrapperRef}
@@ -161,12 +158,11 @@ export function TableView<TRow extends object>({
       >
         <table
           /*
-           * `border-separate` with zero spacing, matching `.og table`. Not cosmetic:
-           * in a collapsed-border table a positioned cell is undefined behaviour, and
-           * Chrome declines to make the sticky actions cell a containing block — the
-           * floating pill then laid out from its static position, off the right edge of
-           * the scroll container. (`border-spacing-y-1` was also dead here: spacing is
-           * ignored entirely under `border-collapse`.)
+           * `border-separate` with zero spacing, and it isn't cosmetic: a positioned cell
+           * inside a collapsed-border table is undefined behaviour, and Chrome won't make
+           * the sticky actions cell a containing block — so the floating pill lays out
+           * from its static position, off the right edge of the scroll container. Note
+           * that border spacing is ignored under `border-collapse` anyway.
            */
           className="table-fixed border-separate border-spacing-0"
           style={{ width: `${tableW}px` }}
@@ -283,8 +279,8 @@ export function TableView<TRow extends object>({
               const isExpanded = expandedRowIds?.has(key) ?? false;
 
               return (
-                /* No zebra striping — the prototype has none. Rows sit on the card
-                   surface and are separated by the 65% hairline alone. */
+                /* No zebra striping — rows sit on the card surface, separated by the
+                   cell hairline alone. */
                 <tbody
                   key={String(key)}
                   ref={rowVirtualizer.measureElement}

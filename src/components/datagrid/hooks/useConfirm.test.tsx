@@ -66,8 +66,8 @@ describe("useConfirm", () => {
     expect(settled).toBe(false);
   });
 
-  describe("dialog semantics (A5)", () => {
-    it("puts the role, aria-modal and name on the PANEL, not the scrim", async () => {
+  describe("dialog semantics", () => {
+    it("puts the role, aria-modal and name on the panel, not the scrim", async () => {
       const { result } = renderHook(() => useConfirm());
       act(() => {
         void result.current.confirm({
@@ -77,8 +77,7 @@ describe("useConfirm", () => {
       });
       render(<>{result.current.ConfirmDialog}</>);
 
-      // `alertdialog`, and named by its own heading — it used to be an unnamed
-      // `role="dialog"` sitting on the full-viewport backdrop.
+      // An `alertdialog`, named by its own heading.
       const dialog = screen.getByRole("alertdialog", {
         name: "Delete this item?",
       });

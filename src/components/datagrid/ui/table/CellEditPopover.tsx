@@ -23,10 +23,10 @@ const POPOVER_WIDTH = 320;
 const EST_HEIGHT = 220;
 
 /**
- * Single-field editor anchored to a cell (`cellEdit: true` meta). Esc or any
- * scroll closes it per spec; clicking outside cancels via the transparent
- * backdrop. Reuses renderEditor so the field looks exactly like it does in the
- * full form — including markdown/code.
+ * Single-field editor anchored to a cell (`cellEdit: true` in the column meta). Esc or any
+ * scroll closes it, and clicking outside cancels through the transparent backdrop. Reuses
+ * `renderEditor`, so the field looks the same as it does in the full form — markdown and
+ * code included.
  */
 export function CellEditPopover<TRow extends object, TForm extends object>({
   state,
@@ -109,7 +109,7 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
         aria-label={`Edit ${String((column as any).meta?.label ?? column.header ?? key)}`}
         tabIndex={-1}
         style={pos}
-        /* `.og-pop`. Portaled, so it restates the type stack like the overlay shell. */
+        /* Portaled, so it restates the type stack the same way the overlay shell does. */
         className="fixed z-[1000] flex flex-col gap-2.5 rounded-surface border border-border-default bg-surface-card p-3 font-sans text-[.8125rem] text-body shadow-[var(--elev-3)] outline-none animate-pop-in"
       >
         <form onSubmit={submit} className="flex flex-col gap-2">

@@ -11,12 +11,11 @@ export type FacetChip = {
 };
 
 /**
- * `.og-facet` — active-criteria bar under the toolbar, one chip per search/filter.
+ * The active-criteria bar under the toolbar, one chip per search or filter.
  *
- * The whole chip is an accent tint on the control radius, not a neutral capsule: these
- * are the criteria narrowing what you're looking at, and they should read as one family
- * with the Filters toggle. Clearing hovers to accent, not danger — removing a filter
- * shows you *more* data, so flagging it as destructive is misleading.
+ * Chips are accent-tinted rather than neutral so they read as one family with the
+ * Filters toggle. Clear hovers to accent, not danger — removing a filter shows you more
+ * data, so treating it as destructive would be misleading.
  */
 export function FacetChips({ chips }: { chips: FacetChip[] }) {
   if (chips.length === 0) return null;

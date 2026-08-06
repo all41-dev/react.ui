@@ -8,14 +8,10 @@ export type CellAnchor = {
 };
 
 /**
- * The grid has exactly one edit session at a time. Modelling it as a union rather than
- * as separate `editing` / `open` / `cellEdit` atoms is what makes two whole classes of
- * bug unrepresentable:
- *
- * - the drawer that stayed open after `editing` was cleared and silently became a blank
- *   Create form, because `open` was a second, independent fact about the same session;
- * - the overlay Cancel that closed the UI without telling the parent, because each
- *   dismissal path tore the state down its own way. There is now one `close()`.
+ * The grid has exactly one edit session at a time, so it's one union rather than separate
+ * `editing` / `open` / `cellEdit` flags. Two independent facts about the same session can
+ * disagree — an open drawer with no row becomes a blank Create form — and a union makes
+ * that unrepresentable. Every dismissal goes through the single `close()`.
  */
 export type EditSession<TRow> =
   | { kind: "idle" }

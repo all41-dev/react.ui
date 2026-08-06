@@ -99,8 +99,8 @@ export function GroupHeaderRow<TRow extends object>({
       </th>
 
       {trailing.map((c) => (
-        /* `.og-gh .agg` — a muted mono total. Bold body weight belongs to tree-mode
-           subtree roll-ups, which are a different, stronger claim. */
+        /* A muted mono total. Deliberately understated — a bold weight would claim
+           more than a flat per-group sum does. */
         <td
           key={c.id}
           className="border-b border-border-default px-3 text-right align-middle font-mono text-[.75rem] text-muted"

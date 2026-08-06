@@ -14,13 +14,11 @@ export function Spinner({ label }: { label?: string }) {
 }
 
 /*
- * `.og-sk` — one 9px shimmer bar per column, in a real 40px row, so the skeleton
- * occupies the layout the data will. The previous version was a single colSpan cell
- * holding a 12-column grid of `animate-pulse` blocks: the wrong height, the wrong
- * column positions, and an opacity pulse where the design calls for a gradient sweep.
+ * One shimmer bar per column in a full-height row, so the skeleton occupies the same
+ * layout the data will.
  *
- * Widths repeat on a fixed cycle rather than randomly — a random width per render makes
- * the skeleton twitch on every re-render.
+ * Widths cycle through a fixed list rather than being random — a fresh random width each
+ * render makes the skeleton twitch.
  */
 const SKELETON_WIDTHS = ["70%", "45%", "85%", "35%", "60%"];
 
@@ -39,7 +37,7 @@ export function SkeletonRow({ cols }: { cols: number }) {
   );
 }
 
-/** `.og-empty` — centred icon over the label, in the faint tone. */
+/** Centred icon over the label, in the faint tone. */
 export function EmptyState({
   title = "No data",
   description,

@@ -14,9 +14,8 @@ function useDebounced<T>(value: T, ms = 250) {
 }
 
 /*
- * `.og-f` — 26px on the inset surface. It was 32px on the card surface with a shadow,
- * which made the filter row look like a second toolbar instead of a recessed strip
- * under the header.
+ * Short controls on the inset surface, so the filter row reads as a recessed strip under
+ * the header rather than a second toolbar.
  */
 const baseControl =
   "block w-full h-[26px] rounded-control border border-border-default bg-surface-inset text-[.75rem] text-body " +

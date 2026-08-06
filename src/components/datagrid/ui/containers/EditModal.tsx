@@ -3,7 +3,7 @@ import {
   type OverlayEditContainerProps,
 } from "./OverlayEditContainer";
 
-/** Centered dialog: min(640px, vw−32px), pop-in per spec. */
+/** Centred dialog, min(640px, vw−32px), with a pop-in. */
 export function EditModal<TRow extends object, TForm extends object>(
   props: OverlayEditContainerProps<TRow, TForm>
 ) {

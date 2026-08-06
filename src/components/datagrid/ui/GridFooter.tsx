@@ -16,15 +16,12 @@ type GridFooterProps<TRow extends object> = {
 };
 
 /**
- * The band under the body. Which of the two footers appears is the whole of this
- * component's logic:
+ * The band under the body — one of two footers, or neither.
  *
- * - the list view gets the real pager. Pagination applies to the ungrouped list only —
- *   the cards grid shows the whole filtered set and grouping replaces pagination
- *   outright, so a pager under either would be lying. Grouping keeps the footer for
- *   its total.
- * - the cards view has no pager, but the bulk-selection pill still needs somewhere to
- *   live, so it gets a minimal band of its own.
+ * The pager belongs to the ungrouped list view only: the cards grid shows the whole
+ * filtered set and grouping replaces paging altogether, so a pager under either would
+ * be misleading. Grouping still keeps the footer for its total, and the cards view gets
+ * a minimal band of its own so the bulk-selection pill has somewhere to live.
  */
 export function GridFooter<TRow extends object>({
   table,
@@ -36,7 +33,7 @@ export function GridFooter<TRow extends object>({
   selectedCount,
   onClearSelection,
 }: GridFooterProps<TRow>) {
-  /* The FILTERED count, not rows.length — otherwise page counts and the "X to Y of Z"
+  /* The filtered count, not the total — otherwise page counts and the "X to Y of Z"
      range ignore any active column filter. */
   const filteredCount = table.getFilteredRowModel().rows.length;
 

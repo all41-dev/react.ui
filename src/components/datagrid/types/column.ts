@@ -42,13 +42,10 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   default?: unknown;
 
   /*
-   * Three separate jobs that used to be two.
-   *
-   * `format` was documented as display-only but `computeDefaults` also used it to seed
-   * the edit form, so a column rendering 1234 as "1 234 €" put that string into the
-   * input and submitted it. `parse` was declared as its inverse but only ran on submit,
-   * making the round-trip asymmetric. Splitting them means each hook has exactly one
-   * caller and the round-trip is symmetric by construction.
+   * Three hooks, one caller each, so the round-trip stays symmetric: `format` is display
+   * only, `toForm` seeds the editor, `fromForm` converts back on submit. Keep them
+   * separate — sharing one between display and editing means a column rendering 1234 as
+   * "1 234 €" puts that string into the input and submits it.
    */
 
   /** Cell display only. Never reaches the edit form. */

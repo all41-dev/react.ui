@@ -112,7 +112,6 @@ export function DataGridPagination<TRow extends object>({
       onKeyDown={onKeyDown}
       tabIndex={0}
       aria-label="Pagination"
-      /* `.og-foot` — 9px/14px, .75rem, on the card surface. */
       className={[
         "bg-surface-card border-t border-border-default px-3.5 py-[9px]",
         "flex flex-wrap items-center justify-between gap-3 text-[.75rem] text-muted",
@@ -133,7 +132,7 @@ export function DataGridPagination<TRow extends object>({
       <div className={`flex flex-wrap items-center gap-3 ${totalOnly ? "hidden" : ""}`}>
         <label className="flex items-center gap-1.5 text-[.75rem] text-muted">
           Rows
-          {/* `.og-size` — inset surface, matching the search and filter controls. */}
+          {/* Inset surface, matching the search and filter controls. */}
           <select
             value={pageSize}
             onChange={(e) => table.setPageSize(Number(e.target.value))}
@@ -161,8 +160,8 @@ export function DataGridPagination<TRow extends object>({
                   onClick={() => table.setPageIndex(p - 1)}
                   aria-label={`Page ${p}`}
                   aria-current={p === current ? "page" : undefined}
-                  /* `.og-pages button` — every page carries a border, so the strip reads
-                     as a set of controls rather than loose numerals. */
+                  /* Every page carries a border, so the strip reads as a set of
+                     controls rather than loose numerals. */
                   className={[
                     "h-[26px] min-w-[26px] cursor-pointer rounded-control border px-1.5 text-[.75rem] outline-none transition-colors",
                     "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]",

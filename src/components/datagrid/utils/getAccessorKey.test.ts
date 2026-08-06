@@ -11,10 +11,8 @@ const col = (
 ): WithMeta<Row> => ({ accessorKey, meta }) as WithMeta<Row>;
 
 /**
- * §3.6. `computeDefaults` seeds the edit form. It used to call `format` — the DISPLAY
- * hook — so a column rendering 1234 as "1 234 €" put that string into the input and
- * submitted it back. `toForm` is the hook that belongs here; `format` must not be
- * consulted at all.
+ * `computeDefaults` seeds the edit form, so it must read `toForm` and never `format`.
+ * Reading the display hook here would put "1 234 €" into the input and submit it back.
  */
 describe("computeDefaults", () => {
   const row: Row = { id: 1, name: "Leanne", price: 1234, active: true };

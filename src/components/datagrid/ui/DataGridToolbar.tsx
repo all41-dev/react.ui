@@ -4,9 +4,9 @@ import { memo, useEffect, useState } from "react";
 export type GridView = "list" | "cards";
 
 /*
- * `.og-btn` — the 30px toolbar control. Transparent at rest so the toolbar reads as one
- * surface; on hover it lifts to `--surface-raised` with a translucent edge rather than
- * jumping to an accent border, which previously made every hover look like a selection.
+ * The 30px toolbar control. Transparent at rest so the toolbar reads as one surface, and
+ * on hover it lifts to `--surface-raised` with a translucent edge — an accent border here
+ * would make every hover look like a selection.
  */
 const BTN =
   "inline-flex h-[30px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-control " +
@@ -147,9 +147,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           )}
 
           {view && onViewChange && (
-            /* `.og-seg` — an inset trough with the active tab lifted onto the card
-               surface. It was a flat bordered pair, which read as two buttons rather
-               than one control with a current state. */
+            /* An inset trough with the active tab lifted onto the card surface, so it
+               reads as one control with a current state rather than two buttons. */
             <div
               role="group"
               aria-label="View"
@@ -191,12 +190,12 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           )}
 
           {editContainer !== "none" && (
-            /* `.og-add` — flat accent fill. The shadow and `active:scale-95` were an
-               invention; nothing else in the grid moves on press. */
+            /* Flat accent fill, and no press animation — nothing else in the grid
+               moves on press. */
             <button
               onClick={onAddClick}
-              /* Tied to the visible banner, not to `error` — dismissing the banner used
-                 to leave Add disabled forever. */
+              /* Tied to the visible banner rather than `error`, so dismissing the
+                 banner re-enables Add. */
               disabled={showError}
               className="inline-flex h-[30px] cursor-pointer select-none items-center gap-1.5 whitespace-nowrap rounded-control bg-accent px-3 text-[.8125rem] font-semibold text-accent-contrast outline-none transition-colors hover:bg-accent-hover focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -208,8 +207,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
       </div>
 
       {showError && (
-        /* `.og-err` — a full-bleed band directly under the toolbar, not a floating card
-           inset from the edges. It is part of the grid's chrome stack. */
+        /* A full-bleed band directly under the toolbar — part of the grid's chrome,
+           not a floating card inset from the edges. */
         <div
           className="flex items-center gap-2.5 border-b border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-3.5 py-[11px] text-[.8125rem] text-danger"
           role="alert"
@@ -239,8 +238,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
 });
 
 /**
- * Search input, 30px per spec, with a short local debounce. External resets (e.g. the
- * facet chip's ×) are reconciled during render, same pattern as HeaderFilter.
+ * Search input with a short local debounce. External resets (the facet chip's ×, for
+ * instance) are reconciled during render, the same way HeaderFilter does it.
  */
 function SearchBox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [input, setInput] = useState(value);
@@ -256,8 +255,8 @@ function SearchBox({ value, onChange }: { value: string; onChange: (v: string) =
     return () => clearTimeout(id);
   }, [input, value, onChange]);
 
-  /* `.og-search` — the focus ring belongs to the wrapper, so the icon is inside the
-     highlighted field rather than sitting outside a ring drawn around the input alone. */
+  /* The focus ring belongs to the wrapper, so the icon sits inside the highlighted
+     field rather than outside a ring drawn around the input alone. */
   return (
     <div className="flex h-[30px] min-w-0 flex-[0_1_200px] items-center gap-1.5 rounded-control border border-border-default bg-surface-inset px-[9px] text-faint transition-[border-color,box-shadow] focus-within:border-accent focus-within:shadow-[0_0_0_2px_var(--rui-focus-ring)]">
       <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />

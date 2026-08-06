@@ -22,9 +22,8 @@ export function CardItem<TRow extends object>({
       onClick={() => onRowClick?.(row.original)}
       aria-selected={selected || undefined}
       /*
-       * `.og-card` — selection is an accent border plus a 1px ring, NOT a tinted fill.
-       * The card's own content sits on the card surface; repainting it accent-subtle
-       * changed the contrast of everything inside it just to signal a checkbox.
+       * Selection is an accent border plus a 1px ring, not a tinted fill — tinting the
+       * card would shift the contrast of everything inside it just to mark a checkbox.
        */
       className={[
         "group/card relative flex flex-col rounded-control border transition-[transform,box-shadow,border-color] duration-150",
@@ -36,7 +35,7 @@ export function CardItem<TRow extends object>({
     >
       {selectCell && (
         <div
-          // Visible on hover or while selected, per spec.
+          // Visible on hover or while selected.
           className={[
             "absolute right-2.5 top-2.5 z-10 transition-opacity",
             selected
@@ -53,10 +52,9 @@ export function CardItem<TRow extends object>({
 
       {actionCell && (
         /*
-         * `.og-card-foot` — actions stay visible here, unlike the table row's hover pill.
-         * The prototype CSS hover-reveals them, but the handoff says always-visible and
-         * that wins: a touch device has no hover, and the footer has room the row didn't.
-         * `mt-auto` keeps the footer pinned to the bottom of uneven cards in a grid row.
+         * Actions stay visible here rather than revealing on hover like the table row's
+         * pill — a touch device has no hover, and the footer has the room for them.
+         * `mt-auto` pins the footer to the bottom of uneven cards in a grid row.
          */
         <div
           className="mt-auto flex items-center justify-end gap-2 border-t border-[color-mix(in_srgb,var(--rui-border-default)_70%,transparent)] px-3 py-2"

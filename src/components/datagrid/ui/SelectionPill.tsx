@@ -1,7 +1,6 @@
 /**
- * `.og-sel` — the "N selected" pill. An accent *tint*, not a solid accent fill: it sits
- * in the footer next to muted body text, and a saturated block there reads as a primary
- * action rather than a status.
+ * The "N selected" pill. An accent tint rather than a solid fill — it sits in the footer
+ * next to muted text, where a saturated block would read as a primary action.
  *
  * Shared by the pager footer and the cards-view footer so the two can't drift.
  */

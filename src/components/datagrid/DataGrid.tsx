@@ -35,23 +35,17 @@ export type { DataGridProps, DataGridHandle } from "./types/grid";
 
 const EMPTY_EXPANDED_SET = new Set<string | number>();
 
-/*
- * Icons, not words — the design specifies lucide pencil / trash-2, and word buttons do
- * not fit a 26px control. Module scope so the elements aren't rebuilt every render.
- */
+/* Icons rather than words — a text button doesn't fit the 26px action control.
+   Module scope so the elements aren't rebuilt every render. */
 const DEFAULT_ACTION_LABELS = {
   edit: <Pencil className="h-4 w-4" aria-hidden />,
   delete: <Trash2 className="h-4 w-4" aria-hidden />,
 };
 
 /**
- * Composition only. Every piece of state lives in a hook next door — `useGridRows`,
- * `useEditSession`, `useRowSelection`, `useGridFilters`, `useGridPagination`,
- * `useGridColumns`, `useGridGrouping`, `useGridMutations`, `useDataGridTable` — because
- * when all of it lived here as thirteen independent `useState`s, facts about the same
- * thing drifted apart from each other (the drawer that outlived its edit session being
- * the clearest case). The props type lives in `types/grid.ts`, and the two rendered
- * regions in `ui/GridBody.tsx` and `ui/GridFooter.tsx`.
+ * Composition only — state lives in the hooks alongside, writes in `useGridMutations`,
+ * the props type in `types/grid.ts`, and the rendered regions in `ui/GridBody.tsx` and
+ * `ui/GridFooter.tsx`.
  */
 export function DataGrid<TRow extends object, TForm extends object = TRow>({
   title = "Data",
@@ -123,8 +117,8 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   });
 
   /*
-   * A read-only grid carried an empty overlay action column for nothing. It is added
-   * only when something could actually render into it.
+   * Only add the action column when something can actually render into it, so a
+   * read-only grid doesn't carry an empty one.
    */
   const hasRowActions =
     editContainer !== "none" ||
@@ -194,11 +188,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   );
 
   /*
-   * The imperative surface, replacing `cancelEditTrigger` (a number the parent bumped),
-   * `onEditStart` and `onCancelEdit`. Those three existed so a parent could drive and
-   * mirror an edit session the grid already owns; between them they needed a seeded ref,
-   * a second ref for the live session, and an effect to tell a genuine bump from the
-   * initial mount. One method replaces all of it.
+   * How a parent drives the edit session it doesn't own. See `DataGridHandle`.
    */
   useImperativeHandle(
     ref,
@@ -229,10 +219,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
   );
 
   /*
-   * This value changes whenever the grid's own props do, and its consumers re-render —
-   * which they were doing anyway. The point of moving these out of the column closures
-   * is that `orderedColumns` no longer changes, so TanStack keeps its column model
-   * instead of rebuilding it on every render and every checkbox click.
+   * Cell callbacks travel by context rather than inside the column definitions, which
+   * keeps `orderedColumns` stable so TanStack reuses its column model instead of
+   * rebuilding it on every render and every checkbox click.
    */
   const contextValue = useMemo<DataGridContextValue>(
     () => ({
@@ -272,10 +261,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
       <DataGridSelectionContext.Provider value={selection.contextValue}>
         <div
           /*
-           * `.og` in the prototype. `overflow-hidden` is load-bearing — without it the
-           * sticky header and footer paint over the rounded corners. The font and colour
-           * were missing entirely, which meant `--rui-font-sans` and `--rui-text-body`
-           * never reached the component and a consumer got their host page's type.
+           * Keep `overflow-hidden`: without it the sticky header and footer paint over
+           * the rounded corners. The font and colour are set here so the grid uses its
+           * own tokens rather than inheriting the host page's type.
            */
           className={[
             "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-surface",
@@ -375,11 +363,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
         </div>
 
         {/*
-         * Outside the grid root, and portaled to the body. It used to live inside that
-         * root, which is `overflow-hidden` (load-bearing — see the class list above), so
-         * a tooltip on any cell near an edge was clipped by the very element that gives
-         * the grid its rounded corners. The tooltip is positioned fixed against its
-         * anchor, so nothing about placement depends on being a descendant.
+         * Deliberately outside the grid root: that element is `overflow-hidden`, which
+         * clips tooltips on cells near an edge. Positioning is fixed against the anchor,
+         * so it doesn't need to be a descendant.
          */}
         <Tooltip id={tooltipId} positionStrategy="fixed" />
       </DataGridSelectionContext.Provider>

@@ -35,9 +35,8 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
     <td
       data-col-id={c.column.id}
       /*
-       * `.og td` — 40px, and a hairline at 65% opacity so a dense grid doesn't read as
-       * a wireframe. Text size is inherited from the grid root (.8125rem); it used to
-       * be forced to `text-sm`, a size that appears nowhere in the design.
+       * A hairline at 65% opacity, so a dense grid doesn't read as a wireframe. Text size
+       * is inherited from the grid root rather than set here.
        */
       className={[
         "h-10 align-middle border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)]",
@@ -61,8 +60,8 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
             e.stopPropagation();
             ctx!.startCellEdit(c.row.original, c.column.id, e.currentTarget);
           }}
-          /* `.og-cellbtn` — a text cursor, not a pointer: it edits in place rather than
-             navigating. The negative margin lets the hover chrome bleed into the cell
+          /* A text cursor rather than a pointer: this edits in place, it doesn't
+             navigate. The negative margin lets the hover chrome bleed into the cell
              padding so the target lines up with the text it replaces. */
           className="group/ce -mx-1 flex w-full cursor-text items-center gap-1.5 rounded-[5px] border border-transparent px-1 py-0.5 text-left outline-none hover:border-border-translucent hover:bg-surface-inset focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
         >
