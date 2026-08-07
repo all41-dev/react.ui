@@ -74,23 +74,32 @@ export function useRowSelection<TRow>({
   }, []);
 
   /*
-   * Notify the consumer with row objects (not ids), and only when the SELECTION itself
-   * changed — not when `rows` or the callback happen to get a new identity. The guard is
-   * a ref compared inside the effect rather than a trimmed dependency list, which keeps
-   * every ref access out of render.
+   * Notify the consumer with row objects (not ids). The guard compares what would be
+   * announced against what WAS announced — both the selection set and the resolved row
+   * objects. Comparing the set alone silenced real changes: a refetch that replaces the
+   * row objects (same ids) or a local `replaceRow` after an edit left the consumer's
+   * copy of the selected rows permanently stale. A ref compared inside the effect rather
+   * than a trimmed dependency list, which keeps every ref access out of render.
    *
    * `null` means nothing has been announced yet: the initial empty selection is skipped,
    * because announcing "nothing is selected" on mount is noise.
    */
-  const lastAnnouncedRef = useRef<ReadonlySet<string> | null>(null);
+  const lastAnnouncedRef = useRef<{
+    ids: ReadonlySet<string>;
+    rows: TRow[];
+  } | null>(null);
   useEffect(() => {
-    if (lastAnnouncedRef.current === selectedIds) return;
-    const isFirst = lastAnnouncedRef.current === null;
-    lastAnnouncedRef.current = selectedIds;
-    if (isFirst && selectedIds.size === 0) return;
-    onSelectionChange?.(
-      rows.filter((r) => selectedIds.has(String(getId(r))))
-    );
+    const selectedRows = rows.filter((r) => selectedIds.has(String(getId(r))));
+    const prev = lastAnnouncedRef.current;
+    const same =
+      prev !== null &&
+      prev.ids === selectedIds &&
+      prev.rows.length === selectedRows.length &&
+      prev.rows.every((r, i) => r === selectedRows[i]);
+    if (same) return;
+    lastAnnouncedRef.current = { ids: selectedIds, rows: selectedRows };
+    if (prev === null && selectedIds.size === 0) return;
+    onSelectionChange?.(selectedRows);
   }, [selectedIds, rows, getId, onSelectionChange]);
 
   /** The value handed to `DataGridSelectionContext`. */

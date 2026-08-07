@@ -3,16 +3,14 @@ import { Moon, Sun } from "lucide-react";
 import { Providers } from "./providers/providers";
 import { useTheme } from "./providers/theme-context";
 import { DataGridDemo } from "./demos/DataGridDemo";
-import { ArticlesGridDemo } from "./demos/articles/ArticlesGridDemo";
 import { ToasterDemo } from "./demos/ToasterDemo";
 import { TooltipDemo } from "./demos/TooltipDemo";
 import { LoadingScreenDemo } from "./demos/LoadingScreenDemo";
 
-type DemoTab = "datagrid" | "articles" | "toaster" | "tooltip" | "loading";
+type DemoTab = "datagrid" | "toaster" | "tooltip" | "loading";
 
 const TABS: { id: DemoTab; label: string }[] = [
   { id: "datagrid", label: "DataGrid" },
-  { id: "articles", label: "Articles" },
   { id: "toaster", label: "Toaster" },
   { id: "tooltip", label: "Tooltip" },
   { id: "loading", label: "Loading screen" },
@@ -57,7 +55,6 @@ function App() {
 
         <main className="mx-auto max-w-7xl px-9 py-6">
           {activeTab === "datagrid" && <DataGridDemo />}
-          {activeTab === "articles" && <ArticlesGridDemo />}
           {activeTab === "toaster" && <ToasterDemo />}
           {activeTab === "tooltip" && <TooltipDemo />}
           {activeTab === "loading" && <LoadingScreenDemo />}

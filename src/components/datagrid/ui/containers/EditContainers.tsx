@@ -19,6 +19,7 @@ export function EditContainer<
   open,
   mode,
   row,
+  rowKey,
   columns,
   zodSchema,
   formLayout,
@@ -29,6 +30,8 @@ export function EditContainer<
   open: boolean;
   mode: "create" | "edit";
   row?: TRow;
+  /** The grid's resolved row identity — see `OverlayEditContainerProps.rowKey`. */
+  rowKey?: string | number;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   formLayout?: {
@@ -45,6 +48,7 @@ export function EditContainer<
     open,
     mode,
     row,
+    rowKey,
     columns,
     zodSchema,
     formLayout,

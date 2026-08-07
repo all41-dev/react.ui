@@ -11,6 +11,12 @@ export type OverlayEditContainerProps<TRow extends object, TForm extends object>
   open: boolean;
   mode: "create" | "edit";
   row?: TRow;
+  /**
+   * The grid's resolved identity for `row` (via `idAccessor`). Keys the form remount, so
+   * switching the session between rows never carries the previous row's values over —
+   * the `id`/`uuid` fallback in `getRowId` misses rows keyed by a custom accessor.
+   */
+  rowKey?: string | number;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   formLayout?: FormLayoutConfig;
@@ -43,6 +49,7 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
   open,
   mode,
   row,
+  rowKey,
   columns,
   zodSchema,
   formLayout,
@@ -75,7 +82,7 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
 
   if (!open) return null;
 
-  const formKey = mode === "edit" ? `edit-${getRowId(row)}` : "create";
+  const formKey = mode === "edit" ? `edit-${rowKey ?? getRowId(row)}` : "create";
 
   return createPortal(
     <div

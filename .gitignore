@@ -39,7 +39,8 @@ claude_docs
 # See src/app/styles/README.md.
 src/app/styles/*.local.css
 
-# Articles demo — product data, kept out of the library repo.
-# NOTE: src/app/App.tsx imports this folder, so a fresh clone will not build until
-# either the folder is restored or that import and its tab are removed.
-# src/app/demos/articles/
+# Articles demo — product data, kept locally for reference only.
+src/app/demos/articles/
+
+.agent-tasks
+.claude

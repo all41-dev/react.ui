@@ -1,149 +1,27 @@
-import { FormProvider, useForm, type UseFormReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import type { ZodTypeAny } from "zod";
+import { FormProvider, type UseFormReturn } from "react-hook-form";
+import type { ZodType } from "zod";
 import type { WithMeta } from "../../types/column";
-import { computeDefaults } from "../../utils/getAccessorKey";
-import { renderEditor } from "../editors/EditorRegistry";
-import { useMemo } from "react";
-import { FormLayout } from "./FormLayout";
-import { getApiMessage } from "../../../../api/errors";
-import React from "react";
+import { useEditForm } from "../../hooks/useEditForm";
+import { FormFields, type FormLayoutConfig } from "./FormFields";
+import { FormActions } from "./FormActions";
 
-/** Shared helper – returns a stable id from a row object. */
+export type { FormLayoutConfig } from "./FormFields";
+
+/**
+ * Fallback id from a row object's conventional keys. Only a last resort: the containers
+ * key the form with the grid's own `rowKey` (resolved through `idAccessor`) when they
+ * have one — rows keyed by a custom accessor have neither `id` nor `uuid`.
+ */
 export function getRowId<T>(row?: T) {
-  return (row as any)?.id ?? (row as any)?.uuid ?? "";
-}
-
-/**
- * Switches get their own captioned section, each one a bordered card, so it's clear
- * where one option ends and the next begins.
- *
- * Module scope rather than a closure inside the form: a component defined during render
- * is a new type each time, and React remounts the whole subtree.
- */
-function OptionsSection({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="flex min-w-0 flex-col gap-[9px]">
-      <h4 className="flex items-center gap-2 text-[.625rem] font-bold uppercase tracking-[.06em] text-faint after:h-px after:flex-1 after:bg-[color-mix(in_srgb,var(--rui-border-default)_80%,transparent)] after:content-['']">
-        Options
-      </h4>
-      <div className="flex flex-wrap gap-[10px_14px] [&>*]:min-w-0 [&>*]:flex-[0_1_260px] [&>*]:rounded-control [&>*]:border [&>*]:border-border-default [&>*]:bg-surface-card [&>*]:px-[11px] [&>*]:py-[9px] [&>*]:transition-colors hover:[&>*]:border-border-translucent">
-        {children}
-      </div>
-    </section>
-  );
-}
-
-export type FormLayoutConfig = {
-  columns?: 1 | 2 | 3 | 4;
-  gap?: string;
-  className?: string;
-};
-
-/* One button style across all four containers. Note the explicit border colour — a bare
-   `border` in Tailwind 4 resolves to `currentColor`. */
-const cancelBtnClass =
-  "cursor-pointer rounded-control border border-border-default bg-surface-card px-3 py-1.5 text-[.8125rem] text-body transition-colors hover:border-border-translucent hover:bg-surface-raised disabled:opacity-50";
-
-const submitBtnClass =
-  "cursor-pointer rounded-control bg-accent px-3 py-1.5 text-[.8125rem] font-semibold text-accent-contrast transition-colors hover:bg-accent-hover disabled:opacity-50";
-
-// A danger-tinted band, sized to the form's own type scale.
-const serverErrorClass =
-  "flex items-start gap-2 rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger";
-
-type FormFieldsProps<TRow extends object, TForm extends object> = {
-  regularFields: WithMeta<TRow, TForm>[];
-  switchFields: WithMeta<TRow, TForm>[];
-  control: unknown;
-  formLayout?: FormLayoutConfig;
-  formError?: string;
-  dirtyKeys?: ReadonlySet<string>;
-};
-
-/**
- * The form's field content: laid-out editors, the switches in their own section, then
- * the server error. Shared by every variant — only the wrapper around it differs.
- */
-function FormFields<TRow extends object, TForm extends object>({
-  regularFields,
-  switchFields,
-  control,
-  formLayout,
-  formError,
-  dirtyKeys,
-}: FormFieldsProps<TRow, TForm>) {
-  return (
-    <>
-      {regularFields.length > 0 && (
-        <FormLayout
-          fields={regularFields}
-          control={control as any}
-          columns={formLayout?.columns}
-          gap={formLayout?.gap}
-          className={formLayout?.className}
-          dirtyKeys={dirtyKeys}
-        />
-      )}
-
-      {switchFields.length > 0 && (
-        <OptionsSection>
-          {switchFields.map((c) => (
-            <div
-              key={(c as any).accessorKey || c.id}
-              className="rui-field relative"
-              data-changed={
-                dirtyKeys?.has((c as any).accessorKey) ? "true" : undefined
-              }
-            >
-              {renderEditor<TForm>({
-                column: c as any,
-                control: control as any,
-              })}
-            </div>
-          ))}
-        </OptionsSection>
-      )}
-
-      {formError && (
-        <p className={serverErrorClass} role="alert">
-          {formError}
-        </p>
-      )}
-    </>
-  );
-}
-
-/** Cancel + Save. Same in every variant; only the band around them differs. */
-function FormActions({
-  onCancel,
-  isSubmitting,
-}: {
-  onCancel: () => void;
-  isSubmitting: boolean;
-}) {
-  return (
-    <>
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={isSubmitting}
-        className={cancelBtnClass}
-      >
-        Cancel
-      </button>
-      <button type="submit" disabled={isSubmitting} className={submitBtnClass}>
-        {isSubmitting ? <SavingLabel /> : "Save"}
-      </button>
-    </>
-  );
+  const r = row as { id?: string | number; uuid?: string } | undefined;
+  return r?.id ?? r?.uuid ?? "";
 }
 
 type EditFormBodyProps<TRow extends object, TForm extends object> = {
   mode: "create" | "edit";
   row?: TRow;
   columns: WithMeta<TRow, TForm>[];
-  zodSchema: ZodTypeAny;
+  zodSchema: ZodType<TForm>;
   formLayout?: FormLayoutConfig;
   onCancel: () => void;
   onSubmit: (values: TForm) => void | Promise<void>;
@@ -169,131 +47,28 @@ export function EditFormBody<TRow extends object, TForm extends object>({
   titleId,
   onSubmittingChange,
 }: EditFormBodyProps<TRow, TForm>) {
-  const initialDefaults = useMemo(
-    () => (computeDefaults as any)(row, columns) as TForm,
-    [row, columns]
-  );
-
-  // Pre-create resolver so it's not re-created during render
-  const resolver = useMemo(() => zodResolver(zodSchema as any), [zodSchema]);
-
-  const form = useForm<TForm>({
-    resolver,
-    defaultValues: initialDefaults as any,
-    mode: "onBlur",
-    reValidateMode: "onChange",
+  const {
+    form,
+    submit,
+    isSubmitting,
+    formError,
+    regularFields,
+    switchFields,
+    dirtyKeys,
+  } = useEditForm<TRow, TForm>({
+    row,
+    columns,
+    zodSchema,
+    onSubmit,
+    onSubmittingChange,
   });
-
-  const fields = useMemo(
-    () =>
-      columns.filter(
-        (c) => c.meta?.visibleInForm !== false && !!c.meta?.editor
-      ),
-    [columns]
-  );
-
-  /* `dirtyFields` has to be read off formState here for react-hook-form to subscribe to
-     it — destructuring is the subscription. */
-  const { isSubmitting, errors, dirtyFields } = form.formState;
-
-  React.useEffect(() => {
-    onSubmittingChange?.(isSubmitting);
-  }, [isSubmitting, onSubmittingChange]);
-
-  const formError = useMemo(() => {
-    const serverMsg = (errors as any)?.root?.server?.message as
-      | string
-      | undefined;
-    if (serverMsg) return serverMsg;
-
-    const errKeys = Object.keys(errors);
-    if (!errKeys.length) return undefined;
-
-    const fieldKeys = new Set(
-      fields.map((c) => (c as any).accessorKey as string).filter(Boolean)
-    );
-    const unrenderedErrors = errKeys.filter((k) => !fieldKeys.has(k));
-
-    if (unrenderedErrors.length > 0) {
-      const firstKey = unrenderedErrors[0];
-      const msg = (errors as any)[firstKey]?.message || "Invalid value";
-      return `Validation error on '${firstKey}': ${msg}`;
-    }
-
-    return undefined;
-  }, [errors, fields]);
-
-  const submit = form.handleSubmit(
-    async (values) => {
-      const out: any = { ...values };
-      for (const c of fields) {
-        const key = (c as any).accessorKey as keyof TForm | undefined;
-        if (!key) continue;
-        if (c.meta?.fromForm)
-          out[key] = c.meta.fromForm(
-            (values as any)[key],
-            values as unknown as TForm
-          );
-      }
-      try {
-        await onSubmit(out as TForm);
-        form.clearErrors("root.server" as any);
-      } catch (e: any) {
-        const message = getApiMessage(
-          e,
-          "Save failed. Please check the fields and try again."
-        );
-        form.setError("root.server" as any, {
-          type: "server",
-          message,
-        });
-      }
-    },
-    (validationErrors) => {
-      // Surface validation failures so they're visible to the user
-      console.warn("[DataGrid] Form validation failed:", validationErrors);
-    }
-  );
-
-  const sortedFields = useMemo(() => {
-    return [...fields].sort((a, b) => {
-      const orderA = a.meta?.formLayout?.order ?? 999;
-      const orderB = b.meta?.formLayout?.order ?? 999;
-      return orderA - orderB;
-    });
-  }, [fields]);
-
-  const regularFields = useMemo(
-    () => sortedFields.filter((c) => c.meta?.editor !== "switch"),
-    [sortedFields]
-  );
-  const switchFields = useMemo(
-    () => sortedFields.filter((c) => c.meta?.editor === "switch"),
-    [sortedFields]
-  );
-
-  /*
-   * Which fields the user actually touched. `dirtyFields` compares against the form's
-   * defaults, so typing a value and putting the original back clears the mark — it
-   * tracks real changes rather than "was focused".
-   *
-   * Rebuilt every render on purpose. react-hook-form mutates this object in place, so
-   * memoising on its identity pinned the set to whatever the FIRST dirty field was and
-   * every later change went unmarked. It is a handful of keys — recomputing is cheaper
-   * than getting it wrong.
-   */
-  const dirtyKeys = new Set(
-    Object.entries(dirtyFields)
-      .filter(([, v]) => !!v)
-      .map(([k]) => k)
-  );
 
   /* Built once, then placed into whichever wrapper the variant calls for. */
   const fieldsContent = (
     <FormFields<TRow, TForm>
       regularFields={regularFields}
       switchFields={switchFields}
-      control={(form as any).control}
+      control={form.control}
       formLayout={formLayout}
       formError={formError}
       dirtyKeys={dirtyKeys}
@@ -342,32 +117,5 @@ export function EditFormBody<TRow extends object, TForm extends object>({
         </div>
       </form>
     </FormProvider>
-  );
-}
-
-/** Spinner + label for the pending Save button, shared by every container. */
-function SavingLabel() {
-  return (
-    <span className="flex items-center gap-2">
-      <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" aria-hidden>
-        <circle
-          className="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth="3"
-          fill="none"
-        />
-        <path
-          className="opacity-75"
-          d="M4 12a8 8 0 018-8"
-          stroke="currentColor"
-          strokeWidth="3"
-          fill="none"
-        />
-      </svg>
-      Saving…
-    </span>
   );
 }

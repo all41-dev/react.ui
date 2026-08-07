@@ -27,7 +27,7 @@ type GridBodyProps<TRow extends object> = {
   editingRowId?: string | number;
   inlineEditor?: ReactNode;
   isCreating: boolean;
-  expandedRowIds: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string | number>;
   renderExpandedRow?: (row: TRow) => ReactNode;
   /** The row a write just landed on, flashed so the change is locatable. */
   changedRowId?: string | number;

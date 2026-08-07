@@ -29,7 +29,7 @@ export type DataGridContextValue = {
   /** The grid's single row-identity rule (`idAccessor` → `id` → `uuid`). */
   getId: (row: unknown) => string | number | undefined;
   /** Row action handlers and labels, read at cell-render time rather than closed over. */
-  rowActions: ActionColumnOpts<any>;
+  rowActions: ActionColumnOpts<unknown>;
   /** The body currently on screen, forwarded into consumer `renderActions`. */
   view: ActionView;
 };

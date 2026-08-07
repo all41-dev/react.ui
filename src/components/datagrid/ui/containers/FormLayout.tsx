@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import type { WithMeta } from "../../types/column";
 import { renderEditor } from "../editors/EditorRegistry";
+import { getAccessorKey } from "../../utils/getAccessorKey";
 import type { Control } from "react-hook-form";
 
-type FormLayoutProps<TForm extends object> = {
-  fields: WithMeta<any, TForm>[];
-  control: Control<TForm, any>;
+type FormLayoutProps<TRow extends object, TForm extends object> = {
+  fields: WithMeta<TRow, TForm>[];
+  control: Control<TForm>;
   columns?: 1 | 2 | 3 | 4;
   gap?: string;
   className?: string;
@@ -18,13 +19,13 @@ type FormLayoutProps<TForm extends object> = {
  * no answer to "what did I just change?" — and when the changed column is hidden from the
  * table, saving otherwise looks like it did nothing at all.
  */
-function Field({
+export function Field({
   changed,
-  className,
+  className = "",
   children,
 }: {
   changed: boolean;
-  className: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -43,27 +44,21 @@ function Field({
   );
 }
 
-export function FormLayout<TForm extends object>({
+export function FormLayout<TRow extends object, TForm extends object>({
   fields,
   control,
   columns = 2,
   gap = "gap-4",
   className = "",
   dirtyKeys,
-}: FormLayoutProps<TForm>) {
-  const sortedFields = useMemo(() => {
-    return [...fields].sort((a, b) => {
-      const orderA = a.meta?.formLayout?.order ?? 999;
-      const orderB = b.meta?.formLayout?.order ?? 999;
-      return orderA - orderB;
-    });
-  }, [fields]);
-
+}: FormLayoutProps<TRow, TForm>) {
+  // `fields` arrives already sorted by `meta.formLayout.order` — see `useEditForm`.
+  // Sorting again here was a second copy of the same rule, free to drift out of sync.
   const { regularFields, fullWidthFields } = useMemo(() => {
-    const regular: typeof sortedFields = [];
-    const full: typeof sortedFields = [];
+    const regular: typeof fields = [];
+    const full: typeof fields = [];
 
-    sortedFields.forEach((field) => {
+    fields.forEach((field) => {
       const colSpan = field.meta?.formLayout?.colSpan;
       // Rich editors span the full width by default; an explicit colSpan overrides.
       const isRich =
@@ -76,7 +71,7 @@ export function FormLayout<TForm extends object>({
     });
 
     return { regularFields: regular, fullWidthFields: full };
-  }, [sortedFields]);
+  }, [fields]);
 
   const getColSpanClass = (colSpan?: 1 | 2 | 3 | 4 | "full") => {
     if (colSpan === "full") return "col-span-full";
@@ -108,7 +103,7 @@ export function FormLayout<TForm extends object>({
             const colSpan = c.meta?.formLayout?.colSpan;
             const fieldClassName = c.meta?.formLayout?.className || "";
             const colSpanClass = getColSpanClass(colSpan);
-            const key = (c as any).accessorKey as string | undefined;
+            const key = getAccessorKey(c);
 
             return (
               <Field
@@ -116,7 +111,7 @@ export function FormLayout<TForm extends object>({
                 changed={!!key && !!dirtyKeys?.has(key)}
                 className={`${colSpanClass} ${fieldClassName}`}
               >
-                {renderEditor<TForm>({ column: c as any, control })}
+                {renderEditor({ column: c, control })}
               </Field>
             );
           })}
@@ -125,16 +120,16 @@ export function FormLayout<TForm extends object>({
 
       {fullWidthFields.length > 0 && (
         <div className={`space-y-4 ${gap.replace("gap-", "space-y-")}`}>
-          {fullWidthFields.map((c: WithMeta<any, TForm>) => {
+          {fullWidthFields.map((c) => {
             const fieldClassName = c.meta?.formLayout?.className || "";
-            const key = (c as any).accessorKey as string | undefined;
+            const key = getAccessorKey(c);
             return (
               <Field
                 key={key || c.id}
                 changed={!!key && !!dirtyKeys?.has(key)}
                 className={fieldClassName}
               >
-                {renderEditor<TForm>({ column: c as any, control })}
+                {renderEditor({ column: c, control })}
               </Field>
             );
           })}

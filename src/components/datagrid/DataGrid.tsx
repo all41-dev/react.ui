@@ -1,293 +1,83 @@
-import { Pencil, Trash2 } from "lucide-react";
-import { Tooltip } from "react-tooltip";
-import { toast } from "sonner";
-import { useCallback, useId, useImperativeHandle, useMemo, useState } from "react";
+﻿import { Tooltip } from "react-tooltip";
+import { useCallback } from "react";
 
-import { getApiMessage } from "../../api/errors";
-import {
-  DataGridContext,
-  DataGridSelectionContext,
-  type DataGridContextValue,
-} from "./DataGridContext";
-import { useConfirm } from "./hooks/useConfirm";
-import { useDataGridTable } from "./hooks/useDataGridTable";
-import { useEditSession } from "./hooks/useEditSession";
-import { getColId, useGridColumns } from "./hooks/useGridColumns";
-import { useGridFilters } from "./hooks/useGridFilters";
-import { useGridGrouping } from "./hooks/useGridGrouping";
-import { useGridMutations } from "./hooks/useGridMutations";
-import { useGridPagination } from "./hooks/useGridPagination";
-import { useGridRows } from "./hooks/useGridRows";
-import { useRowSelection } from "./hooks/useRowSelection";
+import { DataGridContext, DataGridSelectionContext } from "./DataGridContext";
+import { useDataGridState } from "./hooks/useDataGridState";
+import { useGridChrome } from "./hooks/useGridChrome";
+import { useGridHandle } from "./hooks/useGridHandle";
+import { useGridView } from "./hooks/useGridView";
 import type { DataGridProps } from "./types/grid";
-import { ColumnsPopover } from "./ui/ColumnsPopover";
-import { DataGridToolbar } from "./ui/DataGridToolbar";
 import { GridBody } from "./ui/GridBody";
+import { GridEditors } from "./ui/GridEditors";
 import { GridFooter } from "./ui/GridFooter";
-import { EditContainer, type EditContainerKind } from "./ui/containers/EditContainers";
+import { GridToolbarSection } from "./ui/GridToolbarSection";
 import { EditInline } from "./ui/containers/EditInline";
-import { CellEditPopover } from "./ui/table/CellEditPopover";
-import type { ActionColumnOpts, ActionView } from "./ui/makeActionColumns";
 import { getRowKey } from "./utils/getRowKey";
 
 export type { DataGridProps, DataGridHandle } from "./types/grid";
 
-const EMPTY_EXPANDED_SET = new Set<string | number>();
-
-/* Icons rather than words — a text button doesn't fit the 26px action control.
-   Module scope so the elements aren't rebuilt every render. */
-const DEFAULT_ACTION_LABELS = {
-  edit: <Pencil className="h-4 w-4" aria-hidden />,
-  delete: <Trash2 className="h-4 w-4" aria-hidden />,
-};
-
 /**
- * Composition only — state lives in the hooks alongside, writes in `useGridMutations`,
- * the props type in `types/grid.ts`, and the rendered regions in `ui/GridBody.tsx` and
- * `ui/GridFooter.tsx`.
+ * Composition only â€” state lives in `useDataGridState`, the view/session logic in
+ * `useGridView`, the context value and facet chips in `useGridChrome`, the props type
+ * in `types/grid.ts`, and the rendered regions in `ui/`.
  */
-export function DataGrid<TRow extends object, TForm extends object = TRow>({
-  title = "Data",
-  subtitle,
-  searchable = true,
-  emptyLabel,
-  card,
-  defaultView = "list",
-  groupOptions,
-  defaultGroupBy = "",
-  selectable = false,
-  onSelectionChange,
-  columns,
-  zodSchema,
-  initialData,
-  idAccessor,
-  editContainer = "right",
-  onPersist,
-  onDelete,
-  className,
-  toolbar,
-  isLoading,
-  error,
-  onRetry,
-  actionColumnOptions,
-  storageKey = undefined,
-  pagination: paginationProp,
-  initialSorting,
-  formLayout,
-  onRowClick,
-  renderExpandedRow,
-  expandedRowIds: externalExpandedRowIds,
-  ref,
-}: DataGridProps<TRow, TForm>) {
-  const [view, setView] = useState<"list" | "cards">(defaultView);
-  const [selectedRowId, setSelectedRowId] = useState<string | number | undefined>(
-    undefined
+export function DataGrid<TRow extends object, TForm extends object = TRow>(
+  props: DataGridProps<TRow, TForm>
+) {
+  /* The ref is split off so the rest travels as one plain bag â€” the React Compiler
+     refuses property reads on an object that also carries a ref. */
+  const { ref, idAccessor, card, onRowClick, ...gridProps } = props;
+
+  const getId = useCallback(
+    (r: TRow) => getRowKey(r, idAccessor),
+    [idAccessor]
   );
 
-  const expandedRowIds = externalExpandedRowIds ?? EMPTY_EXPANDED_SET;
+  const state = useDataGridState<TRow, TForm>(gridProps, getId);
+  const { edit, selection, filters, grouping, pagination, mutations } = state;
 
-  const getId = useCallback((r: TRow) => getRowKey(r, idAccessor), [idAccessor]);
-
-  const { rows, replaceRow, addRow, removeRow, changedRowId } = useGridRows({
-    initialData,
-    getId,
-  });
-
-  const selection = useRowSelection({
-    initialData,
-    rows,
-    getId,
-    onSelectionChange,
-  });
-
-  const edit = useEditSession<TRow>();
-
-  const filters = useGridFilters<TRow, TForm>({
-    columns,
-    getColId,
-    initialSorting,
-  });
-
-  const pagination = useGridPagination({
-    pagination: paginationProp,
-    columnFilters: filters.columnFilters,
-    globalFilter: filters.globalFilter,
-    sorting: filters.sorting,
-  });
-
-  /*
-   * Only add the action column when something can actually render into it, so a
-   * read-only grid doesn't carry an empty one.
-   */
-  const hasRowActions =
-    editContainer !== "none" ||
-    !!onDelete ||
-    !!actionColumnOptions?.onEdit ||
-    !!actionColumnOptions?.renderActions;
-
-  const userKey = storageKey ?? `dg:${title.toLowerCase().replace(/\s+/g, "-")}`;
-
-  const gridColumns = useGridColumns<TRow, TForm>({
-    columns,
-    selectable,
-    hasRowActions,
-    actionPresentation: actionColumnOptions?.presentation ?? "overlay",
-    storageKey: userKey,
-  });
-
-  const table = useDataGridTable<TRow, TForm>({
-    data: rows,
-    columns: gridColumns.orderedColumns,
-    prefs: gridColumns.prefs,
-    prefHandlers: gridColumns.prefHandlers,
-    columnFilters: filters.columnFilters,
-    onColumnFiltersChange: filters.setColumnFilters,
-    globalFilter: filters.globalFilter,
-    onGlobalFilterChange: filters.setGlobalFilter,
-    sorting: filters.sorting,
-    onSortingChange: filters.setSorting,
-    paginationEnabled: pagination.enabled,
-    pagination: pagination.state,
-    onPaginationChange: pagination.onPaginationChange,
-  });
-
-  const grouping = useGridGrouping({ table, groupOptions, defaultGroupBy });
-
-  const { confirm, ConfirmDialog } = useConfirm();
-
-  const {
-    handleDelete,
-    handleSubmit,
-    cellEditColumn,
-    handleCellSave,
-    startCellEditFromCell,
-  } = useGridMutations<TRow, TForm>({
-    columns,
-    zodSchema,
-    onPersist,
-    onDelete,
+  const view = useGridView<TRow>({
+    hasCard: !!card,
+    defaultView: gridProps.defaultView ?? "list",
+    editContainer: gridProps.editContainer ?? "right",
+    grouped: !!grouping.groups,
     edit,
-    replaceRow,
-    addRow,
-    removeRow,
-    deselect: selection.deselect,
     getId,
-    confirm,
+    onRowClick,
   });
 
-  const handleRowClick = useCallback(
-    (row: TRow) => {
-      const rowId = getId(row);
-      setSelectedRowId((prev) =>
-        prev !== undefined && String(prev) === String(rowId) ? undefined : rowId
-      );
-      onRowClick?.(row);
-    },
-    [getId, onRowClick]
-  );
+  const chrome = useGridChrome<TRow, TForm>({
+    props: gridProps,
+    state,
+    activeView: view.activeView,
+    getId,
+  });
 
-  const showCards = !!card && view === "cards";
+  useGridHandle(ref, edit, selection.clear);
 
-  /*
-   * Which body is actually on screen — "kanban" when cards meet a group-by. Handed to
-   * consumer `renderActions` so a button whose target can't render in the current view
-   * can hide or swap itself.
-   */
-  const activeView: ActionView = showCards
-    ? grouping.groups
-      ? "kanban"
-      : "cards"
-    : "list";
-
-  /*
-   * "Inline" names a table-row placement that has no cards equivalent. Left as-is, an
-   * inline session started from cards had nowhere to render: the click looked dead and
-   * the live session re-opened the editor on the next switch to list. In cards the same
-   * session opens as a modal instead.
-   */
-  const effectiveContainer: EditContainerKind =
-    showCards && editContainer === "inline" ? "modal" : editContainer;
-  const inlineEditing = effectiveContainer === "inline";
-
-  const handleViewChange = useCallback(
-    (v: "list" | "cards") => {
-      // A session that straddles the toggle changes shell mid-flight (inline ↔ modal)
-      // and loses its form state anyway when the host view unmounts — close it instead.
-      edit.close();
-      setView(v);
-    },
-    [edit.close]
-  );
-
-  /*
-   * How a parent drives the edit session it doesn't own. See `DataGridHandle`.
-   */
-  useImperativeHandle(
-    ref,
-    () => ({
-      startCreate: edit.startCreate,
-      startEdit: edit.startEdit,
-      cancelEdit: edit.close,
-      isEditing: () => edit.session.kind !== "idle",
-      clearSelection: selection.clear,
-    }),
-    [edit.startCreate, edit.startEdit, edit.close, edit.session.kind, selection.clear]
-  );
-
-  const tooltipId = useId().replace(/:/g, "_");
-  const canCellEdit = !!onPersist;
-
-  const rowActions = useMemo<ActionColumnOpts<TRow>>(
-    () => ({
-      getId,
-      // With no container to open, an Edit button would do nothing visible.
-      onEdit: editContainer !== "none" ? edit.startEdit : undefined,
-      onDelete: onDelete ? handleDelete : undefined,
-      onError: (err) => toast.error(getApiMessage(err, "Delete failed")),
-      labels: DEFAULT_ACTION_LABELS,
-      ...actionColumnOptions,
-    }),
-    [getId, editContainer, edit.startEdit, onDelete, handleDelete, actionColumnOptions]
-  );
-
-  /*
-   * Cell callbacks travel by context rather than inside the column definitions, which
-   * keeps `orderedColumns` stable so TanStack reuses its column model instead of
-   * rebuilding it on every render and every checkbox click.
-   */
-  const contextValue = useMemo<DataGridContextValue>(
-    () => ({
-      tooltipId,
-      canCellEdit,
-      startCellEdit: startCellEditFromCell,
-      getId: getId as (row: unknown) => string | number | undefined,
-      rowActions: rowActions as ActionColumnOpts<any>,
-      view: activeView,
-    }),
-    [tooltipId, canCellEdit, startCellEditFromCell, getId, rowActions, activeView]
-  );
-
-  const facetChips = useMemo(
-    () => filters.buildFacetChips(grouping.activeGroupOption, grouping.clearGroupBy),
-    [filters, grouping.activeGroupOption, grouping.clearGroupBy]
-  );
+  /* The containers key the form remount on this; `edit.editingRow` alone is not enough
+     for rows keyed by a custom `idAccessor` (no `id`/`uuid` for the fallback to find). */
+  const editingRowKey = edit.editingRow ? getId(edit.editingRow) : undefined;
 
   const inlineEditor =
-    inlineEditing && edit.session.kind !== "idle" && edit.session.kind !== "cell" ? (
+    view.inlineEditing &&
+    edit.session.kind !== "idle" &&
+    edit.session.kind !== "cell" ? (
       <EditInline<TRow, TForm>
         open
         mode={edit.formMode}
         row={edit.editingRow}
-        columns={columns}
-        zodSchema={zodSchema}
-        formLayout={formLayout}
+        rowKey={editingRowKey}
+        columns={gridProps.columns}
+        zodSchema={gridProps.zodSchema}
+        formLayout={gridProps.formLayout}
         onCancel={edit.close}
-        onSubmit={handleSubmit}
+        onSubmit={mutations.handleSubmit}
       />
     ) : undefined;
 
   return (
-    <DataGridContext.Provider value={contextValue}>
+    <DataGridContext.Provider value={chrome.contextValue}>
       <DataGridSelectionContext.Provider value={selection.contextValue}>
         <div
           /*
@@ -299,98 +89,66 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
             "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-surface",
             "border border-border-default bg-surface-card shadow-[var(--elev-2)]",
             "font-sans text-[.8125rem] text-body",
-            className,
+            gridProps.className,
           ]
             .filter(Boolean)
             .join(" ")}
         >
-          <DataGridToolbar
-            title={title}
-            subtitle={subtitle}
-            count={rows.length}
-            toolbar={toolbar}
-            editContainer={editContainer}
-            error={error ?? null}
-            onAddClick={edit.startCreate}
-            onRetry={onRetry}
-            searchable={searchable}
-            searchValue={filters.globalFilter}
-            onSearchChange={filters.setGlobalFilter}
-            hasFilterableColumns={filters.hasFilterableColumns}
-            filtersShown={filters.showFilters}
-            activeFilterCount={filters.columnFilters.length}
-            onToggleFilters={filters.toggleFilters}
-            onClearFilters={filters.clearAllFilters}
-            columnsControl={
-              <ColumnsPopover table={table} onReset={gridColumns.resetPrefs} />
-            }
-            view={card ? view : undefined}
-            onViewChange={card ? handleViewChange : undefined}
-            groupOptions={groupOptions}
-            groupBy={grouping.groupBy}
-            onGroupByChange={grouping.setGroupBy}
-            facets={facetChips}
+          <GridToolbarSection<TRow, TForm>
+            props={gridProps}
+            state={state}
+            facets={chrome.facetChips}
+            view={card ? view.view : undefined}
+            onViewChange={card ? view.handleViewChange : undefined}
           />
 
           <GridBody<TRow>
-            table={table}
+            table={state.table}
             getId={getId}
-            label={title}
-            isLoading={!!isLoading}
-            error={error ?? null}
-            emptyLabel={emptyLabel}
+            label={gridProps.title ?? "Data"}
+            isLoading={!!gridProps.isLoading}
+            error={gridProps.error ?? null}
+            emptyLabel={gridProps.emptyLabel}
             card={card}
-            showCards={showCards}
+            showCards={view.showCards}
             grouping={grouping}
             showFilters={filters.showFilters && filters.hasFilterableColumns}
-            selectedRowIds={selectable ? selection.selectedIds : undefined}
-            onRowClick={onRowClick ? handleRowClick : undefined}
-            selectedRowId={selectedRowId}
-            editingRowId={
-              inlineEditing && edit.editingRow ? getId(edit.editingRow) : undefined
-            }
+            selectedRowIds={gridProps.selectable ? selection.selectedIds : undefined}
+            onRowClick={onRowClick ? view.handleRowClick : undefined}
+            selectedRowId={view.selectedRowId}
+            editingRowId={view.inlineEditing ? editingRowKey : undefined}
             inlineEditor={inlineEditor}
-            isCreating={inlineEditing && edit.session.kind === "create"}
-            changedRowId={changedRowId}
-            expandedRowIds={expandedRowIds}
-            renderExpandedRow={renderExpandedRow}
+            isCreating={view.inlineEditing && edit.session.kind === "create"}
+            changedRowId={state.changedRowId}
+            expandedRowIds={gridProps.expandedRowIds}
+            renderExpandedRow={gridProps.renderExpandedRow}
           />
 
           <GridFooter<TRow>
-            table={table}
+            table={state.table}
             paginationEnabled={pagination.enabled}
             pageSizeOptions={pagination.pageSizeOptions}
-            showCards={showCards}
+            showCards={view.showCards}
             grouped={!!grouping.groups}
-            selectable={selectable}
+            selectable={gridProps.selectable ?? false}
             selectedCount={selection.selectedIds.size}
             onClearSelection={selection.clear}
           />
 
-          {!inlineEditing && (
-            <EditContainer<TRow, TForm>
-              kind={effectiveContainer}
-              open={edit.isFormOpen}
-              mode={edit.formMode}
-              row={edit.editingRow}
-              columns={columns}
-              zodSchema={zodSchema}
-              formLayout={formLayout}
-              onCancel={edit.close}
-              onSubmit={handleSubmit}
-            />
-          )}
+          <GridEditors<TRow, TForm>
+            effectiveContainer={view.effectiveContainer}
+            inlineEditing={view.inlineEditing}
+            edit={edit}
+            editingRowKey={editingRowKey}
+            columns={gridProps.columns}
+            zodSchema={gridProps.zodSchema}
+            formLayout={gridProps.formLayout}
+            onSubmit={mutations.handleSubmit}
+            cellEditColumn={mutations.cellEditColumn}
+            onCellSave={mutations.handleCellSave}
+          />
 
-          {edit.cell && cellEditColumn && (
-            <CellEditPopover<TRow, TForm>
-              state={edit.cell}
-              column={cellEditColumn}
-              onCancel={edit.close}
-              onSave={handleCellSave}
-            />
-          )}
-
-          {ConfirmDialog}
+          {state.ConfirmDialog}
         </div>
 
         {/*
@@ -398,7 +156,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>({
          * clips tooltips on cells near an edge. Positioning is fixed against the anchor,
          * so it doesn't need to be a descendant.
          */}
-        <Tooltip id={tooltipId} positionStrategy="fixed" />
+        <Tooltip id={chrome.tooltipId} positionStrategy="fixed" />
       </DataGridSelectionContext.Provider>
     </DataGridContext.Provider>
   );

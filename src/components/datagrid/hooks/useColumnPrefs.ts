@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Updater, VisibilityState } from "@tanstack/react-table";
 
 type ColumnPrefs = {
   columnSizing: Record<string, number>;
@@ -75,22 +76,29 @@ export function useColumnPrefs(storageKey: string, allColumnIds: string[]) {
     return () => clearTimeout(handle);
   }, [storageKey, prefs, normalizedOrder]);
 
-  const onColumnSizingChange = useCallback((updater: any) => {
-    setPrefs((p) => ({
-      ...p,
-      columnSizing: typeof updater === "function" ? updater(p.columnSizing) : updater,
-    }));
-  }, []);
+  const onColumnSizingChange = useCallback(
+    (updater: Updater<Record<string, number>>) => {
+      setPrefs((p) => ({
+        ...p,
+        columnSizing:
+          typeof updater === "function" ? updater(p.columnSizing) : updater,
+      }));
+    },
+    []
+  );
 
-  const onColumnVisibilityChange = useCallback((updater: any) => {
-    setPrefs((p) => ({
-      ...p,
-      columnVisibility:
-        typeof updater === "function" ? updater(p.columnVisibility) : updater,
-    }));
-  }, []);
+  const onColumnVisibilityChange = useCallback(
+    (updater: Updater<VisibilityState>) => {
+      setPrefs((p) => ({
+        ...p,
+        columnVisibility:
+          typeof updater === "function" ? updater(p.columnVisibility) : updater,
+      }));
+    },
+    []
+  );
 
-  const onColumnOrderChange = useCallback((updater: any) => {
+  const onColumnOrderChange = useCallback((updater: Updater<string[]>) => {
     setPrefs((p) => ({
       ...p,
       columnOrder: typeof updater === "function" ? updater(p.columnOrder) : updater,

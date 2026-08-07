@@ -103,6 +103,12 @@ Defined in `types/grid.ts`, re-exported from `DataGrid.tsx`.
 | `formLayout` | `{ columns?: 1\|2\|3\|4; gap?: string; className?: string }` | `{ columns: 2 }` |
 | `actionColumnOptions` | `Partial<ActionColumnOpts<TRow>>` | — |
 
+The object itself may be passed inline — the grid memoizes on its fields, not its
+identity. Its **function and object members must be stable**, though: an inline
+`renderActions` arrow or an inline `labels` literal is a new value every render, which
+rebuilds the grid context and re-renders every visible cell on every keystroke. Hoist
+them to module scope or wrap them in `useCallback`/`useMemo`.
+
 ### Table state
 
 | Prop | Type | Default |
@@ -291,6 +297,7 @@ types/column.ts         ColumnMeta, WithMeta, EditorKind, ColumnFilterMeta
 types/grouping.ts       GroupOption, GroupBucket
 types/facets.ts         FacetChip — one active criterion, rendered as a pill
 types/crud.ts           CrudAdapter, IdLike
+types/toolbar.ts        GridView, DataGridToolbarProps
 
 hooks/
   useGridRows           Local rows + replaceRow / addRow / removeRow
@@ -304,14 +311,19 @@ hooks/
   useGridGrouping       Group-by, collapse state, buckets
   useDataGridTable      The TanStack table instance
   useColumnPrefs        localStorage persistence
+  useColumnOrdering     Movable columns in render order + the reorder swap
+  useAnchoredPanel      Fixed coordinates for a toolbar panel — the grid root is
+                        overflow-hidden and would clip an absolute one
   useConfirm            Promise-based confirm dialog
   useCrudAdapter / useTanstackQueryAdapter
 
 ui/
   DataGridToolbar, GridBody, GridFooter, ColumnsPopover
   SearchBar             Field + facet pills + attached trigger slot
-  ToolbarOverflowMenu   The caret menu: Filter | Group by, then view commands.
-                        Also exports hasOverflowItems()
+  ToolbarOverflowMenu   The caret menu: Filter | Group by, then view commands
+  toolbar/              ToolbarParts (title, view switch, error banner),
+                        MenuSections, MenuCommandsRow, OverflowTrigger,
+                        ColumnRow, overflowItems.ts (hasOverflowItems)
   toolbarStyles.ts      BTN / BTN_ON / BTN_OFF / MENU_ITEM, shared by both
   TableView, CardsView, KanbanView, CardItem, GridStates, SelectionPill
   makeActionColumns     Row action buttons + column factory

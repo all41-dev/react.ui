@@ -1,12 +1,16 @@
-import { flexRender, type Row } from "@tanstack/react-table";
+import { type Column, type Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import { ActionsOverlayCell } from "./ActionsOverlayCell";
-import { BodyDataCell } from "./BodyDataCell";
+import { ExpandedRowPanel, InlineEditorRow, RowCells } from "./DataRowParts";
 import React from "react";
 
 type DataRowFragmentProps<TRow extends object> = {
   row: Row<TRow>;
-  leafColCount: number;
+  /**
+   * The visible column model, from `table.getVisibleLeafColumns()`. Its identity is what
+   * the memo comparator watches: TanStack rebuilds this array on column reorder, hide/show
+   * and def swaps, while the `Row` objects themselves stay the same.
+   */
+  leafCols: Column<TRow, unknown>[];
   isEditing: boolean;
   isSelected: boolean;
   isExpanded: boolean;
@@ -21,7 +25,7 @@ type DataRowFragmentProps<TRow extends object> = {
 
 function DataRowFragmentInner<TRow extends object>({
   row,
-  leafColCount,
+  leafCols,
   isEditing,
   isSelected,
   isExpanded,
@@ -32,6 +36,7 @@ function DataRowFragmentInner<TRow extends object>({
   ariaRowIndex,
 }: DataRowFragmentProps<TRow>) {
   const cells = row.getVisibleCells();
+  const leafColCount = leafCols.length;
   const interactive = !!onRowClick;
 
   return (
@@ -85,51 +90,19 @@ function DataRowFragmentInner<TRow extends object>({
         aria-selected={isSelected}
         aria-expanded={renderExpandedRow ? isExpanded : undefined}
       >
-        {cells.map((c) => {
-          if (c.column.id === "__actions__") {
-            return <ActionsOverlayCell key={c.id} c={c} />;
-          }
-          if (c.column.id === "__select__") {
-            return (
-              <td
-                key={c.id}
-                className="h-10 w-[36px] border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)] px-2.5 align-middle"
-                // Checkbox clicks must never double as row clicks.
-                onClick={(e) => e.stopPropagation()}
-              >
-                {flexRender(c.column.columnDef.cell, c.getContext())}
-              </td>
-            );
-          }
-          return <BodyDataCell key={c.id} c={c} />;
-        })}
+        <RowCells cells={cells} />
       </tr>
 
       {isExpanded && renderExpandedRow && (
-        /* Inset surface with a hairline cast down from the row above. The left inset
-           aligns the detail with the first data column, not the chevron. */
-        <tr className="bg-surface-inset">
-          <td
-            colSpan={leafColCount}
-            className="h-auto p-0 shadow-[inset_0_1px_0_var(--rui-border-default)]"
-          >
-            <div className="animate-slide-down pb-4 pl-11 pr-3.5 pt-3.5">
-              {renderExpandedRow(row.original)}
-            </div>
-          </td>
-        </tr>
+        <ExpandedRowPanel leafColCount={leafColCount}>
+          {renderExpandedRow(row.original)}
+        </ExpandedRowPanel>
       )}
 
       {isEditing && inlineEditor && (
-        /* The inline form hangs off the edited row, tied to it by an accent-tinted
-           top border. */
-        <tr>
-          <td colSpan={leafColCount} className="h-auto overflow-hidden p-0">
-            <div className="animate-slide-down border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset">
-              {inlineEditor}
-            </div>
-          </td>
-        </tr>
+        <InlineEditorRow leafColCount={leafColCount}>
+          {inlineEditor}
+        </InlineEditorRow>
       )}
     </>
   );
@@ -144,6 +117,16 @@ export const DataRowFragment = React.memo(
     // If underlying row data object changed, we want to re-render
     if (prev.row.original !== next.row.original) return false;
 
+    /*
+     * TanStack `Row` objects read live table state, so on a column reorder / hide / def
+     * swap the SAME `Row` instances come back and every other prop here compares equal —
+     * the row would skip the re-render that re-reads `row.getVisibleCells()` and keep
+     * painting data in the old cell order under the new header order. `leafCols` is the
+     * column-model-sensitive prop that catches this; any future comparator change must
+     * keep one like it in the comparison.
+     */
+    if (prev.leafCols !== next.leafCols) return false;
+
     // If "visual" row state changed, we re-render
     if (prev.isEditing !== next.isEditing) return false;
     if (prev.isSelected !== next.isSelected) return false;
@@ -153,7 +136,6 @@ export const DataRowFragment = React.memo(
     if (prev.isChanged !== next.isChanged) return false;
 
     // Layout props
-    if (prev.leafColCount !== next.leafColCount) return false;
     if (prev.ariaRowIndex !== next.ariaRowIndex) return false;
 
     // Callbacks & renderers

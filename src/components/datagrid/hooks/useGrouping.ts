@@ -64,7 +64,9 @@ export function useGroupBuckets<TRow extends object>(
           const na = Number(a);
           const nb = Number(b);
           if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-          return a.localeCompare(b, "fr");
+          // Runtime locale — hardcoding one bakes a single language's collation
+          // into a published library component.
+          return a.localeCompare(b);
         });
 
     const declared = new Map(option.values?.map((v) => [v.value, v]));

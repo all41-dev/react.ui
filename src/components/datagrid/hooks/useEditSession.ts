@@ -57,6 +57,13 @@ export function useEditSession<TRow>() {
     setSession(IDLE);
   }, []);
 
+  /*
+   * This object is a new literal every render — every member on it is stable, but the
+   * wrapper is not, and memoising it would only hide that. Callers must depend on the
+   * members they use (`close`, `startCellEdit`, `cell`, …), never on the object: a
+   * `useCallback([edit])` anywhere in the grid rebuilds `DataGridContext`'s value on
+   * every render and re-renders every cell in the body.
+   */
   return {
     session,
     startCreate,

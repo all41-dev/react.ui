@@ -1,26 +1,29 @@
-import type { DefaultValues, FieldValues } from "react-hook-form";
+import type { DefaultValues } from "react-hook-form";
 import type { WithMeta } from "../types/column";
 
-export function getAccessorKey<T extends FieldValues>(c: WithMeta<T>) {
-  return (c as any).accessorKey as string | undefined;
+export function getAccessorKey<TRow extends object, TForm extends object = TRow>(
+  c: WithMeta<TRow, TForm>
+): string | undefined {
+  // `accessorKey` only exists on one member of TanStack's ColumnDef union.
+  return (c as { accessorKey?: string }).accessorKey;
 }
 
-export function computeDefaults<T extends FieldValues>(
-  row?: T,
-  columns?: WithMeta<T>[]
-): DefaultValues<T> {
-  const d: any = row ? { ...row } : {};
+export function computeDefaults<TRow extends object, TForm extends object = TRow>(
+  row?: TRow,
+  columns?: WithMeta<TRow, TForm>[]
+): DefaultValues<TForm> {
+  const d: Record<string, unknown> = row ? { ...row } : {};
   if (columns) {
     for (const c of columns) {
-      const key = getAccessorKey<T>(c);
+      const key = getAccessorKey(c);
       if (!key) continue;
-      const raw = (row as any)?.[key];
+      const raw = (row as Record<string, unknown> | undefined)?.[key];
       /*
        * `toForm`, never `format`. `format` is the display hook — seeding the editor with
        * it would put "1 234 €" into the field and submit that back.
        */
       if (c.meta?.toForm) {
-        d[key] = c.meta.toForm(raw, row ?? ({} as T));
+        d[key] = c.meta.toForm(raw, row ?? ({} as TRow));
       } else if (raw !== undefined) {
         d[key] = raw;
       } else if (!row && c.meta?.editor) {
@@ -29,5 +32,5 @@ export function computeDefaults<T extends FieldValues>(
       }
     }
   }
-  return d as DefaultValues<T>;
+  return d as DefaultValues<TForm>;
 }

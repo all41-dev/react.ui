@@ -1,0 +1,31 @@
+import { useEffect, type RefObject } from "react";
+
+/**
+ * Closes a toolbar panel on Escape or a pointerdown outside `ref`.
+ *
+ * Containment-based on purpose: a click anywhere inside the wrapper — including a
+ * nested panel that is a DOM child of it — does not dismiss. That is what lets the
+ * Columns popover open *inside* the overflow menu without closing it, and it is why
+ * the panels are `fixed` rather than portaled (see `useAnchoredPanel`).
+ */
+export function useOutsideDismiss(
+  open: boolean,
+  ref: RefObject<HTMLElement | null>,
+  onDismiss: () => void
+): void {
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onDismiss();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, ref, onDismiss]);
+}
