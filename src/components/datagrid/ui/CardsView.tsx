@@ -64,6 +64,7 @@ export function CardsView<TRow extends object>({
     return out;
   }, [rows, columns]);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is compiler-incompatible by design; skipping memoization here is the intended behavior.
   const virtualizer = useVirtualizer({
     count: chunks.length,
     getScrollElement: () => scrollRef.current,

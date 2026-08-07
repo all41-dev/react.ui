@@ -1,4 +1,4 @@
-import type { Column, Row } from "@tanstack/react-table";
+import type { Column } from "@tanstack/react-table";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
 import type { BodyItem } from "../../hooks/useVirtualRows";

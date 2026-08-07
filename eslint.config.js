@@ -47,6 +47,16 @@ export default tseslint.config(
     },
   },
 
+  // The datagrid is a library, not app screens: cell renderers, HOC factories and
+  // their option types legitimately live next to the components that consume them.
+  // Fast refresh falling back to a full reload for these files is acceptable.
+  {
+    files: ["src/components/datagrid/**/*.{ts,tsx}"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
+
   // Plain JS (this config file, tooling scripts) — no type information available.
   {
     files: ["**/*.{js,mjs,cjs}"],

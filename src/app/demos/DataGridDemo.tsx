@@ -33,7 +33,7 @@ const userSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Name must be at least 2 characters"),
   username: z.string().min(2, "Username must be at least 2 characters"),
-  email: z.string().email("Must be a valid email address"),
+  email: z.email("Must be a valid email address"),
   phone: z.string().min(6, "Phone number is too short"),
   website: z.string().min(3, "Website is too short"),
   role: z.string(),
@@ -51,7 +51,7 @@ const postSchema = z.object({
 const commentSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Name is required"),
-  email: z.string().email("Must be a valid email"),
+  email: z.email("Must be a valid email"),
   body: z.string().min(5, "Comment body is required"),
   postId: z.number().or(z.string().transform(Number)),
 });
@@ -65,8 +65,8 @@ const albumSchema = z.object({
 const photoSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(3, "Title is required"),
-  url: z.string().url("Must be a valid image URL"),
-  thumbnailUrl: z.string().url("Must be a valid thumbnail URL"),
+  url: z.url("Must be a valid image URL"),
+  thumbnailUrl: z.url("Must be a valid thumbnail URL"),
   albumId: z.number().or(z.string().transform(Number)),
 });
 

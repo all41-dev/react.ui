@@ -46,6 +46,7 @@ export function useVirtualRows<TRow extends object>({
   const { ref: headRef, height: headerHeight } =
     useElementHeight<HTMLTableSectionElement>();
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is compiler-incompatible by design; skipping memoization here is the intended behavior.
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,

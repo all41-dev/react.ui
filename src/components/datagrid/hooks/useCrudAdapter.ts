@@ -6,14 +6,15 @@ export function useCrudAdapter<TRow extends object, TForm extends object = TRow>
   params: UseTQAdapterParams<TRow, TForm>
 ) {
   const tq = useTanstackQueryAdapter<TRow, TForm>(params);
+  const { rows, refetch, createAsync, updateAsync, deleteAsync, getId } = tq;
 
   const loadRows = useCallback(async () => {
-    if (!tq.rows?.length) await tq.refetch();
-  }, [tq.rows?.length, tq.refetch]);
+    if (!rows?.length) await refetch();
+  }, [rows?.length, refetch]);
 
   const retry = useCallback(async () => {
-    await tq.refetch();
-  }, [tq.refetch]);
+    await refetch();
+  }, [refetch]);
 
   // The mode union has to match `DataGridProps.onPersist` exactly — narrower here and
   // under `strictFunctionTypes` the library's own adapter fails to typecheck against the
@@ -24,24 +25,24 @@ export function useCrudAdapter<TRow extends object, TForm extends object = TRow>
     values: TForm,
     prev?: TRow
   ): Promise<TRow> => {
-    if (mode === "create") return (await tq.createAsync(values)) as TRow;
-    const id = tq.getId(prev!);
-    return (await tq.updateAsync(id, values)) as TRow;
-  }, [tq.createAsync, tq.updateAsync, tq.getId]);
+    if (mode === "create") return (await createAsync(values)) as TRow;
+    const id = getId(prev!);
+    return (await updateAsync(id, values)) as TRow;
+  }, [createAsync, updateAsync, getId]);
 
   const onDelete = useCallback(async (row: TRow) => {
-    await tq.deleteAsync(tq.getId(row));
-  }, [tq.deleteAsync, tq.getId]);
+    await deleteAsync(getId(row));
+  }, [deleteAsync, getId]);
 
   return {
-    rows: tq.rows,
+    rows,
     isLoading: tq.isLoading,
     error: tq.error,
     refetch: retry,
     loadRows,
     onPersist,
     onDelete,
-    getId: tq.getId,
+    getId,
     /** True when any mutation (create/update/delete) is in-flight. */
     isMutating: tq.isMutating,
     /** The most recent mutation error, or null. */

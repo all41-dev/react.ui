@@ -67,6 +67,7 @@ export function useDataGridTable<TRow extends object, TForm extends object>({
   const filteredRowModel = useMemo(() => getFilteredRowModel(), []);
   const paginationRowModel = useMemo(() => getPaginationRowModel(), []);
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table is compiler-incompatible by design; skipping memoization here is the intended behavior.
   return useReactTable({
     data,
     columns,

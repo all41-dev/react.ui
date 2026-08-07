@@ -28,6 +28,8 @@ export function useGridView<TRow extends object>({
     string | number | undefined
   >(undefined);
 
+  const { close: closeEdit } = edit;
+
   const showCards = hasCard && view === "cards";
 
   /*
@@ -55,10 +57,10 @@ export function useGridView<TRow extends object>({
     (v: "list" | "cards") => {
       // A session that straddles the toggle changes shell mid-flight (inline ↔ modal)
       // and loses its form state anyway when the host view unmounts — close it instead.
-      edit.close();
+      closeEdit();
       setView(v);
     },
-    [edit.close]
+    [closeEdit]
   );
 
   const handleRowClick = useCallback(

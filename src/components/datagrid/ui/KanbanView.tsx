@@ -66,6 +66,7 @@ function KanbanColumn<TRow extends object>({
 
   // Each column virtualizes its own cards. A single tall group would otherwise
   // reintroduce exactly the cost the flat cards grid was virtualized to avoid.
+  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is compiler-incompatible by design; skipping memoization here is the intended behavior.
   const virtualizer = useVirtualizer({
     count: group.rows.length,
     getScrollElement: () => scrollRef.current,
