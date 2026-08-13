@@ -47,8 +47,19 @@ function safeSave(key: string, prefs: ColumnPrefs) {
   }
 }
 
-/** Column sizing, order and visibility, persisted per `storageKey`. */
-export function useColumnPrefs(storageKey: string, allColumnIds: string[]) {
+/** Stable identity, so the visibility memo below doesn't rerun on every render. */
+const NO_DEFAULT_HIDDEN: string[] = [];
+
+/**
+ * Column sizing, order and visibility, persisted per `storageKey`.
+ *
+ * `defaultHiddenIds` are the columns that start hidden — see `meta.visibleInTable`.
+ */
+export function useColumnPrefs(
+  storageKey: string,
+  allColumnIds: string[],
+  defaultHiddenIds: string[] = NO_DEFAULT_HIDDEN
+) {
   const [prefs, setPrefs] = useState<ColumnPrefs>(() => safeLoad(storageKey));
 
   // Switching grids (or storageKey) must load that grid's own preferences rather than
@@ -66,6 +77,16 @@ export function useColumnPrefs(storageKey: string, allColumnIds: string[]) {
     const missing = allColumnIds.filter((id) => !kept.includes(id));
     return [...kept, ...missing];
   }, [prefs.columnOrder, allColumnIds]);
+
+  /* A stored preference is layered over the defaults rather than merged into them: the
+     seed is what the grid ships with, the stored value is what the user chose, and the
+     user wins. Nothing about the seed is ever written to storage. */
+  const columnVisibility = useMemo(() => {
+    if (defaultHiddenIds.length === 0) return prefs.columnVisibility;
+    const seeded: Record<string, boolean> = {};
+    for (const id of defaultHiddenIds) seeded[id] = false;
+    return { ...seeded, ...prefs.columnVisibility };
+  }, [defaultHiddenIds, prefs.columnVisibility]);
 
   // Debounced so a column drag writes once at rest, not on every mousemove.
   useEffect(() => {
@@ -113,7 +134,7 @@ export function useColumnPrefs(storageKey: string, allColumnIds: string[]) {
   return {
     state: {
       columnSizing: prefs.columnSizing,
-      columnVisibility: prefs.columnVisibility,
+      columnVisibility,
       columnOrder: normalizedOrder,
     },
     handlers: {

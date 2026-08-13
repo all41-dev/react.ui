@@ -155,6 +155,7 @@ behave as standard TanStack.
 | `editor` | `EditorKind` | **Presence puts the column in the edit form.** Absent → display only |
 | `required` | `boolean` | Asterisk + `aria-required`. Actual enforcement is the zod schema |
 | `visibleInForm` | `boolean` | `false` excludes an editor-bearing column from the form |
+| `visibleInTable` | `boolean` | `false` starts the column hidden — a form-only field. The Columns popover still reveals it, and a stored preference wins over the seed |
 | `editorProps` | `Record<string, unknown>` | Forwarded to the editor (`language`, `rows` understood) |
 | `options` | `Option[]` | Choices for `editor: "select"` |
 | `cellEdit` | `boolean` | Click-to-edit popover. Requires `editor` |

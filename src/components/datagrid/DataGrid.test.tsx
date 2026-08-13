@@ -812,6 +812,52 @@ describe("DataGrid", () => {
     });
   });
 
+  describe("form-only columns", () => {
+    // Visibility is persisted per storage key — keep it out of the other tests.
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    const withJoined: WithMeta<User, any>[] = [
+      ...COLUMNS,
+      {
+        accessorKey: "joined",
+        header: "Joined",
+        meta: { label: "Joined", editor: "text", visibleInTable: false },
+      },
+    ];
+
+    it("keeps the column out of the table but in the form", async () => {
+      const ref = createRef<DataGridHandle<User>>();
+      renderGrid({ ref, columns: withJoined, onPersist: vi.fn() });
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      expect(
+        screen.queryByRole("columnheader", { name: "Joined" })
+      ).not.toBeInTheDocument();
+
+      await waitFor(() => {
+        ref.current?.startCreate();
+      });
+      const form = await screen.findByRole("dialog");
+      expect(within(form).getByLabelText(/joined/i)).toBeInTheDocument();
+    });
+
+    it("the Columns popover can still reveal it", async () => {
+      const user = userEvent.setup();
+      renderGrid({ columns: withJoined });
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      const before = visibleLeafCount();
+      await openOverflowMenu(user);
+      // The trigger carries the hidden-column count, so its name is "Columns 1" here.
+      await user.click(screen.getByRole("button", { name: /^Columns/ }));
+      const panel = await screen.findByRole("dialog", { name: "Columns" });
+
+      await user.click(within(panel).getByRole("checkbox", { name: /joined/i }));
+      await waitFor(() => expect(visibleLeafCount()).toBe(before + 1));
+    });
+  });
+
   describe("column reorder reaches the mounted rows", () => {
     // Reordering writes column prefs to localStorage — keep it out of the other tests.
     beforeEach(() => localStorage.clear());

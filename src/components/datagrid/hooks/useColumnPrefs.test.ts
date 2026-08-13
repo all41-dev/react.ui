@@ -84,6 +84,43 @@ describe("useColumnPrefs", () => {
     expect(result.current.state.columnOrder[0]).toBe("email");
   });
 
+  describe("default-hidden columns", () => {
+    it("starts them hidden", () => {
+      const { result } = renderHook(() => useColumnPrefs("dg:a", IDS, ["email"]));
+      expect(result.current.state.columnVisibility).toEqual({ email: false });
+    });
+
+    it("lets a stored preference win, so revealing one survives a reload", () => {
+      localStorage.setItem(
+        "dg:a",
+        JSON.stringify({ v: 1, columnVisibility: { email: true } })
+      );
+      const { result } = renderHook(() => useColumnPrefs("dg:a", IDS, ["email"]));
+      expect(result.current.state.columnVisibility).toEqual({ email: true });
+    });
+
+    it("never writes the seed to storage", async () => {
+      vi.useFakeTimers();
+      const { result } = renderHook(() => useColumnPrefs("dg:a", IDS, ["email"]));
+      act(() => result.current.handlers.onColumnSizingChange({ name: 200 }));
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+      });
+      const stored = JSON.parse(localStorage.getItem("dg:a") ?? "{}");
+      expect(stored.columnVisibility).toEqual({});
+      vi.useRealTimers();
+    });
+
+    it("reset returns them to hidden", () => {
+      const { result } = renderHook(() => useColumnPrefs("dg:a", IDS, ["email"]));
+      act(() => result.current.handlers.onColumnVisibilityChange({ email: true }));
+      expect(result.current.state.columnVisibility).toEqual({ email: true });
+
+      act(() => result.current.reset());
+      expect(result.current.state.columnVisibility).toEqual({ email: false });
+    });
+  });
+
   it("persists changes under the storage key", async () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => useColumnPrefs("dg:a", IDS));

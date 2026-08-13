@@ -76,7 +76,21 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     [baseCols, selectable, hasRowActions]
   );
 
-  const { state, handlers, reset } = useColumnPrefs(storageKey, allColumnIds);
+  /* Form-only columns: they carry an editor and a label but no place in the table. The
+     injected select/action columns can never be one. */
+  const defaultHiddenIds = useMemo(
+    () =>
+      baseCols
+        .filter((c) => c.meta?.visibleInTable === false)
+        .map(getColId),
+    [baseCols]
+  );
+
+  const { state, handlers, reset } = useColumnPrefs(
+    storageKey,
+    allColumnIds,
+    defaultHiddenIds
+  );
 
   const orderedColumns = useMemo(() => {
     const byId = new Map<string, WithMeta<TRow, TForm>>();

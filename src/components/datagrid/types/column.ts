@@ -28,6 +28,12 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   editor?: EditorKind;
   required?: boolean;
   visibleInForm?: boolean;
+  /**
+   * `false` keeps the column out of the table by default — the field still reaches the
+   * edit form, and the Columns popover can still reveal it. A stored preference wins,
+   * so a revealed column stays revealed.
+   */
+  visibleInTable?: boolean;
   /** For markdown/code: `language`, `rows` are understood; the rest is forwarded. */
   editorProps?: Record<string, unknown>;
   options?: Option[];
