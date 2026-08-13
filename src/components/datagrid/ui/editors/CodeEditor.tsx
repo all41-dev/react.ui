@@ -67,6 +67,7 @@ export function CodeEditor({
   const [lineCount, setLineCount] = useState(1);
   const [busy, setBusy] = useState(false);
   const [formatError, setFormatError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   /*
    * Everything the extensions call is read through a ref. Extensions are compiled once
@@ -107,6 +108,15 @@ export function CodeEditor({
     formatRef.current = handleFormat;
   }, [handleFormat]);
 
+  const escapeRef = useRef<() => boolean>(() => false);
+  useEffect(() => {
+    escapeRef.current = () => {
+      if (!expanded) return false;
+      setExpanded(false);
+      return true;
+    };
+  }, [expanded]);
+
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
@@ -118,7 +128,6 @@ export function CodeEditor({
         mode,
         readOnly,
         placeholder,
-        maxHeight: isInline ? undefined : `${Math.max(visibleRows, 2) * 20 + 18}px`,
         contentAttributes: {
           ...(id ? { id } : {}),
           ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
@@ -132,6 +141,7 @@ export function CodeEditor({
         getCompletionSource: () => completionsRef.current,
         getDiagnosticSource: () => diagnosticsRef.current,
         onFormat: () => formatRef.current(),
+        onEscape: () => escapeRef.current(),
       }),
     });
 
@@ -181,8 +191,40 @@ export function CodeEditor({
     );
   }
 
+  /*
+   * Expanding swaps classes and the height variable, nothing else. The element order
+   * below is fixed — React matches children by position, so a conditional wrapper would
+   * reuse this div for the spacer and remount the editor, destroying the view. The
+   * spacer and backdrop are always present and merely hidden.
+   */
+  const frame = expanded
+    ? "fixed inset-4 z-50 flex flex-col overflow-hidden rounded-surface border border-border-default bg-surface-inset shadow-[0_24px_60px_rgba(0,0,0,.35)]"
+    : "flex flex-col overflow-hidden rounded-control border border-border-default bg-surface-inset focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]";
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-control border border-border-default bg-surface-inset focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]">
+    <>
+      {/* Holds the form's layout while the editor is lifted out of the flow. */}
+      <div
+        aria-hidden
+        style={{
+          display: expanded ? "block" : "none",
+          height: `${Math.max(visibleRows, 2) * 20 + 60}px`,
+        }}
+      />
+      <div
+        aria-hidden
+        className={expanded ? "fixed inset-0 z-40 bg-[rgba(0,0,0,.45)]" : "hidden"}
+      />
+      <div
+      className={frame}
+      style={
+        {
+          "--rui-code-max-h": expanded
+            ? "100%"
+            : `${Math.max(visibleRows, 2) * 20 + 18}px`,
+        } as React.CSSProperties
+      }
+    >
       <div className="flex items-center justify-between gap-2 border-b border-border-default bg-surface-card px-2 py-1">
         <span className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-[.6875rem] font-semibold uppercase tracking-wide text-muted">
           {language}
@@ -199,20 +241,33 @@ export function CodeEditor({
               {busy ? "Formatting…" : "Format"}
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setExpanded((open) => !open)}
+            title={expanded ? "Collapse (Esc)" : "Expand to full screen"}
+            aria-expanded={expanded}
+            className="cursor-pointer rounded px-1.5 py-0.5 text-[.6875rem] text-faint transition-colors hover:bg-surface-raised hover:text-body"
+          >
+            {expanded ? "Collapse" : "Expand"}
+          </button>
           <span className="font-mono text-[.6875rem] text-faint">
             {lineCount} {lineCount === 1 ? "line" : "lines"}
           </span>
         </div>
       </div>
 
-      <div ref={hostRef} className={className} />
+      <div ref={hostRef} className={`min-h-0 flex-1 ${className ?? ""}`} />
 
-      <div className="flex items-center justify-between border-t border-border-default bg-surface-card px-2 py-1 font-mono text-[.6875rem] text-faint">
+      <div className="flex items-center justify-between gap-3 border-t border-border-default bg-surface-card px-2 py-1 font-mono text-[.6875rem] text-faint">
         <span className="truncate text-danger">{formatError}</span>
-        <span>
-          Ln {caret.ln}, Col {caret.col}
+        <span className="flex shrink-0 items-center gap-3">
+          <span className="hidden sm:inline">Ctrl+Space suggestions · Ctrl+F find</span>
+          <span>
+            Ln {caret.ln}, Col {caret.col}
+          </span>
         </span>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

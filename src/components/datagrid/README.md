@@ -259,6 +259,11 @@ implementation detail:
 // The member chain is already parsed: `context.obj.address.ci` arrives as
 // { path: ["context", "obj", "address"], word: "ci" }. Filtering by `word` is the
 // editor's job — return everything reachable at `path`.
+//
+// Both notations resolve to the same path, so a source never parses syntax:
+// `obj["some name"].ci` gives path ["obj", "some name"]. Return names as they are —
+// the editor decides how to write one in, bracketing anything that is not a valid
+// identifier so `.` becomes `["some name"]`.
 const completions: CodeCompletionSource = ({ path }) =>
   fieldsAt(path).map((f) => ({ label: f.name, detail: f.type, kind: "property" }));
 

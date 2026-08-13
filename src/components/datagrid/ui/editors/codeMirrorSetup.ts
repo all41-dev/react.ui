@@ -23,6 +23,8 @@ import {
   completionKeymap,
   closeBrackets,
   closeBracketsKeymap,
+  startCompletion,
+  type Completion,
   type CompletionContext,
   type CompletionResult,
 } from "@codemirror/autocomplete";
@@ -40,30 +42,166 @@ import { javascript } from "@codemirror/lang-javascript";
 import { json } from "@codemirror/lang-json";
 import { tags } from "@lezer/highlight";
 import type {
+  CodeCompletion,
   CodeCompletionSource,
   CodeDiagnosticSource,
   CodeEditorLanguage,
   CodeEditorMode,
 } from "./codeEditorTypes";
 
-/** Trailing member chain before the cursor, whitespace around the dots tolerated. */
-const MEMBER_CHAIN = /[A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*\.?\s*$/;
+/** How the member under the cursor is being written. */
+export type MemberAccessKind = "plain" | "dot" | "bracket";
+
+export type MemberAccess = {
+  /** Segments already resolved, from either notation. */
+  path: string[];
+  /** The partial member being typed. May contain spaces inside brackets. */
+  word: string;
+  /** Range the completion replaces. */
+  from: number;
+  to: number;
+  access: MemberAccessKind;
+  /** Quote in use when the cursor sits inside `["…"]`. Absent right after `[`. */
+  quote?: '"' | "'";
+};
+
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+const isIdentChar = (c: string | undefined) => !!c && /[\w$]/.test(c);
+const isIdentStart = (c: string | undefined) => !!c && /[A-Za-z_$]/.test(c);
+const isSpace = (c: string | undefined) => !!c && /\s/.test(c);
+
+/** Reads `["some name"]` backwards from its closing bracket. */
+function readBracketSegment(
+  text: string,
+  closeIndex: number
+): { value: string; open: number } | null {
+  let k = closeIndex - 1;
+  while (isSpace(text[k])) k--;
+  const quote = text[k];
+  if (quote !== '"' && quote !== "'") return null;
+
+  let s = k - 1;
+  while (s >= 0) {
+    if (text[s] === quote) {
+      let slashes = 0;
+      let t = s - 1;
+      while (t >= 0 && text[t] === "\\") {
+        slashes++;
+        t--;
+      }
+      if (slashes % 2 === 0) break;
+    }
+    s--;
+  }
+  if (s < 0) return null;
+
+  let open = s - 1;
+  while (isSpace(text[open])) open--;
+  if (text[open] !== "[") return null;
+
+  return { value: text.slice(s + 1, k).replace(/\\(.)/g, "$1"), open };
+}
+
+/** Walks the resolved part of the chain backwards from `end` (inclusive). */
+function parseChain(text: string, end: number): string[] | null {
+  const segments: string[] = [];
+  let i = end + 1;
+
+  for (;;) {
+    while (i > 0 && isSpace(text[i - 1])) i--;
+    if (i <= 0) break;
+
+    if (text[i - 1] === "]") {
+      const bracket = readBracketSegment(text, i - 1);
+      if (!bracket) return null;
+      segments.push(bracket.value);
+      i = bracket.open;
+      // `obj["a"]["b"]` chains with no separator between the segments.
+      continue;
+    }
+
+    if (isIdentChar(text[i - 1])) {
+      let j = i;
+      while (j > 0 && isIdentChar(text[j - 1])) j--;
+      if (!isIdentStart(text[j])) return null;
+      segments.push(text.slice(j, i));
+      i = j;
+      while (i > 0 && isSpace(text[i - 1])) i--;
+      if (text[i - 1] !== ".") break;
+      i--;
+      continue;
+    }
+
+    break;
+  }
+
+  return segments.reverse();
+}
 
 /**
- * Splits what the user has typed into the resolved prefix and the partial word.
- * `context.obj.address.ci` → `{ path: ["context", "obj", "address"], word: "ci" }`;
- * a trailing dot yields an empty word, which is what makes nested objects work.
+ * Splits what the user has typed into the resolved prefix and the partial member.
+ *
+ * Both notations are understood, because a source-system column name is not always a
+ * valid identifier: `context.obj["some name"].ci` yields
+ * `{ path: ["context", "obj", "some name"], word: "ci" }`.
  */
+export function parseMemberAccess(text: string, pos: number): MemberAccess {
+  const nothing: MemberAccess = {
+    path: [],
+    word: "",
+    from: pos,
+    to: pos,
+    access: "plain",
+  };
+
+  // Inside an unterminated `["…` — the only case where the word may hold spaces.
+  for (let k = pos - 1; k >= 1; k--) {
+    const c = text[k];
+    if (c === "\n") break;
+    if ((c === '"' || c === "'") && text[k - 1] === "[") {
+      const inner = text.slice(k + 1, pos);
+      // A quote inside means that string already closed, so the cursor is past it.
+      if (inner.includes(c)) break;
+      const path = parseChain(text, k - 2);
+      if (!path?.length) return nothing;
+      return {
+        path,
+        word: inner,
+        from: k + 1,
+        to: pos,
+        access: "bracket",
+        quote: c,
+      };
+    }
+  }
+
+  // Right after `[`, before any quote is typed.
+  if (text[pos - 1] === "[") {
+    const path = parseChain(text, pos - 2);
+    if (!path?.length) return nothing;
+    return { path, word: "", from: pos, to: pos, access: "bracket" };
+  }
+
+  let j = pos;
+  while (j > 0 && isIdentChar(text[j - 1])) j--;
+  const word = text.slice(j, pos);
+
+  if (text[j - 1] === ".") {
+    const path = parseChain(text, j - 2);
+    if (!path?.length) return nothing;
+    return { path, word, from: j, to: pos, access: "dot" };
+  }
+
+  return { path: [], word, from: j, to: pos, access: "plain" };
+}
+
+/** Back-compat view of {@link parseMemberAccess} for callers wanting only the split. */
 export function parseMemberPath(
   text: string,
   pos: number
 ): { path: string[]; word: string } {
-  const match = MEMBER_CHAIN.exec(text.slice(0, pos));
-  if (!match) return { path: [], word: "" };
-  const chain = match[0].replace(/\s+/g, "");
-  const parts = chain.split(".");
-  // A trailing dot leaves an empty final segment: the whole chain is the path.
-  return { path: parts.slice(0, -1), word: parts[parts.length - 1] ?? "" };
+  const { path, word } = parseMemberAccess(text, pos);
+  return { path, word };
 }
 
 const KIND_TO_CM = {
@@ -74,6 +212,44 @@ const KIND_TO_CM = {
   constant: "constant",
 } as const;
 
+const quoted = (name: string, quote: '"' | "'") =>
+  name.replace(/\\/g, "\\\\").replace(new RegExp(quote, "g"), `\\${quote}`);
+
+/**
+ * Chooses how a name is written in. The source supplies names; deciding whether one is
+ * spellable after a dot is the editor's job, since only it knows the language.
+ */
+function toOption(item: CodeCompletion, access: MemberAccess): Completion {
+  const base: Completion = {
+    label: item.label,
+    detail: item.detail,
+    info: item.info,
+    type: item.kind ? KIND_TO_CM[item.kind] : undefined,
+  };
+
+  if (access.access === "bracket") {
+    return access.quote
+      ? { ...base, apply: quoted(item.label, access.quote) }
+      : { ...base, apply: `"${quoted(item.label, '"')}"` };
+  }
+
+  // A name that is not an identifier cannot follow a dot: the dot itself is replaced,
+  // turning `context.obj.` into `context.obj["some name"]`.
+  if (access.access === "dot" && !IDENTIFIER.test(item.label)) {
+    return {
+      ...base,
+      apply: (view, _completion, from, to) => {
+        view.dispatch({
+          changes: { from: from - 1, to, insert: `["${quoted(item.label, '"')}"]` },
+          selection: { anchor: from - 1 + item.label.length + 4 },
+        });
+      },
+    };
+  }
+
+  return base;
+}
+
 function completionExtension(
   getSource: () => CodeCompletionSource | undefined
 ): Extension {
@@ -81,7 +257,8 @@ function completionExtension(
     const provide = getSource();
     if (!provide) return null;
     const text = ctx.state.doc.toString();
-    const { path, word } = parseMemberPath(text, ctx.pos);
+    const access = parseMemberAccess(text, ctx.pos);
+    const { path, word } = access;
     // Without a path or a partial word there is nothing to narrow by, so stay quiet
     // unless the user asked with Ctrl-Space.
     if (!ctx.explicit && !word && path.length === 0) return null;
@@ -96,18 +273,39 @@ function completionExtension(
     if (!items.length) return null;
 
     return {
-      from: ctx.pos - word.length,
-      options: items.map((item) => ({
-        label: item.label,
-        detail: item.detail,
-        info: item.info,
-        type: item.kind ? KIND_TO_CM[item.kind] : undefined,
-      })),
-      validFor: /^[\w$]*$/,
+      from: access.from,
+      to: access.to,
+      options: items.map((item) => toOption(item, access)),
+      // A bracketed name may contain anything but its own quote, so the cheap
+      // identifier guard would end the session on the first space.
+      validFor: access.access === "bracket" ? /^[^"'\]]*$/ : /^[\w$]*$/,
     };
   };
 
-  return autocompletion({ override: [source], activateOnTyping: true });
+  return [
+    autocompletion({ override: [source], activateOnTyping: true }),
+    /*
+     * A member separator must open the popup. `activateOnTyping` alone does not manage
+     * it: the query runs against the word before the cursor, and `.`, `[` and a quote
+     * all end a word rather than extending one. Watching applied changes rather than key
+     * events covers paste and programmatic edits; the length guard keeps a pasted block
+     * containing a dot from triggering. Auto-closing turns a typed `[` into `[]` and a
+     * quote into a pair, hence matching anywhere in the insertion rather than at its end.
+     * Deferred because starting a completion dispatches, which a listener may not do
+     * inline.
+     */
+    EditorView.updateListener.of((update) => {
+      if (!update.docChanged) return;
+      let trigger = false;
+      for (const tr of update.transactions) {
+        tr.changes.iterChanges((_fromA, _toA, _fromB, _toB, inserted) => {
+          const text = inserted.sliceString(0);
+          if (text.length <= 2 && /[.["']/.test(text)) trigger = true;
+        });
+      }
+      if (trigger) queueMicrotask(() => startCompletion(update.view));
+    }),
+  ];
 }
 
 /** Error nodes in the parse tree — free syntax checking, no extra dependency. */
@@ -177,6 +375,12 @@ const baseTheme = EditorView.theme({
     fontSize: ".75rem",
   },
   "&.cm-focused": { outline: "none" },
+  /*
+   * Height is a CSS variable set on the host rather than a generated theme, so growing
+   * the editor to full screen is a style change instead of a reconfiguration — the view
+   * survives, and with it the cursor, the undo history and any open completion.
+   */
+  ".cm-scroller": { maxHeight: "var(--rui-code-max-h, none)", overflow: "auto" },
   ".cm-content": {
     fontFamily: "var(--rui-font-mono)",
     padding: "9px 0",
@@ -292,8 +496,6 @@ export type BuildExtensionsOpts = {
   mode: CodeEditorMode;
   readOnly: boolean;
   placeholder?: string;
-  /** CSS length capping the scroller; omitted for the single-line mode. */
-  maxHeight?: string;
   /** Applied to the contenteditable, which is the element assistive tech sees. */
   contentAttributes?: Record<string, string>;
   onChange: (value: string) => void;
@@ -302,6 +504,8 @@ export type BuildExtensionsOpts = {
   getCompletionSource: () => CodeCompletionSource | undefined;
   getDiagnosticSource: () => CodeDiagnosticSource | undefined;
   onFormat: () => void;
+  /** Return true when Escape was consumed — collapsing a full-screen editor. */
+  onEscape: () => boolean;
 };
 
 export function buildExtensions(opts: BuildExtensionsOpts): Extension[] {
@@ -341,6 +545,8 @@ export function buildExtensions(opts: BuildExtensionsOpts): Extension[] {
       ...completionKeymap,
       ...lintKeymap,
       formatBinding,
+      // After completionKeymap on purpose: an open popup swallows Escape first.
+      { key: "Escape", run: () => opts.onEscape() },
       indentWithTab,
     ]),
     EditorView.updateListener.of((update) => {
@@ -358,11 +564,6 @@ export function buildExtensions(opts: BuildExtensionsOpts): Extension[] {
 
   if (opts.contentAttributes) {
     extensions.push(EditorView.contentAttributes.of(opts.contentAttributes));
-  }
-  if (opts.maxHeight) {
-    extensions.push(
-      EditorView.theme({ ".cm-scroller": { maxHeight: opts.maxHeight, overflow: "auto" } })
-    );
   }
 
   if (opts.placeholder) extensions.push(cmPlaceholder(opts.placeholder));

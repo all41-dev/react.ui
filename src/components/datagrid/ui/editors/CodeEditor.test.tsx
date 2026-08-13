@@ -1,10 +1,15 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { EditorView } from "@codemirror/view";
-import { startCompletion } from "@codemirror/autocomplete";
+import {
+  acceptCompletion,
+  currentCompletions,
+  startCompletion,
+} from "@codemirror/autocomplete";
 import { CodeEditor } from "./CodeEditor";
-import { parseMemberPath } from "./codeMirrorSetup";
+import { parseMemberAccess, parseMemberPath } from "./codeMirrorSetup";
 import type { CodeCompletionContext } from "./codeEditorTypes";
 
 /*
@@ -25,6 +30,16 @@ function type(text: string) {
     changes: { from: 0, to: view.state.doc.length, insert: text },
     selection: { anchor: text.length },
   });
+}
+
+/**
+ * Opens the popup and waits out CodeMirror's `interactionDelay` — a mis-click guard that
+ * makes `acceptCompletion` a no-op for the first 75ms after the options appear.
+ */
+async function openCompletions(expected: number) {
+  startCompletion(editor());
+  await waitFor(() => expect(currentCompletions(editor().state)).toHaveLength(expected));
+  await new Promise((resolve) => setTimeout(resolve, 120));
 }
 
 describe("parseMemberPath", () => {
@@ -58,6 +73,65 @@ describe("parseMemberPath", () => {
 
   it("stops at a non-identifier boundary", () => {
     expect(at("a + ")).toEqual({ path: [], word: "" });
+  });
+
+  /*
+   * Source-system columns are not always valid identifiers, so bracket notation is the
+   * only way to reach them and has to resolve like a dot.
+   */
+  it("reads a bracketed segment as part of the path", () => {
+    expect(at('context.obj["qwe qwe qwe"].')).toEqual({
+      path: ["context", "obj", "qwe qwe qwe"],
+      word: "",
+    });
+  });
+
+  it("captures a partial bracket string, spaces included", () => {
+    expect(at('context.obj["qwe qw')).toEqual({
+      path: ["context", "obj"],
+      word: "qwe qw",
+    });
+  });
+
+  it("treats a bare opening bracket as an empty word", () => {
+    expect(at("context.obj[")).toEqual({ path: ["context", "obj"], word: "" });
+  });
+
+  it("chains bracket segments without a separator", () => {
+    expect(at('context.obj["a b"]["c d"].')).toEqual({
+      path: ["context", "obj", "a b", "c d"],
+      word: "",
+    });
+  });
+
+  it("handles single quotes and escaped quotes", () => {
+    expect(at("context.obj['a b'].")).toEqual({
+      path: ["context", "obj", "a b"],
+      word: "",
+    });
+    expect(at('context.obj["a\\"b"].')).toEqual({
+      path: ["context", "obj", 'a"b'],
+      word: "",
+    });
+  });
+
+  it("does not mistake a closed bracket string for an open one", () => {
+    expect(at('context.obj["a b"].ci')).toEqual({
+      path: ["context", "obj", "a b"],
+      word: "ci",
+    });
+  });
+
+  it("reports the access kind and the range to replace", () => {
+    const dot = parseMemberAccess("context.obj.ci", 14);
+    expect(dot).toMatchObject({ access: "dot", from: 12, to: 14 });
+
+    const bracket = parseMemberAccess('context.obj["qw', 15);
+    expect(bracket).toMatchObject({ access: "bracket", quote: '"', from: 13, to: 15 });
+
+    const empty = parseMemberAccess("context.obj[", 12);
+    expect(empty).toMatchObject({ access: "bracket", from: 12, to: 12 });
+    expect(empty.quote).toBeUndefined();
   });
 
   it("reads the text before the cursor, not the whole document", () => {
@@ -194,6 +268,99 @@ describe("CodeEditor", () => {
   it("hides Format when read-only", () => {
     render(<CodeEditor value="x" onChange={() => {}} language="javascript" readOnly />);
     expect(screen.queryByRole("button", { name: /format/i })).not.toBeInTheDocument();
+  });
+
+  it("opens the popup when a dot is typed", async () => {
+    const completions = vi.fn(() => [{ label: "ma1_name" }]);
+    render(
+      <CodeEditor
+        value="context"
+        onChange={() => {}}
+        language="javascript"
+        completions={completions}
+      />
+    );
+    const view = editor();
+    // What typing a dot produces — the path `activateOnTyping` alone does not cover.
+    view.dispatch(view.state.replaceSelection("."));
+    await waitFor(() => expect(completions).toHaveBeenCalled());
+  });
+
+  it("expands and collapses without rebuilding the view", async () => {
+    render(<CodeEditor value="a.b" onChange={() => {}} language="javascript" />);
+    const before = editor();
+    await userEvent.click(screen.getByRole("button", { name: "Expand" }));
+
+    const collapse = screen.getByRole("button", { name: "Collapse" });
+    expect(collapse).toHaveAttribute("aria-expanded", "true");
+    // Same view instance: the cursor and undo history survive the transition.
+    expect(editor()).toBe(before);
+
+    await userEvent.click(collapse);
+    expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();
+    expect(editor()).toBe(before);
+  });
+
+  /*
+   * The source hands over names; writing one in legally is the editor's job. A name with
+   * spaces appended to a dot would produce a syntax error, so the dot is rewritten.
+   */
+  it("rewrites the dot into brackets for a name that is not an identifier", async () => {
+    const completions = vi.fn(() => [{ label: "qwe qwe qwe" }]);
+    render(
+      <CodeEditor
+        value=""
+        onChange={() => {}}
+        language="javascript"
+        completions={completions}
+      />
+    );
+    type("context.obj.");
+    await openCompletions(1);
+    expect(completions).toHaveBeenCalled();
+
+    acceptCompletion(editor());
+    await waitFor(() =>
+      expect(editor().state.doc.toString()).toBe('context.obj["qwe qwe qwe"]')
+    );
+  });
+
+  it("inserts a plain identifier after the dot untouched", async () => {
+    const completions = vi.fn(() => [{ label: "ma1_name" }]);
+    render(
+      <CodeEditor
+        value=""
+        onChange={() => {}}
+        language="javascript"
+        completions={completions}
+      />
+    );
+    type("context.obj.");
+    await openCompletions(1);
+
+    acceptCompletion(editor());
+    await waitFor(() =>
+      expect(editor().state.doc.toString()).toBe("context.obj.ma1_name")
+    );
+  });
+
+  it("fills a name into an already-open bracket string", async () => {
+    const completions = vi.fn(() => [{ label: "qwe qwe qwe" }]);
+    render(
+      <CodeEditor
+        value=""
+        onChange={() => {}}
+        language="javascript"
+        completions={completions}
+      />
+    );
+    type('context.obj["qwe');
+    await openCompletions(1);
+
+    acceptCompletion(editor());
+    await waitFor(() =>
+      expect(editor().state.doc.toString()).toBe('context.obj["qwe qwe qwe')
+    );
   });
 
   it("shows injected diagnostics alongside the parser's own", async () => {
