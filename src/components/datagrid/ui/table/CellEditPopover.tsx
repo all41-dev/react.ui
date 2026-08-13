@@ -1,14 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import type { WithMeta } from "../../types/column";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { useAnchoredPosition, type Anchor } from "../../hooks/useAnchoredPosition";
+import { getAccessorKey } from "../../utils/getAccessorKey";
 import { renderEditor } from "../editors/EditorRegistry";
+
+/** One field, keyed by the column's accessor — the shape is only known at runtime. */
+type CellForm = Record<string, unknown>;
 
 export type CellEditState<TRow> = {
   row: TRow;
   columnId: string;
-  anchor: { top: number; bottom: number; left: number; width: number };
+  anchor: Anchor;
 };
 
 type Props<TRow extends object, TForm extends object> = {
@@ -19,7 +24,6 @@ type Props<TRow extends object, TForm extends object> = {
   onSave: (value: unknown) => Promise<void>;
 };
 
-const POPOVER_WIDTH = 320;
 const EST_HEIGHT = 220;
 
 /**
@@ -34,7 +38,7 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
   onCancel,
   onSave,
 }: Props<TRow, TForm>) {
-  const key = (column as any).accessorKey as string;
+  const key = getAccessorKey(column) ?? "";
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const trapRef = useFocusTrap<HTMLDivElement>(true);
@@ -45,7 +49,7 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
    * cell behind it showed the formatted one, and the editor for a value the consumer
    * stores in cents opened on "1250" instead of "12.50".
    */
-  const form = useForm<Record<string, unknown>>({
+  const form = useForm<CellForm>({
     defaultValues: {
       [key]: (() => {
         const raw = (state.row as Record<string, unknown>)[key];
@@ -61,7 +65,10 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
   // container triggers it too — the anchor rect is stale the moment anything moves.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !saving) onCancel();
+      // A field that already used Escape — a code editor closing its completion popup or
+      // its search panel — calls preventDefault, and cancelling on top of that would
+      // throw the edit away instead.
+      if (e.key === "Escape" && !e.defaultPrevented && !saving) onCancel();
     };
     const onScroll = () => {
       if (!saving) onCancel();
@@ -74,23 +81,15 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
     };
   }, [onCancel, saving]);
 
-  const pos = useMemo(() => {
-    const { anchor } = state;
-    const width = Math.max(POPOVER_WIDTH, Math.min(anchor.width, 480));
-    const left = Math.min(Math.max(8, anchor.left), window.innerWidth - width - 8);
-    const openUp = anchor.bottom + EST_HEIGHT > window.innerHeight;
-    return openUp
-      ? { left, width, bottom: window.innerHeight - anchor.top + 4 }
-      : { left, width, top: anchor.bottom + 4 };
-  }, [state]);
+  const pos = useAnchoredPosition(state.anchor, EST_HEIGHT);
 
   const submit = form.handleSubmit(async (values) => {
     setError(null);
     setSaving(true);
     try {
       await onSave(values[key]);
-    } catch (e: any) {
-      setError(e?.message ?? "Save failed");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
     }
@@ -106,14 +105,19 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
       <div
         ref={trapRef}
         role="dialog"
-        aria-label={`Edit ${String((column as any).meta?.label ?? column.header ?? key)}`}
+        aria-label={`Edit ${String(column.meta?.label ?? column.header ?? key)}`}
         tabIndex={-1}
         style={pos}
         /* Portaled, so it restates the type stack the same way the overlay shell does. */
         className="fixed z-[1000] flex flex-col gap-2.5 rounded-surface border border-border-default bg-surface-card p-3 font-sans text-[.8125rem] text-body shadow-[var(--elev-3)] outline-none animate-pop-in"
       >
         <form onSubmit={submit} className="flex flex-col gap-2">
-          {renderEditor({ column: column as any, control: form.control as any })}
+          {/* The popover edits one field of an unknown shape, so the column's TForm is
+              restated as the loose record this local form is keyed by. */}
+          {renderEditor<TRow, CellForm>({
+            column: column as unknown as WithMeta<TRow, CellForm>,
+            control: form.control,
+          })}
           {error && (
             <p className="rounded-control border border-[color-mix(in_srgb,var(--rui-danger)_38%,transparent)] bg-[color-mix(in_srgb,var(--rui-danger)_12%,transparent)] px-[11px] py-[9px] text-[.75rem] text-danger">
               {error}

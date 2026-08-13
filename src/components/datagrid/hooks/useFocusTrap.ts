@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
 
 /**
  * Keyboard focus containment for modal surfaces (dialogs, drawers, sheets).
@@ -34,7 +34,9 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     (focusables()[0] ?? container).focus();
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
+      // A field that consumed Tab keeps it — a code editor indents with it rather than
+      // moving focus, and cycling on top of that would eject the user mid-line.
+      if (e.key !== "Tab" || e.defaultPrevented) return;
       const els = focusables();
       if (els.length === 0) {
         e.preventDefault();

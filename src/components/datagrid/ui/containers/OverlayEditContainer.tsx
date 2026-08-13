@@ -74,7 +74,10 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitting) onCancel();
+      // A field that already used Escape — a code editor closing its completion popup or
+      // its search panel — calls preventDefault, and cancelling on top of that would
+      // throw the edit away instead.
+      if (e.key === "Escape" && !e.defaultPrevented && !isSubmitting) onCancel();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
