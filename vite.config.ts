@@ -27,6 +27,17 @@ const libExternal = [
   /^sonner$/,
   /^axios$/,
   /^react-tooltip$/,
+  /*
+   * The code editor's engine. Shipped as dependencies rather than peers, so consumers
+   * get them transitively — but kept external so two copies of @codemirror/state can
+   * never coexist. A duplicated state module makes the editor throw at runtime rather
+   * than degrade. Prettier is imported on demand by the format command and must stay a
+   * separate chunk in the consumer's build.
+   */
+  /^@codemirror\//,
+  /^@lezer\//,
+  /^prettier$/,
+  /^prettier\//,
 ]
 
 // https://vite.dev/config/

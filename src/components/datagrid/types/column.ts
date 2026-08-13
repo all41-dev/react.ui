@@ -34,7 +34,11 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
    * so a revealed column stays revealed.
    */
   visibleInTable?: boolean;
-  /** For markdown/code: `language`, `rows` are understood; the rest is forwarded. */
+  /**
+   * For markdown: `rows`. For code: `language`, `mode`, `rows`, plus `completions` and
+   * `diagnostics` — the domain-aware sources typed as `CodeCompletionSource` and
+   * `CodeDiagnosticSource`. Anything else is forwarded untouched.
+   */
   editorProps?: Record<string, unknown>;
   options?: Option[];
   /** Click-to-edit popover on the cell itself; needs `editor` to be set too. */

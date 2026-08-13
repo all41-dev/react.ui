@@ -225,6 +225,52 @@ Available editors: `text`, `number`, `select`, `switch`, `date`, `time`, `textar
 `markdown`, `code`. Switches are collected into their own "Options" section at the bottom
 of the form.
 
+### The `code` editor
+
+CodeMirror 6: syntax highlighting, find/replace, bracket matching, folding, formatting
+(Prettier, `Shift+Alt+F`) and syntax-error marks. Configure it through
+`meta.editorProps`, or use `<CodeEditor>` directly outside a grid.
+
+```tsx
+{
+  accessorKey: "filter",
+  header: "Filter",
+  meta: {
+    editor: "code",
+    editorProps: {
+      language: "javascript",   // "javascript" | "json" | "text"
+      mode: "modal",            // "full" | "modal" | "small" | "inline"
+      rows: 8,
+      completions,              // CodeCompletionSource
+      diagnostics,              // CodeDiagnosticSource
+    },
+  },
+}
+```
+
+`inline` is one line with no chrome and rejects newlines however they arrive — the shape
+a cell popover needs.
+
+The editor knows syntax and nothing else. Domain knowledge arrives through two sources,
+typed with plain shapes rather than CodeMirror's own so the engine stays an
+implementation detail:
+
+```ts
+// The member chain is already parsed: `context.obj.address.ci` arrives as
+// { path: ["context", "obj", "address"], word: "ci" }. Filtering by `word` is the
+// editor's job — return everything reachable at `path`.
+const completions: CodeCompletionSource = ({ path }) =>
+  fieldsAt(path).map((f) => ({ label: f.name, detail: f.type, kind: "property" }));
+
+// Merged with the parser's own syntax errors. Offsets are clamped to the document.
+const diagnostics: CodeDiagnosticSource = (text) =>
+  check(text).map((p) => ({ from: p.start, to: p.end, severity: "warning", message: p.why }));
+```
+
+`@codemirror/*` and `prettier` are dependencies but stay external to the bundle, so a
+consumer resolves one copy of each — two copies of `@codemirror/state` make the editor
+throw. Prettier is imported only when the format command runs.
+
 ---
 
 ## Saving

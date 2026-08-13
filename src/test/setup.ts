@@ -69,3 +69,25 @@ Object.defineProperty(HTMLElement.prototype, "getBoundingClientRect", {
     };
   },
 });
+
+/*
+ * jsdom ships Range without any geometry, and CodeMirror measures text by asking a
+ * Range for its client rects on every render — it throws
+ * `textRange(...).getClientRects is not a function` before a test can assert anything.
+ */
+const emptyRect = (): DOMRect =>
+  ({
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    width: 0,
+    height: 0,
+    toJSON: () => ({}),
+  }) as DOMRect;
+
+Range.prototype.getBoundingClientRect ??= emptyRect;
+Range.prototype.getClientRects ??= () =>
+  Object.assign([] as DOMRect[], { item: () => null }) as unknown as DOMRectList;

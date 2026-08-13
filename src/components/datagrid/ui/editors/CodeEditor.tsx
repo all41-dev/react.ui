@@ -1,122 +1,217 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { buildExtensions, formatDocument } from "./codeMirrorSetup";
+import type {
+  CodeCompletionSource,
+  CodeDiagnosticSource,
+  CodeEditorLanguage,
+  CodeEditorMode,
+} from "./codeEditorTypes";
 
 export type CodeEditorProps = {
   value: string;
   onChange: (value: string) => void;
-  language?: string;
+  language?: CodeEditorLanguage;
+  /** Height preset. `inline` is one line with no chrome, for a cell popover. */
+  mode?: CodeEditorMode;
+  /** Visible lines before the editor scrolls. Defaults per mode. */
   rows?: number;
   placeholder?: string;
+  readOnly?: boolean;
+  /** Domain-specific suggestions. Receives the member path already parsed. */
+  completions?: CodeCompletionSource;
+  /** Domain-specific problems, merged with the parser's own syntax errors. */
+  diagnostics?: CodeDiagnosticSource;
   id?: string;
   className?: string;
-  /*
-   * `renderEditor` builds these for every field, but this component didn't accept them,
-   * so a validation error on a code field was announced to nobody — the textarea claimed
-   * to be valid and pointed at no description. They forward to the real control.
-   */
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
   "aria-required"?: boolean;
   "aria-label"?: string;
 };
 
+const DEFAULT_ROWS: Record<CodeEditorMode, number> = {
+  full: 24,
+  modal: 10,
+  small: 4,
+  inline: 1,
+};
+
 /**
- * Code editor over a plain textarea: language chip and line count in the header, a
- * scroll-synced line-number gutter, Tab inserts two spaces, Ln/Col in the footer.
+ * CodeMirror 6 editor with highlighting, find/replace, bracket matching, formatting and
+ * linting. Language intelligence beyond syntax is injected: `completions` and
+ * `diagnostics` are how a consumer teaches it about its own domain.
  */
 export function CodeEditor({
   value,
   onChange,
   language = "text",
-  rows = 10,
+  mode = "modal",
+  rows,
   placeholder,
+  readOnly = false,
+  completions,
+  diagnostics,
   id,
+  className,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
   "aria-required": ariaRequired,
   "aria-label": ariaLabel,
 }: CodeEditorProps) {
-  const taRef = useRef<HTMLTextAreaElement>(null);
-  const gutterRef = useRef<HTMLDivElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
+
   const [caret, setCaret] = useState({ ln: 1, col: 1 });
+  const [lineCount, setLineCount] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [formatError, setFormatError] = useState<string | null>(null);
 
-  const text = value ?? "";
-  const lineCount = text.split("\n").length;
+  /*
+   * Everything the extensions call is read through a ref. Extensions are compiled once
+   * per view, so closing over the props directly would freeze the first render's
+   * callbacks — a stale `onChange` silently drops every keystroke after a re-render.
+   */
+  const onChangeRef = useRef(onChange);
+  const completionsRef = useRef(completions);
+  const diagnosticsRef = useRef(diagnostics);
+  const formatRef = useRef<() => void>(() => {});
 
-  const trackCaret = () => {
-    const ta = taRef.current;
-    if (!ta) return;
-    const upto = ta.value.slice(0, ta.selectionStart);
-    const ln = upto.split("\n").length;
-    const col = upto.length - upto.lastIndexOf("\n");
-    setCaret({ ln, col });
-  };
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    completionsRef.current = completions;
+  }, [completions]);
+  useEffect(() => {
+    diagnosticsRef.current = diagnostics;
+  }, [diagnostics]);
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key !== "Tab") return;
-    // Keep Tab-for-focus escape hatch: Shift+Tab still leaves the field.
-    if (e.shiftKey) return;
-    e.preventDefault();
-    const ta = e.currentTarget;
-    const { selectionStart: s, selectionEnd: end } = ta;
-    const next = ta.value.slice(0, s) + "  " + ta.value.slice(end);
-    onChange(next);
-    requestAnimationFrame(() => {
-      ta.setSelectionRange(s + 2, s + 2);
-      trackCaret();
+  const isInline = mode === "inline";
+  const visibleRows = rows ?? DEFAULT_ROWS[mode];
+
+  const handleFormat = useCallback(() => {
+    const view = viewRef.current;
+    if (!view || readOnly) return;
+    setBusy(true);
+    setFormatError(null);
+    formatDocument(view, language)
+      .catch((err: unknown) => {
+        setFormatError(err instanceof Error ? err.message : "Could not format");
+      })
+      .finally(() => setBusy(false));
+  }, [language, readOnly]);
+
+  useEffect(() => {
+    formatRef.current = handleFormat;
+  }, [handleFormat]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const state = EditorState.create({
+      doc: value,
+      extensions: buildExtensions({
+        language,
+        mode,
+        readOnly,
+        placeholder,
+        maxHeight: isInline ? undefined : `${Math.max(visibleRows, 2) * 20 + 18}px`,
+        contentAttributes: {
+          ...(id ? { id } : {}),
+          ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
+          ...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {}),
+          ...(ariaInvalid ? { "aria-invalid": "true" } : {}),
+          ...(ariaRequired ? { "aria-required": "true" } : {}),
+        },
+        onChange: (next) => onChangeRef.current(next),
+        onCaretChange: (ln, col) => setCaret({ ln, col }),
+        onDocMetrics: (lines) => setLineCount(lines),
+        getCompletionSource: () => completionsRef.current,
+        getDiagnosticSource: () => diagnosticsRef.current,
+        onFormat: () => formatRef.current(),
+      }),
     });
-  };
+
+    const view = new EditorView({ state, parent: host });
+    viewRef.current = view;
+    setLineCount(state.doc.lines);
+
+    return () => {
+      view.destroy();
+      viewRef.current = null;
+    };
+    // The document is seeded once; later value changes are applied by the sync effect
+    // below rather than by rebuilding the editor and losing the cursor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    language,
+    mode,
+    readOnly,
+    placeholder,
+    isInline,
+    visibleRows,
+    id,
+    ariaLabel,
+    ariaDescribedBy,
+    ariaInvalid,
+    ariaRequired,
+  ]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const current = view.state.doc.toString();
+    if (current === (value ?? "")) return;
+    view.dispatch({
+      changes: { from: 0, to: current.length, insert: value ?? "" },
+    });
+  }, [value]);
+
+  const canFormat = language === "javascript" || language === "json";
+
+  if (isInline) {
+    return (
+      <div
+        ref={hostRef}
+        className={`overflow-hidden rounded-control border border-border-default bg-surface-inset focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)] ${className ?? ""}`}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col overflow-hidden rounded-control border border-border-default bg-surface-inset focus-within:border-accent focus-within:ring-2 focus-within:ring-[var(--rui-focus-ring)]">
-      <div className="flex items-center justify-between border-b border-border-default bg-surface-card px-2 py-1">
+      <div className="flex items-center justify-between gap-2 border-b border-border-default bg-surface-card px-2 py-1">
         <span className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-[.6875rem] font-semibold uppercase tracking-wide text-muted">
           {language}
         </span>
-        <span className="font-mono text-[.6875rem] text-faint">
-          {lineCount} {lineCount === 1 ? "line" : "lines"}
-        </span>
-      </div>
-
-      <div className="flex" style={{ maxHeight: `${Math.max(rows, 3) * 20 + 24}px` }}>
-        <div
-          ref={gutterRef}
-          aria-hidden
-          className="select-none overflow-hidden whitespace-pre border-r border-border-default bg-[color-mix(in_srgb,var(--rui-text-body)_4%,transparent)] py-[9px] pl-2.5 pr-2 text-right font-mono text-[.75rem] leading-[1.6] text-faint"
-        >
-          {Array.from({ length: lineCount }, (_, i) => (
-            <div key={i}>{i + 1}</div>
-          ))}
+        <div className="flex items-center gap-2">
+          {canFormat && !readOnly && (
+            <button
+              type="button"
+              onClick={handleFormat}
+              disabled={busy}
+              title="Format (Shift+Alt+F)"
+              className="cursor-pointer rounded px-1.5 py-0.5 text-[.6875rem] text-faint transition-colors hover:bg-surface-raised hover:text-body disabled:opacity-40"
+            >
+              {busy ? "Formatting…" : "Format"}
+            </button>
+          )}
+          <span className="font-mono text-[.6875rem] text-faint">
+            {lineCount} {lineCount === 1 ? "line" : "lines"}
+          </span>
         </div>
-        <textarea
-          ref={taRef}
-          id={id}
-          value={text}
-          onChange={(e) => {
-            onChange(e.target.value);
-            trackCaret();
-          }}
-          onKeyDown={onKeyDown}
-          onScroll={(e) => {
-            if (gutterRef.current)
-              gutterRef.current.scrollTop = e.currentTarget.scrollTop;
-          }}
-          onSelect={trackCaret}
-          onClick={trackCaret}
-          onKeyUp={trackCaret}
-          rows={rows}
-          placeholder={placeholder}
-          spellCheck={false}
-          wrap="off"
-          aria-invalid={ariaInvalid}
-          aria-describedby={ariaDescribedBy}
-          aria-required={ariaRequired}
-          aria-label={ariaLabel}
-          className="block w-full resize-none overflow-auto whitespace-pre bg-transparent px-2.5 py-[9px] font-mono text-[.75rem] leading-[1.6] text-body outline-none [tab-size:2] placeholder:text-faint"
-        />
       </div>
 
-      <div className="border-t border-border-default bg-surface-card px-2 py-1 text-right font-mono text-[.6875rem] text-faint">
-        Ln {caret.ln}, Col {caret.col}
+      <div ref={hostRef} className={className} />
+
+      <div className="flex items-center justify-between border-t border-border-default bg-surface-card px-2 py-1 font-mono text-[.6875rem] text-faint">
+        <span className="truncate text-danger">{formatError}</span>
+        <span>
+          Ln {caret.ln}, Col {caret.col}
+        </span>
       </div>
     </div>
   );

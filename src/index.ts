@@ -18,6 +18,24 @@ export { useCrudAdapter } from "./components/datagrid/hooks/useCrudAdapter";
 export { useTanstackQueryAdapter } from "./components/datagrid/hooks/useTanstackQueryAdapter";
 export { useConfirm } from "./components/datagrid/hooks/useConfirm";
 
+export { CodeEditor } from "./components/datagrid/ui/editors/CodeEditor";
+export type { CodeEditorProps } from "./components/datagrid/ui/editors/CodeEditor";
+/*
+ * Engine-neutral on purpose: a consumer writes completion and diagnostic sources against
+ * these shapes, never against CodeMirror's, so the editor's engine stays swappable and
+ * @codemirror/* never reaches a consumer's type graph.
+ */
+export type {
+  CodeCompletion,
+  CodeCompletionContext,
+  CodeCompletionSource,
+  CodeDiagnostic,
+  CodeDiagnosticSeverity,
+  CodeDiagnosticSource,
+  CodeEditorLanguage,
+  CodeEditorMode,
+} from "./components/datagrid/ui/editors/codeEditorTypes";
+
 export type { ActionColumnOpts } from "./components/datagrid/ui/makeActionColumns";
 export type { EditContainerKind } from "./components/datagrid/ui/containers/EditContainers";
 export type { FormLayoutConfig } from "./components/datagrid/ui/containers/EditFormBody";
