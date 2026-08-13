@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, RotateCcw } from "lucide-react";
 
 import { MENU_ITEM } from "../toolbarStyles";
 
@@ -8,18 +8,24 @@ import { MENU_ITEM } from "../toolbarStyles";
  */
 export function MenuCommandsRow({
   columnsControl,
+  onResetView,
+  viewIsDefault,
   onRetry,
   onCommandRun,
   divided,
 }: {
   columnsControl?: React.ReactNode;
+  /** Puts the whole view back to its declared defaults. */
+  onResetView?: () => void;
+  /** Nothing to undo — the command stays in place, greyed, so it stays learnable. */
+  viewIsDefault?: boolean;
   onRetry?: () => void | Promise<void>;
   /** Closes the panel — one-shot commands dismiss it, the Columns dialog does not. */
   onCommandRun: () => void;
   /** Set when a Filter or Group by section sits above, to draw the rule. */
   divided: boolean;
 }) {
-  if (!columnsControl && !onRetry) return null;
+  if (!columnsControl && !onRetry && !onResetView) return null;
 
   return (
     <div
@@ -39,6 +45,24 @@ export function MenuCommandsRow({
         >
           {columnsControl}
         </div>
+      )}
+
+      {onResetView && (
+        <button
+          type="button"
+          disabled={viewIsDefault}
+          title={
+            viewIsDefault ? "The view is already at its defaults" : undefined
+          }
+          onClick={() => {
+            onResetView();
+            onCommandRun();
+          }}
+          className={`${MENU_ITEM} ${columnsControl ? "flex-1" : ""} disabled:cursor-not-allowed disabled:text-faint disabled:hover:bg-transparent`}
+        >
+          <RotateCcw className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
+          <span className="flex-1">Reset view</span>
+        </button>
       )}
 
       {onRetry && (

@@ -22,6 +22,7 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
   onViewChange?: (v: "list" | "cards") => void;
 }) {
   const { rows, edit, filters, grouping, table, gridColumns } = state;
+  const { resetView, viewIsDefault } = state;
 
   return (
     <DataGridToolbar
@@ -44,6 +45,8 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
       columnsControl={
         <ColumnsPopover table={table} onReset={gridColumns.resetPrefs} />
       }
+      onResetView={resetView}
+      viewIsDefault={viewIsDefault}
       view={view}
       onViewChange={onViewChange}
       groupOptions={props.groupOptions}

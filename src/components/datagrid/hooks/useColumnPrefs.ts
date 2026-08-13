@@ -131,7 +131,21 @@ export function useColumnPrefs(
     safeSave(storageKey, DEFAULT);
   }, [storageKey]);
 
+  /* Read off the stored preferences, not the state handed to the table: the
+     default-hidden seed is the shipped layout, so a grid carrying one is still
+     untouched. */
+  const isDefault = useMemo(
+    () =>
+      Object.keys(prefs.columnSizing).length === 0 &&
+      Object.keys(prefs.columnVisibility).length === 0 &&
+      (prefs.columnOrder.length === 0 ||
+        (prefs.columnOrder.length === allColumnIds.length &&
+          prefs.columnOrder.every((id, i) => id === allColumnIds[i]))),
+    [prefs, allColumnIds]
+  );
+
   return {
+    isDefault,
     state: {
       columnSizing: prefs.columnSizing,
       columnVisibility,

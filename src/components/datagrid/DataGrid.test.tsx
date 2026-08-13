@@ -812,6 +812,66 @@ describe("DataGrid", () => {
     });
   });
 
+  describe("reset view", () => {
+    // The command writes column prefs — keep it out of the other tests.
+    beforeEach(() => localStorage.clear());
+    afterEach(() => localStorage.clear());
+
+    /** The command, with the menu already open — the trigger is a toggle. */
+    const resetCommand = () =>
+      screen.getByRole("button", { name: /reset view/i });
+
+    it("is offered but disabled while the grid is untouched", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await openOverflowMenu(user);
+      expect(resetCommand()).toBeDisabled();
+    });
+
+    it("puts the search and the columns back at once", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+      const columnCount = visibleLeafCount();
+
+      // Two separate pieces of view state, one press to undo them.
+      await user.type(screen.getByRole("searchbox"), "Leanne");
+      await waitFor(() => expect(dataRows()).toHaveLength(1));
+
+      await openOverflowMenu(user);
+      await user.click(screen.getByRole("button", { name: /^Columns/ }));
+      const panel = await screen.findByRole("dialog", { name: "Columns" });
+      await user.click(within(panel).getByRole("checkbox", { name: /role/i }));
+      await waitFor(() => expect(visibleLeafCount()).toBe(columnCount - 1));
+
+      // The Columns panel opens inside the menu, so the command is still there.
+      await user.click(resetCommand());
+
+      await waitFor(() => expect(visibleLeafCount()).toBe(columnCount));
+      expect(screen.getByRole("searchbox")).toHaveValue("");
+      expect(dataRows()).toHaveLength(USERS.length);
+    });
+
+    it("goes back to disabled once the view is default again", async () => {
+      const user = userEvent.setup();
+      renderGrid();
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await user.type(screen.getByRole("searchbox"), "Ervin");
+      await waitFor(() => expect(dataRows()).toHaveLength(1));
+
+      await openOverflowMenu(user);
+      expect(resetCommand()).toBeEnabled();
+
+      // Running a command dismisses the panel; reopen to read the state back.
+      await user.click(resetCommand());
+      await openOverflowMenu(user);
+      expect(resetCommand()).toBeDisabled();
+    });
+  });
+
   describe("form-only columns", () => {
     // Visibility is persisted per storage key — keep it out of the other tests.
     beforeEach(() => localStorage.clear());

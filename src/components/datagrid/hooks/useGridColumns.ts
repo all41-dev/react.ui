@@ -86,7 +86,7 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     [baseCols]
   );
 
-  const { state, handlers, reset } = useColumnPrefs(
+  const { state, handlers, reset, isDefault } = useColumnPrefs(
     storageKey,
     allColumnIds,
     defaultHiddenIds
@@ -102,5 +102,12 @@ export function useGridColumns<TRow extends object, TForm extends object>({
       .filter(Boolean) as WithMeta<TRow, TForm>[];
   }, [baseCols, actionCol, selectCol, state.columnOrder]);
 
-  return { baseCols, orderedColumns, prefs: state, prefHandlers: handlers, resetPrefs: reset };
+  return {
+    baseCols,
+    orderedColumns,
+    prefs: state,
+    prefHandlers: handlers,
+    resetPrefs: reset,
+    prefsAreDefault: isDefault,
+  };
 }

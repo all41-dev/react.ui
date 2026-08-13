@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   ColumnFiltersState,
   OnChangeFn,
@@ -79,10 +79,29 @@ export function useGridPagination({
     onPaginationChange((p) => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }));
   }, [columnFilters, globalFilter, sorting, enabled, onPaginationChange]);
 
+  const initialPageIndex = paginationProp?.initialState?.pageIndex ?? 0;
+  const initialPageSize = paginationProp?.initialState?.pageSize ?? 10;
+
+  /* Through `onPaginationChange`, so a controlled parent hears about it rather
+     than being overruled by a write to the unused uncontrolled atom. */
+  const reset = useCallback(
+    () =>
+      onPaginationChange({
+        pageIndex: initialPageIndex,
+        pageSize: initialPageSize,
+      }),
+    [onPaginationChange, initialPageIndex, initialPageSize]
+  );
+
   return {
     enabled,
     state,
     onPaginationChange,
     pageSizeOptions: paginationProp?.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS,
+    reset,
+    isDefault:
+      !enabled ||
+      (state.pageIndex === initialPageIndex &&
+        state.pageSize === initialPageSize),
   };
 }

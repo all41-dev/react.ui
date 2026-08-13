@@ -30,6 +30,11 @@ export function useGridGrouping<TRow extends object>({
 
   const clearGroupBy = useCallback(() => setGroupBy(""), [setGroupBy]);
 
+  const reset = useCallback(
+    () => setGroupBy(defaultGroupBy),
+    [setGroupBy, defaultGroupBy]
+  );
+
   const toggleGroup = useCallback((key: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -65,5 +70,8 @@ export function useGridGrouping<TRow extends object>({
     toggleGroup,
     activeGroupOption,
     groups,
+    reset,
+    // Collapse state rides along with the criterion, so it needs no compare here.
+    isDefault: groupBy === defaultGroupBy && collapsedGroups.size === 0,
   };
 }

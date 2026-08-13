@@ -7,6 +7,9 @@ export type OverflowMenuProps = {
   onClearFilters?: () => void;
   /** The Columns popover, rendered as a row. It owns its own trigger and panel. */
   columnsControl?: React.ReactNode;
+  /** Puts columns, search, filters, sorting, grouping and page back to default. */
+  onResetView?: () => void;
+  viewIsDefault?: boolean;
   groupOptions?: { key: string; label: string }[];
   groupBy?: string;
   onGroupByChange?: (key: string) => void;
@@ -28,11 +31,13 @@ export function hasOverflowItems({
   groupOptions,
   onGroupByChange,
   onRetry,
+  onResetView,
 }: OverflowMenuProps): boolean {
   return !!(
     (hasFilterableColumns && onToggleFilters) ||
     (groupOptions && groupOptions.length > 0 && onGroupByChange) ||
     columnsControl ||
-    onRetry
+    onRetry ||
+    onResetView
   );
 }

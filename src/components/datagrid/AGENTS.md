@@ -229,8 +229,8 @@ for one field: `computeDefaults` over the row → overwrite the edited key → e
   against the search field's right edge, carrying the active-filter count and rotating when
   open. Panel is laid out like Odoo's control panel — **Filter** and **Group by** as two
   headed columns (one column, 236px, when only one of them exists), then a rule, then the
-  view commands (Columns, Refresh). It closes only on Escape, an outside click, or Refresh;
-  applying a criterion keeps it open.
+  view commands (Columns, Reset view, Refresh). It closes only on Escape, an outside click,
+  or a one-shot command; applying a criterion keeps it open.
   - The trigger's wrapper must stay a **flex** container while `attached` — `self-stretch`
     does nothing outside one, which drew the button short against a field grown by pills.
   - When the grid has neither search nor facets the trigger stands alone;
@@ -244,6 +244,13 @@ for one field: `computeDefaults` over the row → overwrite the edited key → e
   36px group headers, `overscan: 10`.
 - **Column prefs**: size / order / visibility persisted to `localStorage` under
   `storageKey`; Columns popover + Reset. Refuses to hide the last visible column.
+- **Reset view** (`hooks/useDataGridState.ts`): one command putting the grid back to how it
+  first renders — column prefs, search, column filters, sorting, grouping and page. Each
+  hook owns its own `reset` and `isDefault` (`useColumnPrefs`, `useGridFilters`,
+  `useGridGrouping`, `useGridPagination`); the state hook only composes them, so new view
+  state either joins the list or stays out on purpose. Rendered disabled while every part
+  reports default. A default-hidden column (`meta.visibleInTable`) is the shipped layout,
+  not a change, so it does not make the view dirty.
 - **Page reset**: a filter or sort change returns to page 1 (real changes only — never on
   mount, which would overwrite a controlled parent's initial `pageIndex`).
 - **Delete confirmation**: `useConfirm` dialog, destructive styling.

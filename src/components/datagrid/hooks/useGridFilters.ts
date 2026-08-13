@@ -11,6 +11,12 @@ type Params<TRow extends object, TForm extends object> = {
   initialSorting?: SortingState;
 };
 
+/* Compared by content: `initialSorting` is usually an inline array, so a new
+   identity every render says nothing about whether the sort was touched. */
+const sameSorting = (a: SortingState, b: SortingState) =>
+  a.length === b.length &&
+  a.every((s, i) => s.id === b[i].id && s.desc === b[i].desc);
+
 /** Search, per-column filters, sorting, and the facet chips that summarise them. */
 export function useGridFilters<TRow extends object, TForm extends object>({
   columns,
@@ -38,6 +44,20 @@ export function useGridFilters<TRow extends object, TForm extends object>({
      radio, so folding either into "Clear all" would clear something the user can still
      see set elsewhere. */
   const clearAllFilters = useCallback(() => setColumnFilters([]), []);
+
+  /** Everything this hook holds, back to how the grid first rendered. */
+  const reset = useCallback(() => {
+    setColumnFilters([]);
+    setGlobalFilter("");
+    setShowFilters(false);
+    setSorting(initialSorting ?? []);
+  }, [initialSorting]);
+
+  const isDefault =
+    columnFilters.length === 0 &&
+    globalFilter === "" &&
+    !showFilters &&
+    sameSorting(sorting, initialSorting ?? []);
 
   /**
    * One chip per active criterion: grouping first, then column filters.
@@ -114,5 +134,7 @@ export function useGridFilters<TRow extends object, TForm extends object>({
     clearAllFilters,
     hasFilterableColumns,
     buildFacetChips,
+    reset,
+    isDefault,
   };
 }

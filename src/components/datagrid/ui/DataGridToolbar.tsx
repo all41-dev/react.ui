@@ -31,6 +31,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   onToggleFilters,
   onClearFilters,
   columnsControl,
+  onResetView,
+  viewIsDefault,
   view,
   onViewChange,
   groupOptions,
@@ -62,6 +64,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
     groupOptions,
     onGroupByChange,
     onRetry,
+    onResetView,
   });
   const searchShown = !!(searchable && onSearchChange);
   const barShown = searchShown || facets.length > 0;
@@ -74,6 +77,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
       onToggleFilters={onToggleFilters}
       onClearFilters={onClearFilters}
       columnsControl={columnsControl}
+      onResetView={onResetView}
+      viewIsDefault={viewIsDefault}
       groupOptions={groupOptions}
       groupBy={groupBy}
       onGroupByChange={onGroupByChange}

@@ -24,6 +24,10 @@ export type DataGridToolbarProps = {
   onClearFilters?: () => void;
   /** The Columns popover. A slot rather than props, so the toolbar stays presentational. */
   columnsControl?: React.ReactNode;
+  /** Puts columns, search, filters, sorting, grouping and page back to default. */
+  onResetView?: () => void;
+  /** Nothing to undo: the command is rendered disabled rather than dropped. */
+  viewIsDefault?: boolean;
   /** Rendered only when the consumer supplies a `card` renderer. */
   view?: GridView;
   onViewChange?: (v: GridView) => void;
