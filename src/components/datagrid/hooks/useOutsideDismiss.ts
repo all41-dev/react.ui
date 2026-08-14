@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useEffectEvent, type RefObject } from "react";
 
 /**
  * Closes a toolbar panel on Escape or a pointerdown outside `ref`.
@@ -13,13 +13,18 @@ export function useOutsideDismiss(
   ref: RefObject<HTMLElement | null>,
   onDismiss: () => void
 ): void {
+  /* Every call site passes an inline arrow, so listing `onDismiss` as a dependency tore
+     both document listeners down and re-subscribed them on every render of an open
+     panel. `useEffectEvent` keeps the callback fresh without restarting the effect. */
+  const dismiss = useEffectEvent(() => onDismiss());
+
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) onDismiss();
+      if (!ref.current?.contains(e.target as Node)) dismiss();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onDismiss();
+      if (e.key === "Escape") dismiss();
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -27,5 +32,5 @@ export function useOutsideDismiss(
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, ref, onDismiss]);
+  }, [open, ref]);
 }

@@ -154,3 +154,53 @@ describe("CellEditPopover", () => {
     expect(view().state.doc.toString()).toBe("cents(1250)");
   });
 });
+
+/**
+ * The scroll listener is on the capture phase, so it sees every descendant scroll — the
+ * popover's own included. Cancelling on those discards the edit while the user is
+ * scrolling the very field they are editing.
+ */
+describe("scrolling while the popover is open", () => {
+  const textColumn: WithMeta<Row, Record<string, unknown>> = {
+    accessorKey: "filter",
+    header: "Filter",
+    meta: { label: "Filter", editor: "textarea", cellEdit: true },
+  };
+
+  function setupText(onCancel: () => void) {
+    render(
+      <CellEditPopover
+        state={state}
+        column={textColumn}
+        onCancel={onCancel}
+        onSave={async () => {}}
+      />
+    );
+  }
+
+  const scrollFrom = (el: Element) =>
+    el.dispatchEvent(new Event("scroll", { bubbles: false }));
+
+  it("keeps the edit when the scroll came from inside", async () => {
+    const onCancel = vi.fn();
+    setupText(onCancel);
+    const dialog = await screen.findByRole("dialog", { name: "Edit Filter" });
+
+    scrollFrom(screen.getByLabelText("Filter"));
+    expect(onCancel).not.toHaveBeenCalled();
+
+    scrollFrom(dialog);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  /* The anchor rect is stale the moment anything behind the popover moves, so a scroll
+     out there still has to close it. */
+  it("cancels when the page behind it scrolls", async () => {
+    const onCancel = vi.fn();
+    setupText(onCancel);
+    await screen.findByRole("dialog", { name: "Edit Filter" });
+
+    scrollFrom(document.body);
+    expect(onCancel).toHaveBeenCalled();
+  });
+});

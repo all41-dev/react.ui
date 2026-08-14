@@ -82,11 +82,28 @@ have exactly one job:
 |---|---|---|
 | `format` | Rendering the cell | Making a value look nice on screen |
 | `toForm` | Opening the edit form | Turning a stored value into something an input can hold |
-| `fromForm` | Submitting | Turning the input's value back into what you store |
+| `fromForm` | Submitting, and on a cell save | Turning the input's value back into what you store |
 
 The reason they're separate: if a column formats `1234` as `"1 234 €"`, and the form
 seeded itself from `format`, your user would edit the string `"1 234 €"` and you'd save
 that back. So `format` never touches the form.
+
+`fromForm` runs over **every column with an `accessorKey`**, whether or not it has an
+`editor` — it describes how a value is stored, not how it is edited, so a form submit and
+a single-cell save convert through the same set.
+
+### The form carries your columns, and nothing else
+
+The values handed to `onPersist` are built from the columns you declared, not from the row.
+A field the row happens to carry — an audit stamp, a server-side timestamp, a nested
+relation — is not in the form and is not posted back.
+
+If your schema requires a field the user never edits, give it a column and keep it out of
+the table:
+
+```tsx
+{ accessorKey: "tenantId", header: "Tenant", meta: { editor: "text", visibleInTable: false } }
+```
 
 ```tsx
 {
@@ -188,10 +205,12 @@ const [expanded, setExpanded] = useState(new Set<string>());
 />
 ```
 
-**Cell editing** — add `meta.cellEdit: true` to a column that has an `editor`, and
-clicking that cell opens a small popover for just that field. Saves call `onPersist` with
-mode `"cell"`. Only the edited field is validated, so a schema failure on some unrelated
-column doesn't block you.
+**Cell editing** — add `meta.cellEdit: true` to a column that has an `editor` **and an
+`accessorKey`**, and clicking that cell opens a small popover for just that field. Saves
+call `onPersist` with mode `"cell"`. Only the edited field is validated, so a schema
+failure on some unrelated column doesn't block you. A column with only an `accessorFn` has
+no key to seed the editor from or write back to, so it renders as plain text with no
+edit affordance.
 
 **Column preferences** — width, order and visibility persist to `localStorage`
 automatically, keyed by `storageKey` (default: a slug of the `title`). **Columns** in the

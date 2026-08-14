@@ -1,81 +1,31 @@
 import { flexRender, type Header } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { ColumnMeta } from "../../types/column";
-
-const KEYBOARD_RESIZE_STEP = 16;
-
-function Resizer({
-  getResizeHandler,
-  canResize,
-  title,
-  columnLabel,
-  size,
-  onResize,
-  onReset,
-}: {
-  getResizeHandler: () => any;
-  canResize: boolean;
-  title: string;
-  columnLabel: string;
-  size: number;
-  onResize: (next: number) => void;
-  onReset: () => void;
-}) {
-  if (!canResize) return null;
-  const handler = getResizeHandler();
-  return (
-    <>
-      <div
-        aria-hidden
-        className="absolute top-0 bottom-0 right-0 w-px pointer-events-none bg-surface-inset z-10"
-      />
-      {/*
-       * Focusable so the column can be resized without a pointer: arrows step the width,
-       * Home resets it. Previously mouse/touch only, which left keyboard users with no way
-       * to reach a truncated column's content.
-       */}
-      <div
-        role="separator"
-        tabIndex={0}
-        aria-orientation="vertical"
-        aria-label={`Resize ${columnLabel} column`}
-        aria-valuenow={Math.round(size)}
-        onMouseDown={handler}
-        onTouchStart={handler}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            onResize(size - KEYBOARD_RESIZE_STEP);
-          } else if (e.key === "ArrowRight") {
-            e.preventDefault();
-            onResize(size + KEYBOARD_RESIZE_STEP);
-          } else if (e.key === "Home") {
-            e.preventDefault();
-            onReset();
-          }
-        }}
-        className="absolute top-0 bottom-0 right-0 w-2 cursor-col-resize select-none touch-none opacity-0 outline-none z-10 group-hover/hd:opacity-100 focus-visible:opacity-100 focus-visible:bg-accent"
-        title={title}
-      />
-    </>
-  );
-}
+import { Resizer } from "./Resizer";
 
 function HeaderCellInner<TRow extends object>({
   h,
+  renderedWidth,
 }: {
   h: Header<TRow, unknown>;
+  /** The width the column paints at — see `Resizer`. */
+  renderedWidth: number;
 }) {
   if (h.isPlaceholder) {
     return <th className="!w-0 !p-0 border-none" aria-hidden="true" />;
   }
 
-  const m = (h.column.columnDef as any).meta as
-    | ColumnMeta<any, any>
-    | undefined;
+  const m = (h.column.columnDef as { meta?: ColumnMeta<any, any> }).meta;
   const isActions = h.column.id === "__actions__";
   if (isActions) {
-    return <th className="!w-0 !p-0 border-none" aria-hidden="true" />;
+    /* A real column header, named but not painted. The body cell holds the Edit/Delete
+       buttons, so this column is in the accessibility tree either way — an `aria-hidden`
+       header just left it there unnamed and one short of `aria-colcount`. */
+    return (
+      <th scope="col" data-col-id="__actions__" className="!w-0 !p-0 border-none">
+        <span className="sr-only">Actions</span>
+      </th>
+    );
   }
   if (h.column.id === "__select__") {
     return (
@@ -89,7 +39,6 @@ function HeaderCellInner<TRow extends object>({
     );
   }
 
-  const canResize = h.column.getCanResize();
   const sorted = h.column.getIsSorted();
   const canSort = h.column.getCanSort();
   const headerText =
@@ -120,28 +69,10 @@ function HeaderCellInner<TRow extends object>({
         "h-[34px] whitespace-nowrap border-b border-border-default px-3 select-none",
         "text-left align-middle text-[.6875rem] font-semibold uppercase tracking-[.05em] text-faint",
         canSort ? "cursor-pointer hover:text-muted" : "",
-        m?.hideOnMobile ? "hidden md:table-cell" : "",
         m?.headerClassName ?? "",
       ].join(" ")}
-      onDoubleClick={() => h.column.resetSize()}
     >
-      <Resizer
-        canResize={canResize}
-        getResizeHandler={h.getResizeHandler}
-        title="Drag to resize. Arrow keys to adjust, Home to reset."
-        columnLabel={headerText}
-        size={h.column.getSize()}
-        onResize={(next) =>
-          h.getContext().table.setColumnSizing((prev: Record<string, number>) => ({
-            ...prev,
-            [h.column.id]: Math.max(
-              h.column.columnDef.minSize ?? 40,
-              Math.min(next, h.column.columnDef.maxSize ?? 1000)
-            ),
-          }))
-        }
-        onReset={() => h.column.resetSize()}
-      />
+      <Resizer h={h} renderedWidth={renderedWidth} columnLabel={headerText} />
       <div className="relative flex items-center pr-2">
         {canSort ? (
           /*

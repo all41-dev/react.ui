@@ -3,7 +3,7 @@ import type { WithMeta } from "../../types/column";
 import { getAccessorKey } from "../../utils/getAccessorKey";
 import { renderEditor } from "../editors/EditorRegistry";
 import { Field, FormLayout } from "./FormLayout";
-import React from "react";
+import React, { useId } from "react";
 
 export type FormLayoutConfig = {
   columns?: 1 | 2 | 3 | 4;
@@ -56,12 +56,18 @@ export function FormFields<TRow extends object, TForm extends object>({
   formError,
   dirtyKeys,
 }: FormFieldsProps<TRow, TForm>) {
+  /* Field names are the caller's accessor keys, so two grids on one page both own a
+     field called `name`. Everything the editors put in the DOM hangs off this prefix.
+     Colons are legal in an id but break any selector built from it. */
+  const idPrefix = useId().replace(/:/g, "_");
+
   return (
     <>
       {regularFields.length > 0 && (
         <FormLayout
           fields={regularFields}
           control={control}
+          idPrefix={idPrefix}
           columns={formLayout?.columns}
           gap={formLayout?.gap}
           className={formLayout?.className}
@@ -77,7 +83,7 @@ export function FormFields<TRow extends object, TForm extends object>({
               // The same wrapper the laid-out fields use, so a toggled switch gets the
               // "changed" badge and not just the CSS bar.
               <Field key={key || c.id} changed={!!key && !!dirtyKeys?.has(key)}>
-                {renderEditor({ column: c, control })}
+                {renderEditor({ column: c, control, idPrefix })}
               </Field>
             );
           })}

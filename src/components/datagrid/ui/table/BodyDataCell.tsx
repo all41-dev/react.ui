@@ -2,14 +2,16 @@ import { flexRender, type Cell } from "@tanstack/react-table";
 import { Pencil } from "lucide-react";
 import { useContext } from "react";
 import { DataGridContext } from "../../DataGridContext";
-import type { ColumnMeta } from "../../types/column";
+import { readAccessorKey, readColumnMeta } from "../../utils/readColumnDef";
 import { CellWithTooltip } from "./CellWithTooltip";
 
-export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
+export function BodyDataCell<TRow extends object>({
+  c,
+}: {
+  c: Cell<TRow, unknown>;
+}) {
   const ctx = useContext(DataGridContext);
-  const m = (c.column.columnDef as any).meta as
-    | ColumnMeta<any, any>
-    | undefined;
+  const m = readColumnMeta(c.column.columnDef);
   const paddingClass = m?.cellClassName ?? "px-3";
   const raw = typeof c.getValue === "function" ? c.getValue() : undefined;
 
@@ -29,7 +31,16 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
   // The tooltip echoes what is on screen — it exists because that text is clipped.
   const value = m?.format ? formatted : raw;
 
-  const canCellEdit = !!(m?.cellEdit && m?.editor && ctx?.canCellEdit);
+  /* A cell edit round-trips through the form, which is keyed by the accessor key, so a
+     column with only an `accessorFn` has nothing to seed the editor from or write back
+     to — offering the affordance would open an empty popover. */
+  const hasAccessorKey = !!readAccessorKey(c.column.columnDef);
+  const canCellEdit = !!(
+    m?.cellEdit &&
+    m?.editor &&
+    hasAccessorKey &&
+    ctx?.canCellEdit
+  );
 
   return (
     <td
@@ -48,7 +59,6 @@ export function BodyDataCell({ c }: { c: Cell<any, unknown> }) {
           : m?.align === "center"
             ? "text-center"
             : "",
-        m?.hideOnMobile ? "hidden md:table-cell" : "",
       ].join(" ")}
     >
       {canCellEdit ? (

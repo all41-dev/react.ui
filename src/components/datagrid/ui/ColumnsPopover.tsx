@@ -23,16 +23,22 @@ const PANEL_EST_HEIGHT = 340;
 export function ColumnsPopover<TRow extends object>({
   table,
   onReset,
+  forcedHiddenIds,
 }: {
   table: Table<TRow>;
   /** Clears persisted sizing/order/visibility back to the column defaults. */
   onReset: () => void;
+  /** Columns the viewport hides. Not listed here — the user cannot reveal them. */
+  forcedHiddenIds?: readonly string[];
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const panelStyle = useAnchoredPanel(open, wrapRef, PANEL_WIDTH, PANEL_EST_HEIGHT);
-  const { columns, visibleCount, hiddenCount, move } = useColumnOrdering(table);
+  const { columns, visibleCount, hiddenCount, move } = useColumnOrdering(
+    table,
+    forcedHiddenIds
+  );
 
   useOutsideDismiss(open, wrapRef, () => setOpen(false));
 

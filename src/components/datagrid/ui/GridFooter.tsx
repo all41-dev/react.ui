@@ -50,7 +50,10 @@ export function GridFooter<TRow extends object>({
     );
   }
 
-  if (showCards && selectable && selectedCount > 0) {
+  /* No pager on screen, but a selection to report: the cards view, and any list view
+     with paging turned off. Without this band the count and its Clear have nowhere to
+     live and bulk selection becomes invisible. */
+  if (selectable && selectedCount > 0) {
     return (
       <div className="flex items-center gap-3 border-t border-border-default bg-surface-card px-3.5 py-[9px] text-[.75rem] text-muted">
         <SelectionPill count={selectedCount} onClear={onClearSelection} />

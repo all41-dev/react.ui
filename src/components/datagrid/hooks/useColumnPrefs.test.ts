@@ -15,6 +15,41 @@ describe("useColumnPrefs", () => {
     expect(result.current.state.columnSizing).toEqual({});
   });
 
+  /*
+   * Persisting an untouched grid pins its column order forever: `normalizeOrder` appends
+   * ids the store has never seen, so a column added between two existing ones in a later
+   * release would land at the end of the table for everyone who ever opened it.
+   */
+  it("writes nothing until the user changes something", async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useColumnPrefs("dg:a", IDS));
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(localStorage.getItem("dg:a")).toBeNull();
+
+      act(() => result.current.handlers.onColumnVisibilityChange({ email: false }));
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(localStorage.getItem("dg:a")).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("hides a forced-hidden column over the user's own choice", () => {
+    localStorage.setItem(
+      "dg:a",
+      JSON.stringify({ v: 1, columnVisibility: { email: true } })
+    );
+    const { result } = renderHook(() =>
+      useColumnPrefs("dg:a", IDS, undefined, ["email"])
+    );
+    expect(result.current.state.columnVisibility.email).toBe(false);
+  });
+
   it("discards a stored blob from an older shape rather than merging it", () => {
     // Merging half-migrated preferences produces layouts nobody chose.
     localStorage.setItem(

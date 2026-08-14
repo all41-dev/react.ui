@@ -21,14 +21,18 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
   view?: "list" | "cards";
   onViewChange?: (v: "list" | "cards") => void;
 }) {
-  const { rows, edit, filters, grouping, table, gridColumns } = state;
+  const { edit, filters, grouping, table, gridColumns } = state;
   const { resetView, viewIsDefault } = state;
+
+  /* The filtered count, matching what the pager below reports. The unfiltered total
+     would read as the same number and contradict it — "50" next to "1–3 of 3". */
+  const count = table.getFilteredRowModel().rows.length;
 
   return (
     <DataGridToolbar
       title={props.title ?? "Data"}
       subtitle={props.subtitle}
-      count={rows.length}
+      count={count}
       toolbar={props.toolbar}
       editContainer={props.editContainer ?? "right"}
       error={props.error ?? null}
@@ -43,7 +47,11 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
       onToggleFilters={filters.toggleFilters}
       onClearFilters={filters.clearAllFilters}
       columnsControl={
-        <ColumnsPopover table={table} onReset={gridColumns.resetPrefs} />
+        <ColumnsPopover
+          table={table}
+          onReset={gridColumns.resetPrefs}
+          forcedHiddenIds={gridColumns.forceHiddenIds}
+        />
       }
       onResetView={resetView}
       viewIsDefault={viewIsDefault}

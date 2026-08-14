@@ -1,5 +1,3 @@
-import { useCallback } from "react";
-
 import type { DataGridProps } from "../types/grid";
 import { useConfirm } from "./useConfirm";
 import { useDataGridTable } from "./useDataGridTable";
@@ -10,6 +8,7 @@ import { useGridGrouping } from "./useGridGrouping";
 import { useGridMutations } from "./useGridMutations";
 import { useGridPagination } from "./useGridPagination";
 import { useGridRows } from "./useGridRows";
+import { useResetView } from "./useResetView";
 import { useRowSelection } from "./useRowSelection";
 
 /**
@@ -67,7 +66,6 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     columns: props.columns,
     selectable: props.selectable ?? false,
     hasRowActions,
-    actionPresentation: props.actionColumnOptions?.presentation ?? "overlay",
     storageKey: userKey,
   });
 
@@ -93,30 +91,15 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     defaultGroupBy: props.defaultGroupBy ?? "",
   });
 
-  /*
-   * "Reset view": the grid as it renders on a first visit. Each part answers for
-   * itself — whether it is untouched, and how to go back — so a new piece of view
-   * state either joins this list or stays out of the reset on purpose.
-   */
-  /* Lifted out of their bundles: the bundles are new objects every render, the
-     callbacks inside them are not. */
-  const { resetPrefs } = gridColumns;
-  const { reset: resetFilters } = filters;
-  const { reset: resetGrouping } = grouping;
-  const { reset: resetPagination } = pagination;
-
-  const resetView = useCallback(() => {
-    resetPrefs();
-    resetFilters();
-    resetGrouping();
-    resetPagination();
-  }, [resetPrefs, resetFilters, resetGrouping, resetPagination]);
-
-  const viewIsDefault =
-    gridColumns.prefsAreDefault &&
-    filters.isDefault &&
-    grouping.isDefault &&
-    pagination.isDefault;
+  const { resetView, viewIsDefault } = useResetView({
+    columnPrefs: {
+      reset: gridColumns.resetPrefs,
+      isDefault: gridColumns.prefsAreDefault,
+    },
+    filters,
+    grouping,
+    pagination,
+  });
 
   const { confirm, ConfirmDialog } = useConfirm();
 

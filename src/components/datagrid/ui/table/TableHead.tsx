@@ -8,12 +8,20 @@ export function TableHead<TRow extends object>({
   table,
   showFilters,
   headRef,
+  lastDataColId,
+  lastColWidth,
 }: {
   table: Table<TRow>;
   showFilters?: boolean;
   /** Measured by the virtualizer — the sticky head offsets every row position. */
   headRef: Ref<HTMLTableSectionElement>;
+  /** The stretched column, whose painted width is not its `getSize()`. */
+  lastDataColId?: string;
+  lastColWidth?: number;
 }) {
+  const paintedWidth = (id: string, size: number) =>
+    id === lastDataColId && lastColWidth !== undefined ? lastColWidth : size;
+
   return (
     <thead ref={headRef} className="sticky top-0 z-1 bg-surface-inset">
       {/* Under `role="grid"` the header rows are rows 1..n — the body picks up from
@@ -21,7 +29,11 @@ export function TableHead<TRow extends object>({
       {table.getHeaderGroups().map((hg, i) => (
         <tr key={hg.id} aria-rowindex={i + 1}>
           {hg.headers.map((h) => (
-            <HeaderCell key={h.id} h={h} />
+            <HeaderCell
+              key={h.id}
+              h={h}
+              renderedWidth={paintedWidth(h.column.id, h.column.getSize())}
+            />
           ))}
         </tr>
       ))}

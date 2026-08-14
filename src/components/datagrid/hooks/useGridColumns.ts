@@ -2,22 +2,37 @@ import { useMemo } from "react";
 
 import type { WithMeta } from "../types/column";
 import { filterFnFor } from "../utils/filterFns";
-import {
-  makeActionColumn,
-  type ActionPresentation,
-} from "../ui/makeActionColumns";
+import { makeActionColumn } from "../ui/makeActionColumns";
 import { makeSelectColumn } from "../ui/table/SelectionCells";
+import { useColumnDefWarnings } from "./useColumnDefWarnings";
 import { useColumnPrefs } from "./useColumnPrefs";
+import { useForcedHiddenColumns } from "./useForcedHiddenColumns";
 
-export const getColId = (c: { id?: string; accessorKey?: unknown }) =>
-  (c.id ?? (c as { accessorKey?: unknown }).accessorKey ?? "").toString();
+/**
+ * The id TanStack Table will derive for a column def, reproduced exactly: explicit `id`,
+ * else the accessor key with dots swapped for underscores, else a plain-string header.
+ *
+ * Not interchangeable with `getAccessorKey`. A column with `accessorKey: "user.name"` is
+ * keyed `user_name` by the table and `user.name` by the form; substituting one for the
+ * other silently unhooks visibility, ordering, cell editing and the form field.
+ */
+export const getColId = (c: {
+  id?: string;
+  accessorKey?: unknown;
+  header?: unknown;
+}): string => {
+  if (c.id) return c.id;
+  if (typeof c.accessorKey === "string" && c.accessorKey) {
+    return c.accessorKey.replaceAll(".", "_");
+  }
+  return typeof c.header === "string" ? c.header : "";
+};
 
 type Params<TRow extends object, TForm extends object> = {
   columns: WithMeta<TRow, TForm>[];
   selectable: boolean;
   /** Whether an action column is worth rendering at all. */
   hasRowActions: boolean;
-  actionPresentation: ActionPresentation;
   storageKey: string;
 };
 
@@ -35,7 +50,6 @@ export function useGridColumns<TRow extends object, TForm extends object>({
   columns,
   selectable,
   hasRowActions,
-  actionPresentation,
   storageKey,
 }: Params<TRow, TForm>) {
   /*
@@ -58,8 +72,8 @@ export function useGridColumns<TRow extends object, TForm extends object>({
   );
 
   const actionCol = useMemo(
-    () => (hasRowActions ? makeActionColumn<TRow>(actionPresentation) : null),
-    [hasRowActions, actionPresentation]
+    () => (hasRowActions ? makeActionColumn<TRow>() : null),
+    [hasRowActions]
   );
 
   const selectCol = useMemo(
@@ -76,6 +90,8 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     [baseCols, selectable, hasRowActions]
   );
 
+  useColumnDefWarnings(baseCols, allColumnIds);
+
   /* Form-only columns: they carry an editor and a label but no place in the table. The
      injected select/action columns can never be one. */
   const defaultHiddenIds = useMemo(
@@ -86,10 +102,13 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     [baseCols]
   );
 
+  const forceHiddenIds = useForcedHiddenColumns(baseCols, getColId);
+
   const { state, handlers, reset, isDefault } = useColumnPrefs(
     storageKey,
     allColumnIds,
-    defaultHiddenIds
+    defaultHiddenIds,
+    forceHiddenIds
   );
 
   const orderedColumns = useMemo(() => {
@@ -109,5 +128,7 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     prefHandlers: handlers,
     resetPrefs: reset,
     prefsAreDefault: isDefault,
+    /** Hidden by the viewport, not by the user — the Columns popover leaves these out. */
+    forceHiddenIds,
   };
 }

@@ -41,18 +41,19 @@ export function buildEditorClassName({
  * `aria-describedby` too — pointing at a removed node describes nothing.
  */
 export function buildDescribedBy({
-  name,
+  id,
   description,
   hasError,
 }: {
-  name: string;
+  /** The control's DOM id — `FieldChrome` derives the hint and error ids from the same. */
+  id: string;
   description: string | undefined;
   hasError: boolean;
 }): string | undefined {
   return (
     [
-      hasError ? `${name}-error` : null,
-      description && !hasError ? `${name}-desc` : null,
+      hasError ? `${id}-error` : null,
+      description && !hasError ? `${id}-desc` : null,
     ]
       .filter(Boolean)
       .join(" ") || undefined

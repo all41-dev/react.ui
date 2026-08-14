@@ -57,7 +57,7 @@ export function TableView<TRow extends object>({
   const { ref: wrapperRef, width: containerW } =
     useContainerWidth<HTMLDivElement>();
 
-  const { leafColsAll, lastDataCol, lastColWidth, tableW } = useColumnLayout(
+  const { leafColsAll, lastDataColId, lastColWidth, tableW } = useColumnLayout(
     table,
     containerW
   );
@@ -101,7 +101,7 @@ export function TableView<TRow extends object>({
         headRef={headRef}
         tableW={tableW}
         leafColsAll={leafColsAll}
-        lastDataCol={lastDataCol}
+        lastDataColId={lastDataColId}
         lastColWidth={lastColWidth}
         rowCount={items.length + headerRowCount}
       >

@@ -1,51 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { Updater, VisibilityState } from "@tanstack/react-table";
-
-type ColumnPrefs = {
-  columnSizing: Record<string, number>;
-  columnOrder: string[];
-  columnVisibility: Record<string, boolean>;
-  v: number;
-};
-
-const VERSION = 1;
-
-const DEFAULT: ColumnPrefs = {
-  columnSizing: {},
-  columnOrder: [],
-  columnVisibility: {},
-  v: VERSION,
-};
-
-function safeLoad(key: string): ColumnPrefs {
-  try {
-    if (typeof window === "undefined") return DEFAULT;
-    const raw = localStorage.getItem(key);
-    if (!raw) return DEFAULT;
-    const parsed = JSON.parse(raw) as Partial<ColumnPrefs> | null;
-    // A stored blob from an older shape is discarded rather than merged — merging
-    // half-migrated preferences produces layouts nobody chose.
-    if (!parsed || parsed.v !== VERSION) return DEFAULT;
-    return {
-      columnSizing: parsed.columnSizing ?? {},
-      columnOrder: Array.isArray(parsed.columnOrder) ? parsed.columnOrder : [],
-      columnVisibility: parsed.columnVisibility ?? {},
-      v: VERSION,
-    };
-  } catch {
-    // Private mode, quota, or malformed JSON — fall back to defaults.
-    return DEFAULT;
-  }
-}
-
-function safeSave(key: string, prefs: ColumnPrefs) {
-  try {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(key, JSON.stringify(prefs));
-  } catch {
-    /* storage unavailable — preferences are best-effort */
-  }
-}
+import {
+  DEFAULT_PREFS,
+  safeLoad,
+  safeRemove,
+  safeSave,
+  type ColumnPrefs,
+} from "./columnPrefsStorage";
+import {
+  mergeVisibility,
+  normalizeOrder,
+  prefsAreDefault,
+} from "./columnPrefsDerive";
+import { useColumnPrefsHandlers } from "./useColumnPrefsHandlers";
 
 /** Stable identity, so the visibility memo below doesn't rerun on every render. */
 const NO_DEFAULT_HIDDEN: string[] = [];
@@ -54,13 +20,20 @@ const NO_DEFAULT_HIDDEN: string[] = [];
  * Column sizing, order and visibility, persisted per `storageKey`.
  *
  * `defaultHiddenIds` are the columns that start hidden — see `meta.visibleInTable`.
+ * `forceHiddenIds` are hidden regardless of what the user chose, for as long as they are
+ * passed — see `meta.hideOnMobile`. Neither is ever written to storage.
  */
 export function useColumnPrefs(
   storageKey: string,
   allColumnIds: string[],
-  defaultHiddenIds: string[] = NO_DEFAULT_HIDDEN
+  defaultHiddenIds: string[] = NO_DEFAULT_HIDDEN,
+  forceHiddenIds: string[] = NO_DEFAULT_HIDDEN
 ) {
   const [prefs, setPrefs] = useState<ColumnPrefs>(() => safeLoad(storageKey));
+  /* The storage key whose preferences the user has actually changed. Nothing is written
+     back until they have — see the save effect below. Holds a key rather than a boolean
+     so switching grids doesn't carry the previous grid's dirty state over. */
+  const [touchedKey, setTouchedKey] = useState<string | null>(null);
 
   // Switching grids (or storageKey) must load that grid's own preferences rather than
   // carrying the previous one's over. Reconciled during render, not in an effect, so the
@@ -71,76 +44,56 @@ export function useColumnPrefs(
     setPrefs(safeLoad(storageKey));
   }
 
-  const normalizedOrder = useMemo(() => {
-    const known = new Set(allColumnIds);
-    const kept = (prefs.columnOrder || []).filter((id) => known.has(id));
-    const missing = allColumnIds.filter((id) => !kept.includes(id));
-    return [...kept, ...missing];
-  }, [prefs.columnOrder, allColumnIds]);
+  const normalizedOrder = useMemo(
+    () => normalizeOrder(prefs.columnOrder || [], allColumnIds),
+    [prefs.columnOrder, allColumnIds]
+  );
 
-  /* A stored preference is layered over the defaults rather than merged into them: the
-     seed is what the grid ships with, the stored value is what the user chose, and the
-     user wins. Nothing about the seed is ever written to storage. */
-  const columnVisibility = useMemo(() => {
-    if (defaultHiddenIds.length === 0) return prefs.columnVisibility;
-    const seeded: Record<string, boolean> = {};
-    for (const id of defaultHiddenIds) seeded[id] = false;
-    return { ...seeded, ...prefs.columnVisibility };
-  }, [defaultHiddenIds, prefs.columnVisibility]);
+  const columnVisibility = useMemo(
+    () =>
+      mergeVisibility(prefs.columnVisibility, defaultHiddenIds, forceHiddenIds),
+    [defaultHiddenIds, forceHiddenIds, prefs.columnVisibility]
+  );
 
-  // Debounced so a column drag writes once at rest, not on every mousemove.
+  /*
+   * Only a real change is written. Persisting on mount would store a full `columnOrder`
+   * for a grid nobody has touched, and `normalizeOrder` appends unknown ids — so a column
+   * added between two others in a later release would land at the end of the table
+   * permanently, for every user who has ever opened the grid.
+   *
+   * Debounced so a column drag writes once at rest, not on every mousemove.
+   */
   useEffect(() => {
+    if (touchedKey !== storageKey) return;
     const handle = setTimeout(
       () => safeSave(storageKey, { ...prefs, columnOrder: normalizedOrder }),
       200
     );
     return () => clearTimeout(handle);
-  }, [storageKey, prefs, normalizedOrder]);
+  }, [storageKey, prefs, normalizedOrder, touchedKey]);
 
-  const onColumnSizingChange = useCallback(
-    (updater: Updater<Record<string, number>>) => {
-      setPrefs((p) => ({
-        ...p,
-        columnSizing:
-          typeof updater === "function" ? updater(p.columnSizing) : updater,
-      }));
+  /** Marks the prefs as user-touched, so the effect above starts persisting them. */
+  const updatePrefs = useCallback(
+    (update: (p: ColumnPrefs) => ColumnPrefs) => {
+      setTouchedKey(storageKey);
+      setPrefs(update);
     },
-    []
+    [storageKey]
   );
 
-  const onColumnVisibilityChange = useCallback(
-    (updater: Updater<VisibilityState>) => {
-      setPrefs((p) => ({
-        ...p,
-        columnVisibility:
-          typeof updater === "function" ? updater(p.columnVisibility) : updater,
-      }));
-    },
-    []
-  );
+  const handlers = useColumnPrefsHandlers(updatePrefs, allColumnIds);
 
-  const onColumnOrderChange = useCallback((updater: Updater<string[]>) => {
-    setPrefs((p) => ({
-      ...p,
-      columnOrder: typeof updater === "function" ? updater(p.columnOrder) : updater,
-    }));
-  }, []);
-
+  /* The entry is dropped rather than overwritten with the defaults: the two load
+     identically, and removing writes nothing for a grid that was never stored. Un-marked
+     as touched too, or the save effect would put the defaults straight back. */
   const reset = useCallback(() => {
-    setPrefs(DEFAULT);
-    safeSave(storageKey, DEFAULT);
+    setTouchedKey(null);
+    setPrefs(DEFAULT_PREFS);
+    safeRemove(storageKey);
   }, [storageKey]);
 
-  /* Read off the stored preferences, not the state handed to the table: the
-     default-hidden seed is the shipped layout, so a grid carrying one is still
-     untouched. */
   const isDefault = useMemo(
-    () =>
-      Object.keys(prefs.columnSizing).length === 0 &&
-      Object.keys(prefs.columnVisibility).length === 0 &&
-      (prefs.columnOrder.length === 0 ||
-        (prefs.columnOrder.length === allColumnIds.length &&
-          prefs.columnOrder.every((id, i) => id === allColumnIds[i]))),
+    () => prefsAreDefault(prefs, allColumnIds),
     [prefs, allColumnIds]
   );
 
@@ -151,11 +104,7 @@ export function useColumnPrefs(
       columnVisibility,
       columnOrder: normalizedOrder,
     },
-    handlers: {
-      onColumnSizingChange,
-      onColumnVisibilityChange,
-      onColumnOrderChange,
-    },
+    handlers,
     reset,
   };
 }

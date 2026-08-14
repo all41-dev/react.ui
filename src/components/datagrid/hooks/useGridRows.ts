@@ -55,9 +55,12 @@ export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
   const replaceRow = useCallback(
     (prevRow: TRow, saved: TRow) => {
       const prevId = getId(prevRow);
-      setRows((prev) =>
-        prev.map((r) => (sameRowId(getId(r), prevId) ? saved : r))
-      );
+      /* Object identity for a row the grid cannot key: `sameRowId` is false whenever
+         either side is undefined, so an id-less row would otherwise never be replaced
+         and the save would look like it did nothing. */
+      const isTarget = (r: TRow) =>
+        prevId === undefined ? r === prevRow : sameRowId(getId(r), prevId);
+      setRows((prev) => prev.map((r) => (isTarget(r) ? saved : r)));
       flash(getId(saved) ?? prevId);
     },
     [getId, flash]

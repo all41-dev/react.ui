@@ -76,18 +76,25 @@ function SelectAllHeader<TRow extends object>({
   const rowKey = useRowKey();
   if (!selection) return null;
 
-  // The paginated row model — the header checkbox is page-scoped by design.
-  const pageIds = table.getRowModel().rows.map(rowKey);
-  const selectedOnPage = pageIds.filter((id) => selection.selectedIds.has(id)).length;
-  const all = pageIds.length > 0 && selectedOnPage === pageIds.length;
-  const some = selectedOnPage > 0 && !all;
+  /* Scoped to the rows actually on screen. Grouping renders the whole sorted set and
+     hides the pager, so reading the page-sliced model there would select five rows out
+     of the thirty in front of the user — and say so in the label. */
+  const visibleIds = (
+    selection.rendersAllRows
+      ? table.getSortedRowModel().rows
+      : table.getRowModel().rows
+  ).map(rowKey);
+  const selectedVisible = visibleIds.filter((id) => selection.selectedIds.has(id)).length;
+  const all = visibleIds.length > 0 && selectedVisible === visibleIds.length;
+  const some = selectedVisible > 0 && !all;
+  const scope = selection.rendersAllRows ? "rows" : "rows on this page";
 
   return (
     <Checkbox
       checked={all}
       indeterminate={some}
-      onChange={() => selection.setPage(pageIds, !all)}
-      label={all ? "Unselect all rows on this page" : "Select all rows on this page"}
+      onChange={() => selection.setPage(visibleIds, !all)}
+      label={`${all ? "Unselect" : "Select"} all ${scope}`}
     />
   );
 }

@@ -7,11 +7,10 @@ import { useGridChrome } from "./hooks/useGridChrome";
 import { useGridHandle } from "./hooks/useGridHandle";
 import { useGridView } from "./hooks/useGridView";
 import type { DataGridProps } from "./types/grid";
-import { GridBody } from "./ui/GridBody";
+import { GridBodySection } from "./ui/GridBodySection";
 import { GridEditors } from "./ui/GridEditors";
 import { GridFooter } from "./ui/GridFooter";
 import { GridToolbarSection } from "./ui/GridToolbarSection";
-import { EditInline } from "./ui/containers/EditInline";
 import { getRowKey } from "./utils/getRowKey";
 
 export type { DataGridProps, DataGridHandle } from "./types/grid";
@@ -34,7 +33,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
   );
 
   const state = useDataGridState<TRow, TForm>(gridProps, getId);
-  const { edit, selection, filters, grouping, pagination, mutations } = state;
+  const { edit, selection, grouping, pagination, mutations } = state;
 
   const view = useGridView<TRow>({
     hasCard: !!card,
@@ -59,26 +58,9 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
      for rows keyed by a custom `idAccessor` (no `id`/`uuid` for the fallback to find). */
   const editingRowKey = edit.editingRow ? getId(edit.editingRow) : undefined;
 
-  const inlineEditor =
-    view.inlineEditing &&
-    edit.session.kind !== "idle" &&
-    edit.session.kind !== "cell" ? (
-      <EditInline<TRow, TForm>
-        open
-        mode={edit.formMode}
-        row={edit.editingRow}
-        rowKey={editingRowKey}
-        columns={gridProps.columns}
-        zodSchema={gridProps.zodSchema}
-        formLayout={gridProps.formLayout}
-        onCancel={edit.close}
-        onSubmit={mutations.handleSubmit}
-      />
-    ) : undefined;
-
   return (
     <DataGridContext.Provider value={chrome.contextValue}>
-      <DataGridSelectionContext.Provider value={selection.contextValue}>
+      <DataGridSelectionContext.Provider value={chrome.selectionContextValue}>
         <div
           /*
            * Keep `overflow-hidden`: without it the sticky header and footer paint over
@@ -102,26 +84,14 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
             onViewChange={card ? view.handleViewChange : undefined}
           />
 
-          <GridBody<TRow>
-            table={state.table}
+          <GridBodySection<TRow, TForm>
+            props={gridProps}
+            state={state}
+            view={view}
             getId={getId}
-            label={gridProps.title ?? "Data"}
-            isLoading={!!gridProps.isLoading}
-            error={gridProps.error ?? null}
-            emptyLabel={gridProps.emptyLabel}
             card={card}
-            showCards={view.showCards}
-            grouping={grouping}
-            showFilters={filters.showFilters && filters.hasFilterableColumns}
-            selectedRowIds={gridProps.selectable ? selection.selectedIds : undefined}
-            onRowClick={onRowClick ? view.handleRowClick : undefined}
-            selectedRowId={view.selectedRowId}
-            editingRowId={view.inlineEditing ? editingRowKey : undefined}
-            inlineEditor={inlineEditor}
-            isCreating={view.inlineEditing && edit.session.kind === "create"}
-            changedRowId={state.changedRowId}
-            expandedRowIds={gridProps.expandedRowIds}
-            renderExpandedRow={gridProps.renderExpandedRow}
+            onRowClick={onRowClick}
+            editingRowKey={editingRowKey}
           />
 
           <GridFooter<TRow>

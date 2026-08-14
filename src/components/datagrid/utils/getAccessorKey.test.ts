@@ -45,9 +45,21 @@ describe("computeDefaults", () => {
     expect(d.name).toBe("Leanne (#1)");
   });
 
-  it("keeps row fields that have no column", () => {
+  /* Anything seeded here comes back out of `handleSubmit` and gets posted, so a field no
+     column declares — an audit stamp, a server-side timestamp, a nested relation — must
+     not be in the form at all. */
+  it("drops row fields that no column declares", () => {
     const d = computeDefaults(row, [col("name")]) as Row;
-    expect(d.id).toBe(1);
+    expect(d.name).toBe("Leanne");
+    expect(d.id).toBeUndefined();
+  });
+
+  it("reads and writes a nested accessor key as a path", () => {
+    const nested = { user: { name: "Leanne" } } as unknown as Row;
+    const d = computeDefaults(nested, [
+      col("user.name", { toForm: (v) => String(v).toUpperCase() }),
+    ]) as unknown as { user: { name: string } };
+    expect(d.user.name).toBe("LEANNE");
   });
 
   describe("creating (no row)", () => {

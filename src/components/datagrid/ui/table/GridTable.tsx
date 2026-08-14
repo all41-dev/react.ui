@@ -10,7 +10,8 @@ type GridTableProps<TRow extends object> = {
   headRef: Ref<HTMLTableSectionElement>;
   tableW: number;
   leafColsAll: Column<TRow, unknown>[];
-  lastDataCol: Column<TRow, unknown> | undefined;
+  lastDataColId: string | undefined;
+  /** What the final data column actually paints at, stretch included. */
   lastColWidth: number;
   /** Header rows plus the page's flat body list — what `aria-rowindex` is numbered over. */
   rowCount: number;
@@ -25,7 +26,7 @@ export function GridTable<TRow extends object>({
   headRef,
   tableW,
   leafColsAll,
-  lastDataCol,
+  lastDataColId,
   lastColWidth,
   rowCount,
   children,
@@ -57,11 +58,17 @@ export function GridTable<TRow extends object>({
     >
       <Colgroup
         leafColsAll={leafColsAll}
-        lastDataCol={lastDataCol}
+        lastDataColId={lastDataColId}
         lastColWidth={lastColWidth}
       />
 
-      <TableHead table={table} showFilters={showFilters} headRef={headRef} />
+      <TableHead
+        table={table}
+        showFilters={showFilters}
+        headRef={headRef}
+        lastDataColId={lastDataColId}
+        lastColWidth={lastColWidth}
+      />
 
       {children}
     </table>

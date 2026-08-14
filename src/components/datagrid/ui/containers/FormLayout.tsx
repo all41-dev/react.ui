@@ -7,6 +7,8 @@ import type { Control } from "react-hook-form";
 type FormLayoutProps<TRow extends object, TForm extends object> = {
   fields: WithMeta<TRow, TForm>[];
   control: Control<TForm>;
+  /** Per-form prefix for every field's DOM id — see `renderEditor`. */
+  idPrefix: string;
   columns?: 1 | 2 | 3 | 4;
   gap?: string;
   className?: string;
@@ -47,6 +49,7 @@ export function Field({
 export function FormLayout<TRow extends object, TForm extends object>({
   fields,
   control,
+  idPrefix,
   columns = 2,
   gap = "gap-4",
   className = "",
@@ -111,7 +114,7 @@ export function FormLayout<TRow extends object, TForm extends object>({
                 changed={!!key && !!dirtyKeys?.has(key)}
                 className={`${colSpanClass} ${fieldClassName}`}
               >
-                {renderEditor({ column: c, control })}
+                {renderEditor({ column: c, control, idPrefix })}
               </Field>
             );
           })}
@@ -129,7 +132,7 @@ export function FormLayout<TRow extends object, TForm extends object>({
                 changed={!!key && !!dirtyKeys?.has(key)}
                 className={fieldClassName}
               >
-                {renderEditor({ column: c, control })}
+                {renderEditor({ column: c, control, idPrefix })}
               </Field>
             );
           })}

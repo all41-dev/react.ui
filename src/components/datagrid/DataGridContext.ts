@@ -48,8 +48,14 @@ export type DataGridSelectionValue = {
   /** Ids stored as strings — row ids are compared as text everywhere in this grid. */
   selectedIds: ReadonlySet<string>;
   toggleRow: (id: string) => void;
-  /** Header checkbox: select or unselect the CURRENT PAGE's rows only. */
+  /** Header checkbox: select or unselect exactly the ids it is given. */
   setPage: (pageIds: string[], selected: boolean) => void;
+  /**
+   * True when the body renders the whole filtered set rather than one page — grouping
+   * replaces paging. The header checkbox scopes itself to what is on screen, so it must
+   * follow this rather than always reading the paginated row model.
+   */
+  rendersAllRows: boolean;
 };
 
 export const DataGridSelectionContext =

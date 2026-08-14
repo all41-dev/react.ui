@@ -68,6 +68,8 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   filter?: ColumnFilterMeta;
   headerClassName?: string;
   cellClassName?: string;
+  /** Drops the column out of the table below `md`. Driven through column visibility, so
+      the colgroup, the filter row and the group headers all agree with the data rows. */
   hideOnMobile?: boolean;
   tooltip?: boolean;
   tooltipContent?: (args: { value: unknown; row: TRow }) => string;

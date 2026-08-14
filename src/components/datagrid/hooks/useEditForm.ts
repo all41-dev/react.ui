@@ -3,7 +3,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ZodType } from "zod";
 import type { WithMeta } from "../types/column";
-import { computeDefaults, getAccessorKey } from "../utils/getAccessorKey";
+import { applyFromForm, computeDefaults } from "../utils/getAccessorKey";
+import { flattenPaths } from "../utils/objectPath";
+import { useFormError } from "./useFormError";
 import { getApiMessage } from "../../../api/errors";
 
 type Params<TRow extends object, TForm extends object> = {
@@ -65,40 +67,15 @@ export function useEditForm<TRow extends object, TForm extends object>({
     onSubmittingChange?.(isSubmitting);
   }, [isSubmitting, onSubmittingChange]);
 
-  const formError = useMemo(() => {
-    const serverMsg = errors.root?.server?.message;
-    if (serverMsg) return serverMsg;
-
-    const errKeys = Object.keys(errors);
-    if (!errKeys.length) return undefined;
-
-    const fieldKeys = new Set(
-      fields.map((c) => getAccessorKey(c)).filter(Boolean)
-    );
-    const unrenderedErrors = errKeys.filter((k) => !fieldKeys.has(k));
-
-    if (unrenderedErrors.length > 0) {
-      const firstKey = unrenderedErrors[0];
-      // `FieldErrors` is keyed by the form shape; errors for unrendered keys are read
-      // through a plain record view.
-      const byKey = errors as Record<string, { message?: string } | undefined>;
-      const msg = byKey[firstKey]?.message || "Invalid value";
-      return `Validation error on '${firstKey}': ${msg}`;
-    }
-
-    return undefined;
-  }, [errors, fields]);
+  const formError = useFormError<TRow, TForm>(errors, fields);
 
   const submit = form.handleSubmit(
     async (values) => {
-      const out = { ...values } as Record<string, unknown>;
-      for (const c of fields) {
-        const key = getAccessorKey(c);
-        if (!key || !c.meta?.fromForm) continue;
-        out[key] = c.meta.fromForm(out[key], values);
-      }
+      // Over every column, not just the rendered fields — the cell-edit commit converts
+      // the same set, and `fromForm` describes storage rather than the form UI.
+      const out = applyFromForm(values, columns);
       try {
-        await onSubmit(out as TForm);
+        await onSubmit(out);
         form.clearErrors("root.server");
       } catch (e) {
         const message = getApiMessage(
@@ -139,15 +116,17 @@ export function useEditForm<TRow extends object, TForm extends object>({
    * defaults, so typing a value and putting the original back clears the mark — it
    * tracks real changes rather than "was focused".
    *
+   * Flattened to dotted paths, because react-hook-form nests by field path: a dirty
+   * `user.name` arrives as `{ user: { name: true } }`, while the layout asks
+   * `dirtyKeys.has("user.name")`.
+   *
    * Rebuilt every render on purpose. react-hook-form mutates this object in place, so
    * memoising on its identity pinned the set to whatever the FIRST dirty field was and
    * every later change went unmarked. It is a handful of keys — recomputing is cheaper
    * than getting it wrong.
    */
   const dirtyKeys = new Set(
-    Object.entries(dirtyFields)
-      .filter(([, v]) => !!v)
-      .map(([k]) => k)
+    flattenPaths(dirtyFields, { isLeaf: (node) => node === true })
   );
 
   return {

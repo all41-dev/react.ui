@@ -2,7 +2,8 @@ import type { Column } from "@tanstack/react-table";
 
 type Props = {
   leafColsAll: Column<any, unknown>[];
-  lastDataCol: Column<any, unknown> | undefined;
+  /** Matched by id, never by identity — TanStack replaces column instances on reorder. */
+  lastDataColId: string | undefined;
   lastColWidth: number;
 };
 
@@ -10,21 +11,21 @@ type Props = {
 const OVERLAY_COLS = new Set(["__actions__"]);
 
 /**
- * One <col> per visible leaf column, in the table's own column order.
+ * One `<col>` per visible leaf column, in the table's own column order.
  *
- * Previously this filtered `__actions__` out of the loop and appended a single zero-width
- * <col> at the end, which silently assumed the actions column was last — any other order
- * (or a leading selection column) sheared the whole layout by one cell. (#14)
+ * Every column has to be covered: under `table-fixed` a colgroup narrower than the
+ * `<table>` width leaves the browser to redistribute the surplus, so the painted widths
+ * stop matching the model and drag-resizing no longer tracks the pointer.
  */
-export function Colgroup({ leafColsAll, lastDataCol, lastColWidth }: Props) {
+export function Colgroup({ leafColsAll, lastDataColId, lastColWidth }: Props) {
   return (
     <colgroup>
       {leafColsAll.map((col) => {
         if (OVERLAY_COLS.has(col.id)) {
           return <col key={col.id} style={{ width: 0 }} />;
         }
-        const isLast = col === lastDataCol;
-        const w = isLast ? lastColWidth : col.getSize?.() ?? 0;
+        const w =
+          col.id === lastDataColId ? lastColWidth : col.getSize?.() ?? 0;
         return <col key={col.id} style={{ width: `${w}px` }} />;
       })}
     </colgroup>

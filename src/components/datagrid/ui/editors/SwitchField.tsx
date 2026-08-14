@@ -6,7 +6,7 @@ import type { InputHTMLAttributes, ReactNode } from "react";
  * `FieldChrome`/`Field` path.
  */
 export function SwitchField({
-  name,
+  id,
   label,
   description,
   checked,
@@ -15,7 +15,8 @@ export function SwitchField({
   errorMsg,
   inputProps,
 }: {
-  name: string;
+  /** The checkbox's DOM id; the hint and error ids are derived from it. */
+  id: string;
   label?: ReactNode;
   description?: string;
   checked: boolean;
@@ -26,14 +27,14 @@ export function SwitchField({
   inputProps?: Record<string, unknown>;
 }) {
   const describedBy =
-    [hasError ? `${name}-error` : null, description ? `${name}-hint` : null]
+    [hasError ? `${id}-error` : null, description ? `${id}-hint` : null]
       .filter(Boolean)
       .join(" ") || undefined;
 
   return (
     <div className="flex flex-col">
       <label
-        htmlFor={name}
+        htmlFor={id}
         className="flex items-center gap-3 cursor-pointer group"
       >
         {/* A 38×21 track with a 15px knob. Smaller than a default toggle,
@@ -41,7 +42,7 @@ export function SwitchField({
         <div className="relative inline-flex items-center">
           <input
             type="checkbox"
-            id={name}
+            id={id}
             aria-invalid={hasError || undefined}
             aria-describedby={describedBy}
             className="sr-only peer"
@@ -60,7 +61,7 @@ export function SwitchField({
             </span>
           )}
           {description && (
-            <p id={`${name}-hint`} className="mt-0.5 text-[.6875rem] text-faint">
+            <p id={`${id}-hint`} className="mt-0.5 text-[.6875rem] text-faint">
               {description}
             </p>
           )}
@@ -68,7 +69,7 @@ export function SwitchField({
       </label>
       {hasError && (
         <p
-          id={`${name}-error`}
+          id={`${id}-error`}
           role="alert"
           className="ml-[50px] mt-1 text-[.6875rem] font-semibold text-danger"
         >

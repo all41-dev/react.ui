@@ -3,7 +3,10 @@ import { toast } from "sonner";
 import { useId, useMemo } from "react";
 
 import { getApiMessage } from "../../../api/errors";
-import type { DataGridContextValue } from "../DataGridContext";
+import type {
+  DataGridContextValue,
+  DataGridSelectionValue,
+} from "../DataGridContext";
 import type { ActionColumnOpts, ActionView } from "../ui/makeActionColumns";
 import type { DataGridProps } from "../types/grid";
 import type { useDataGridState } from "./useDataGridState";
@@ -27,7 +30,7 @@ export function useGridChrome<TRow extends object, TForm extends object>({
   activeView: ActionView;
   getId: (row: TRow) => string | number | undefined;
 }) {
-  const { edit, filters, grouping, mutations } = state;
+  const { edit, filters, grouping, mutations, selection } = state;
   const editContainer = props.editContainer ?? "right";
 
   const tooltipId = useId().replace(/:/g, "_");
@@ -51,7 +54,6 @@ export function useGridChrome<TRow extends object, TForm extends object>({
     editAriaLabel,
     deleteAriaLabel,
     renderActions,
-    presentation,
   } = props.actionColumnOptions ?? {};
 
   const rowActions = useMemo<ActionColumnOpts<TRow>>(
@@ -69,7 +71,6 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       editAriaLabel,
       deleteAriaLabel,
       renderActions,
-      presentation,
     }),
     [
       getId,
@@ -85,7 +86,6 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       editAriaLabel,
       deleteAriaLabel,
       renderActions,
-      presentation,
     ]
   );
 
@@ -113,6 +113,14 @@ export function useGridChrome<TRow extends object, TForm extends object>({
     ]
   );
 
+  /* Grouping renders the whole set instead of one page, which is what the header
+     checkbox has to scope itself to. */
+  const rendersAllRows = !!grouping.groups;
+  const selectionContextValue = useMemo<DataGridSelectionValue>(
+    () => ({ ...selection.contextValue, rendersAllRows }),
+    [selection.contextValue, rendersAllRows]
+  );
+
   /* Keyed on the stable pieces, not the `filters` object — that object is rebuilt every
      render, so depending on it meant the memo never hit and `DataGridToolbar`'s own memo
      was defeated by a fresh `facets` array each time. */
@@ -122,5 +130,5 @@ export function useGridChrome<TRow extends object, TForm extends object>({
     [buildFacetChips, grouping.activeGroupOption, grouping.clearGroupBy]
   );
 
-  return { tooltipId, contextValue, facetChips };
+  return { tooltipId, contextValue, selectionContextValue, facetChips };
 }

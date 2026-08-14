@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  * guidance per field.
  */
 export function FieldChrome({
-  name,
+  id,
   label,
   required,
   description,
@@ -14,7 +14,8 @@ export function FieldChrome({
   errorMsg,
   children,
 }: {
-  name: string;
+  /** The control's DOM id; the hint and error ids are derived from it. */
+  id: string;
   label?: ReactNode;
   required?: boolean;
   description?: string;
@@ -28,7 +29,7 @@ export function FieldChrome({
           with the value it introduces. */}
       {label && (
         <label
-          htmlFor={name}
+          htmlFor={id}
           className="block text-[.625rem] font-bold uppercase tracking-[.05em] text-faint"
         >
           {label}
@@ -43,13 +44,13 @@ export function FieldChrome({
       <div>
         {children}
         {description && !hasError && (
-          <p id={`${name}-desc`} className="mt-1 text-[.6875rem] text-faint">
+          <p id={`${id}-desc`} className="mt-1 text-[.6875rem] text-faint">
             {description}
           </p>
         )}
         {hasError && (
           <p
-            id={`${name}-error`}
+            id={`${id}-error`}
             role="alert"
             className="mt-1 text-[.6875rem] font-semibold text-danger"
           >

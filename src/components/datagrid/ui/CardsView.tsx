@@ -2,7 +2,7 @@ import type { Row, Table } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, type ReactNode } from "react";
 import { useContainerWidth } from "../hooks/useContainerWidth";
-import { EmptyState, NoResultsState } from "./GridStates";
+import { CardsEmpty, CardsSkeleton } from "./CardsPlaceholders";
 import { CardItem } from "./CardItem";
 
 type CardsViewProps<TRow extends object> = {
@@ -27,11 +27,10 @@ const ESTIMATED_CARD_HEIGHT = 170;
 /**
  * Cards view.
  *
- * Pagination is deliberately bypassed — the spec has the grid render the whole
- * FILTERED set, so this reads getFilteredRowModel rather than the page-sliced
- * getRowModel. That makes virtualization mandatory rather than an optimization:
- * a 500-row resource would otherwise build 500 card subtrees synchronously the
- * moment the view is toggled.
+ * Pagination is deliberately bypassed — the cards view renders the whole filtered set,
+ * so this reads the sorted row model rather than the page-sliced one. That makes
+ * virtualization mandatory rather than an optimization: a 500-row resource would
+ * otherwise build 500 card subtrees synchronously the moment the view is toggled.
  *
  * Rows of cards are the virtualized unit. The column count is derived from the
  * measured container width (the same arithmetic auto-fill would do), rows are
@@ -49,7 +48,10 @@ export function CardsView<TRow extends object>({
   expandedRowIds,
   renderExpandedRow,
 }: CardsViewProps<TRow>) {
-  const rows = table.getFilteredRowModel().rows;
+  /* Sorted, not filtered. TanStack's pipeline is core → filtered → sorted → paginated,
+     so reaching past the page slice has to start from the sorted model — the filtered
+     one is pre-sort and would drop `initialSorting` and every header sort. */
+  const rows = table.getSortedRowModel().rows;
   const { ref: scrollRef, width } = useContainerWidth<HTMLDivElement>();
 
   const columns = useMemo(() => {
@@ -75,45 +77,11 @@ export function CardsView<TRow extends object>({
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
 
   if (isLoading && rows.length === 0) {
-    return (
-      <div className="grid gap-3 bg-surface-inset p-3.5" style={gridStyle}>
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="space-y-2 rounded-control border border-border-default bg-surface-card p-3"
-          >
-            <div className="rui-skeleton w-3/4" />
-            <div className="rui-skeleton w-1/2" />
-          </div>
-        ))}
-      </div>
-    );
+    return <CardsSkeleton gridStyle={gridStyle} />;
   }
 
   if (!isLoading && rows.length === 0 && !error) {
-    // `rows` is already the filtered model here, so an empty one means either no data
-    // at all or no matches — the same two states the table view distinguishes.
-    const { columnFilters, globalFilter } = table.getState();
-    const hasActiveFilters =
-      columnFilters.length > 0 || String(globalFilter ?? "").trim() !== "";
-    const hasAnyData = table.getCoreRowModel().rows.length > 0;
-    return (
-      <div className="bg-surface-inset">
-        {hasActiveFilters && hasAnyData ? (
-          <NoResultsState
-            onClearFilters={() => {
-              table.resetColumnFilters();
-              table.setGlobalFilter("");
-            }}
-          />
-        ) : (
-          <EmptyState
-            title={emptyLabel ?? "No data"}
-            description="There are no items to display yet."
-          />
-        )}
-      </div>
-    );
+    return <CardsEmpty table={table} emptyLabel={emptyLabel} />;
   }
 
   return (

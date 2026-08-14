@@ -27,18 +27,33 @@ In-repo code imports relative paths. Entry: `src/index.ts`.
 3. **Controlled pagination requires both `state` and `onChange`.** `state` alone leaves the
    pager writing to an unused internal atom while rendering the parent's frozen state. The
    grid `console.warn`s in development.
-4. **`meta.cellEdit: true` requires `meta.editor`.** Without an editor there is nothing to
-   render in the popover.
+4. **`meta.cellEdit: true` requires `meta.editor` and an `accessorKey`.** The popover's
+   form is keyed by the accessor key, so a column with only an `accessorFn` has nothing to
+   seed the editor from or write back to. Without either, the cell renders as plain text.
 5. **`format` must never be used to seed the form.** It is display-only. Use `toForm` /
    `fromForm`. See §4.
 6. **`editContainer: "none"` removes the Add button and the Edit action** — there is no
    container to open.
 7. **Cell edits validate one field only.** `useGridMutations` runs the full schema, then
-   throws only if an issue's `path[0]` matches the edited column. A failure elsewhere in
-   the schema must not block editing this field.
+   throws only if an issue's full path matches the edited column's accessor key (or sits
+   under it). Matching on the first path segment instead would let any sibling of a nested
+   key block the edit. A failure elsewhere in the schema must not block editing this field.
 8. **Don't add a hidden mobile card list inside `TableView`.** Mapping every row into one
    defeats the virtualizer. Small screens scroll horizontally; `card` gives the real cards
    view.
+9. **react-hook-form nests by field path; the grid keys by accessor key.** `errors` and
+   `dirtyFields` for `user.name` arrive as `{ user: { name: … } }`. Anything comparing them
+   against a column's key flattens first (`flattenPaths`) — comparing top-level keys made
+   `user` read as a field of its own, which produced a phantom error banner and lost the
+   "changed" badge.
+10. **A column id is not an accessor key.** `getColId` reproduces TanStack's rule
+   (`id ?? accessorKey.replaceAll('.', '_') ?? string header`); the form keys off the raw
+   `accessorKey`. For `accessorKey: "user.name"` the table says `user_name` and the form
+   says `user.name`. Never substitute one for the other.
+11. **The form carries only the declared columns' fields.** `computeDefaults` seeds from
+   the column list, not from the row, so anything the row holds without a column — audit
+   stamps, server timestamps, nested relations — never reaches `onPersist`. A field the
+   backend requires needs a column, even a form-only one (`meta.visibleInTable: false`).
 
 ---
 
@@ -158,18 +173,18 @@ behave as standard TanStack.
 | `visibleInTable` | `boolean` | `false` starts the column hidden — a form-only field. The Columns popover still reveals it, and a stored preference wins over the seed |
 | `editorProps` | `Record<string, unknown>` | Forwarded to the editor (`language`, `rows` understood) |
 | `options` | `Option[]` | Choices for `editor: "select"` |
-| `cellEdit` | `boolean` | Click-to-edit popover. Requires `editor` |
+| `cellEdit` | `boolean` | Click-to-edit popover. Requires `editor` and `accessorKey` |
 | `agg` | `"sum"` | Per-group total on group header rows |
 | `mono` | `boolean` | Mono font in the cell |
 | `align` | `"left" \| "center" \| "right"` | Cell + header alignment |
 | `default` | `unknown` | Create-mode seed. Falls back to `false` for switches, else `""` |
 | `format` | `(value, row) => unknown` | **Display only.** Never reaches the form |
 | `toForm` | `(value, row) => unknown` | Stored → form value. Seeds the editor |
-| `fromForm` | `(value, formValues) => unknown` | Form → stored value. Runs on submit and cell save |
+| `fromForm` | `(value, formValues) => unknown` | Form → stored value. Runs on submit and cell save, over **every** column with an accessor key — an `editor` is not required |
 | `filter` | `ColumnFilterMeta` | Adds a header filter and attaches the matching `filterFn` |
 | `headerClassName` | `string` | |
 | `cellClassName` | `string` | |
-| `hideOnMobile` | `boolean` | |
+| `hideOnMobile` | `boolean` | Drops the column out of the table below `md`. Driven through `columnVisibility`, not a `display:none` class, so the colgroup and every row kind stay in agreement. Beats a stored preference, is never persisted, and is left out of the Columns popover while it applies |
 | `tooltip` | `boolean` | Tooltips attach automatically when text is clipped (measured on pointer-enter). `true` forces one regardless of clipping, `false` disables it |
 | `tooltipContent` | `({ value, row }) => string` | Custom tooltip text |
 | `formLayout` | `{ colSpan?: 1\|2\|3\|4\|"full"; order?: number; className?: string }` | Field placement. Lower `order` first; markdown/code default to `"full"` |
@@ -206,9 +221,14 @@ Never share one hook across display and editing: a column rendering `1234` as `"
 would seed the input with that string and submit it back.
 
 Cell-edit commit (`useGridMutations.handleCellSave`) reproduces the full form round-trip
-for one field: `computeDefaults` over the row → overwrite the edited key → every column's
-`fromForm` → `zodSchema.safeParse` → prefer zod's **output** over the raw draft (so
+for one field: `computeDefaults` over the row → overwrite the edited **accessor key** →
+`applyFromForm` → `zodSchema.safeParse` → prefer zod's **output** over the raw draft (so
 `z.string().transform(Number)` persists the transformed value).
+
+`applyFromForm` (`utils/getAccessorKey.ts`) is the single implementation of the form →
+storage direction, shared by `useEditForm`'s submit and the cell commit. Both read and
+write through `utils/objectPath.ts`, so a dotted `accessorKey` addresses the same nested
+field react-hook-form does.
 
 ---
 
@@ -243,7 +263,12 @@ for one field: `computeDefaults` over the row → overwrite the edited key → e
 - **Virtualization**: `@tanstack/react-virtual` in `TableView`; `estimateSize` 40px rows /
   36px group headers, `overscan: 10`.
 - **Column prefs**: size / order / visibility persisted to `localStorage` under
-  `storageKey`; Columns popover + Reset. Refuses to hide the last visible column.
+  `storageKey`; Columns popover + Reset. Refuses to hide the last visible column. Nothing
+  is written until the user changes something — persisting an untouched grid would pin a
+  later-added column to the end of the table permanently.
+- **Selection scope**: the header checkbox covers the rows actually on screen — the page
+  normally, the whole sorted set while grouping is active (grouping hides the pager) — and
+  its label names the same scope.
 - **Reset view** (`hooks/useDataGridState.ts`): one command putting the grid back to how it
   first renders — column prefs, search, column filters, sorting, grouping and page. Each
   hook owns its own `reset` and `isDefault` (`useColumnPrefs`, `useGridFilters`,
@@ -309,7 +334,7 @@ types/toolbar.ts        GridView, DataGridToolbarProps
 
 hooks/
   useGridRows           Local rows + replaceRow / addRow / removeRow
-  useRowSelection       Checkbox selection, page-scoped select-all
+  useRowSelection       Checkbox selection, scoped to the rendered rows
   useEditSession        Discriminated union: idle | create | edit | cell
   useGridMutations      All writes: submit, delete, cell commit
   useGridFilters        columnFilters, globalFilter, sorting, clearAllFilters,
@@ -319,7 +344,15 @@ hooks/
   useGridGrouping       Group-by, collapse state, buckets
   useDataGridTable      The TanStack table instance
   useColumnPrefs        localStorage persistence
+  useColumnPrefsHandlers  TanStack's onXChange contract → one prefs slice each
+  columnPrefsStorage    Load / save / remove / the stored shape
+  columnPrefsDerive     Order normalization, visibility layering, isDefault (pure)
+  useColumnDefWarnings  Dev-only checks on the consumer's column array
+  useMediaQuery         Viewport matching; BELOW_MD drives `hideOnMobile`
+  useForcedHiddenColumns  Column ids the viewport hides regardless of user choice
   useColumnOrdering     Movable columns in render order + the reorder swap
+  useResetView          Composes each part's own reset / isDefault
+  useFormError          The one message shown above the form's fields
   useAnchoredPanel      Fixed coordinates for a toolbar panel — the grid root is
                         overflow-hidden and would clip an absolute one
   useConfirm            Promise-based confirm dialog
@@ -327,6 +360,8 @@ hooks/
 
 ui/
   DataGridToolbar, GridBody, GridFooter, ColumnsPopover
+  GridToolbarSection    Bundles → DataGridToolbar's flat props (wiring only)
+  GridBodySection       Bundles → GridBody's flat props, plus the inline editor node
   SearchBar             Field + facet pills + attached trigger slot
   ToolbarOverflowMenu   The caret menu: Filter | Group by, then view commands
   toolbar/              ToolbarParts (title, view switch, error banner),
@@ -337,8 +372,13 @@ ui/
   makeActionColumns     Row action buttons + column factory
   table/                Colgroup, HeaderCell, HeaderFilter, GroupHeaderRow,
                         DataRowFragment, BodyDataCell, SelectionCells,
-                        CellEditPopover, CellWithTooltip, ActionsOverlayCell
-  editors/              EditorRegistry, MarkdownEditor, CodeEditor
+                        CellEditPopover, CellWithTooltip, ActionsOverlayCell,
+                        Resizer
+  table/filters/        One component per `ColumnFilterMeta` kind, plus the shared
+                        control classes; `HeaderFilter` only dispatches
+  editors/              EditorRegistry (dispatch), editorComponents (kind → control),
+                        SwitchController, FieldChrome, editorChrome,
+                        MarkdownEditor, CodeEditor
   inputs/               Text, Number, Select, TextArea, Date, Time
   containers/           EditContainers, OverlayEditContainer, EditInline,
                         EditFormBody (shared form), FormLayout, EditModal,
@@ -348,7 +388,12 @@ utils/
   filterFns.ts          dgText, dgSelect, dgMultiSelect, dgBoolean, dgDateRange,
                         filterFnFor, toDayString
   getRowKey.ts          Row identity
-  getAccessorKey.ts     getAccessorKey, computeDefaults
+  getAccessorKey.ts     getAccessorKey, computeDefaults, applyFromForm
+  objectPath.ts         getPath / setPath / flattenPaths — dotted accessor keys, and
+                        react-hook-form's nested `errors` / `dirtyFields` flattened onto
+                        the same axis the grid keys by
+  readColumnDef.ts      readColumnMeta / readAccessorKey — the casts cells would
+                        otherwise repeat
   markdown.tsx          safeHref, renderMarkdown (pure, no editor dependency)
 ```
 
@@ -367,8 +412,8 @@ classes aren't layered on top. `"switch"` is deliberately absent from that chain
 its own inline branch further down.
 
 **Add a filter kind** → extend `ColumnFilterMeta`; write the `FilterFn` in
-`utils/filterFns.ts` and map it in `filterFnFor`; add the control to
-`ui/table/HeaderFilter.tsx`.
+`utils/filterFns.ts` and map it in `filterFnFor`; add a control component under
+`ui/table/filters/` and a case to `ui/table/HeaderFilter.tsx`.
 
 **Add a view** → build it in `ui/`, then branch in `ui/GridBody.tsx`. Don't branch in
 `DataGrid.tsx`.
@@ -384,11 +429,10 @@ its own inline branch further down.
 
 - **Tests colocate** with their subject (`X.tsx` → `X.test.tsx`). Excluded from the
   published build by `tsconfig.build.json` and by never entering the import graph.
-  `npm test` (110 tests, 9 files), `npm run test:coverage` (writes `coverage/`, gitignored).
+  `npm test` (321 tests, 28 files), `npm run test:coverage` (writes `coverage/`, gitignored).
 - **Verify with** `npx tsc -p tsconfig.app.json --noEmit`, `npm test`, `npm run build:lib`.
-  Baseline, none of it new breakage: `eslint src` reports **25 warnings, 0 errors**;
-  `eslint .` adds **1 parsing error** on `vitest.config.ts`, which the tsconfig project
-  service doesn't cover.
+  `eslint src` reports **0 problems**; `eslint .` adds **1 parsing error** on
+  `vitest.config.ts`, which the tsconfig project service doesn't cover.
 - **Comments** state the current rule and the reason it matters. Do not reference bug
   numbers, ticket ids, design-report sections, prototype CSS class names, or what a
   previous version did wrong. Where history is the only thing preventing a regression,

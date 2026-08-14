@@ -31,13 +31,9 @@ export type ActionColumnOpts<T> = {
      */
     view: ActionView;
   }) => ReactNode;
-
-  presentation?: "inline" | "overlay";
 };
 
-export type ActionPresentation = NonNullable<ActionColumnOpts<never>["presentation"]>;
-
-function ActionCell({ row, isOverlay }: { row: unknown; isOverlay: boolean }) {
+function ActionCell({ row }: { row: unknown }) {
   const opts = useRowActions();
   const view = useContext(DataGridContext)?.view ?? "list";
   const inner = opts.renderActions ? (
@@ -58,35 +54,25 @@ function ActionCell({ row, isOverlay }: { row: unknown; isOverlay: boolean }) {
    * Just the row of buttons — positioning and reveal belong to the container.
    * `ActionsOverlayCell` floats it against the row, `CardItem` drops it in the footer.
    */
-  return (
-    <div className={isOverlay ? "flex items-center gap-[3px]" : "flex items-center gap-2"}>
-      {inner}
-    </div>
-  );
+  return <div className="flex items-center gap-0.75">{inner}</div>;
 }
 
 /**
- * Only `presentation` is a build-time decision — it changes the column's own shape
- * (header text and cell padding). Everything else is per-cell and arrives by context,
- * which keeps this column def referentially stable across renders.
+ * The action column carries no handlers: everything per-cell arrives through
+ * `DataGridContext`, which keeps this column def referentially stable across renders.
  */
-export function makeActionColumn<T>(
-  presentation: ActionPresentation = "overlay"
-): ColumnDef<T> {
-  const isOverlay = presentation === "overlay";
-
+export function makeActionColumn<T>(): ColumnDef<T> {
   return {
     id: "__actions__",
-    header: isOverlay ? "" : "Actions",
+    header: "",
+    /* The colgroup lays this column out at zero width and positions its cells against
+       the row. The model size has to agree, or the table's own width arithmetic counts
+       150px of a column that is never painted. */
+    size: 0,
+    minSize: 0,
+    enableResizing: false,
     enableSorting: false,
-    meta: isOverlay
-      ? {
-          cellClassName: "!p-0 !w-0 overflow-visible",
-          width: 0,
-        }
-      : { cellClassName: "px-3 py-2" },
-    cell: ({ row }: CellContext<T, unknown>) => (
-      <ActionCell row={row.original} isOverlay={isOverlay} />
-    ),
+    meta: { cellClassName: "!p-0 !w-0 overflow-visible" },
+    cell: ({ row }: CellContext<T, unknown>) => <ActionCell row={row.original} />,
   };
 }

@@ -52,14 +52,13 @@ export function GroupHeaderRow<TRow extends object>({
       >
         <button
           type="button"
-          // The row already handles the click; this keeps the control keyboard-reachable
-          // without firing twice.
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onToggle();
-            }
+          /* Toggles, then stops: the row's own handler would fire on the way up and
+             collapse the group straight back. A native button already raises this click
+             from Enter and Space, so it needs no key handler of its own — one that also
+             called `onToggle` would double-toggle every keypress. */
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
           }}
           aria-expanded={!collapsed}
           /*

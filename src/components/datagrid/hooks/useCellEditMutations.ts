@@ -3,7 +3,12 @@ import type { ZodType } from "zod";
 
 import type { DataGridProps } from "../types/grid";
 import type { WithMeta } from "../types/column";
-import { computeDefaults, getAccessorKey } from "../utils/getAccessorKey";
+import {
+  applyFromForm,
+  computeDefaults,
+  getAccessorKey,
+} from "../utils/getAccessorKey";
+import { setPath } from "../utils/objectPath";
 import { getColId } from "./useGridColumns";
 import type { useEditSession } from "./useEditSession";
 
@@ -39,7 +44,10 @@ export function useCellEditMutations<TRow extends object, TForm extends object>(
   const handleCellSave = useCallback(
     async (value: unknown) => {
       if (!onPersist || !cell || !cellEditColumn) return;
-      const key = cell.columnId;
+      /* The write key is the column's accessor key, not its id: those differ whenever a
+         column declares both, and the popover's own form is keyed by the accessor key. */
+      const key = getAccessorKey(cellEditColumn);
+      if (!key) return;
       const prevRow = cell.row;
 
       /*
@@ -48,39 +56,35 @@ export function useCellEditMutations<TRow extends object, TForm extends object>(
        * `fromForm` back the other way. `toForm` and `fromForm` have to be separate hooks
        * for this — with one shared hook the other fields would get converted twice.
        */
-      const formDraft: Record<string, unknown> = {
-        ...computeDefaults(prevRow, columns),
-        [key]: value,
-      };
-      const draft: Record<string, unknown> = { ...formDraft };
-      for (const c of columns) {
-        const colKey = getAccessorKey(c);
-        if (!colKey || !c.meta?.fromForm) continue;
-        draft[colKey] = c.meta.fromForm(formDraft[colKey], formDraft as TForm);
-      }
+      const formDraft = computeDefaults(prevRow, columns) as TForm;
+      setPath(formDraft as Record<string, unknown>, key, value);
+      const draft = applyFromForm(formDraft, columns) as Record<string, unknown>;
 
-      // Validate just this field: a full-schema failure on some OTHER field must not
-      // block editing this one.
-      const result = (
-        zodSchema as unknown as {
-          safeParse?: (v: unknown) => {
-            success: boolean;
-            data?: unknown;
-            error: { issues: { path: (string | number)[]; message: string }[] };
-          };
-        }
-      ).safeParse?.(draft);
-      if (result && !result.success) {
-        const own = result.error.issues.find((i) => String(i.path[0]) === key);
+      /*
+       * Validate just this field: a full-schema failure on some OTHER field must not
+       * block editing this one. The match is on the issue's FULL path — comparing only
+       * its first segment lets every sibling under a shared root (`user.email` against
+       * `user.name`) surface in a popover that does not contain that field.
+       *
+       * `startsWith` covers a column whose editor owns a whole object: an issue on one of
+       * its members is that column's to report.
+       */
+      const result = zodSchema.safeParse(draft);
+      if (!result.success) {
+        const own = result.error.issues.find((i) => {
+          const path = i.path.join(".");
+          return path === key || path.startsWith(`${key}.`);
+        });
         if (own) throw new Error(own.message);
       }
 
       /*
        * Use zod's output, not the raw draft, so a schema like `z.string().transform(Number)`
        * persists the transformed value. Falls back to the draft when the schema rejected
-       * some unrelated field.
+       * some unrelated field; the draft carries only the declared columns' keys, so that
+       * branch still posts a field the grid knows about rather than the whole row.
        */
-      const payload = (result?.success ? result.data : draft) as TForm;
+      const payload = (result.success ? result.data : draft) as TForm;
 
       const saved = await onPersist("cell", payload, prevRow);
       if (saved) replaceRow(prevRow, saved);
