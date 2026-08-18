@@ -1,5 +1,4 @@
-﻿import { Tooltip } from "react-tooltip";
-import { useCallback } from "react";
+﻿import { useCallback } from "react";
 
 import { DataGridContext, DataGridSelectionContext } from "./DataGridContext";
 import { useDataGridState } from "./hooks/useDataGridState";
@@ -11,6 +10,7 @@ import { GridBodySection } from "./ui/GridBodySection";
 import { GridEditors } from "./ui/GridEditors";
 import { GridFooter } from "./ui/GridFooter";
 import { GridToolbarSection } from "./ui/GridToolbarSection";
+import { GridTooltip } from "./ui/GridTooltip";
 import { getRowKey, rowKeyOf } from "./utils/getRowKey";
 
 export type { DataGridProps, DataGridHandle } from "./types/grid";
@@ -126,12 +126,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
           {state.ConfirmDialog}
         </div>
 
-        {/*
-         * Deliberately outside the grid root: that element is `overflow-hidden`, which
-         * clips tooltips on cells near an edge. Positioning is fixed against the anchor,
-         * so it doesn't need to be a descendant.
-         */}
-        <Tooltip id={chrome.tooltipId} positionStrategy="fixed" />
+        <GridTooltip id={chrome.tooltipId} />
       </DataGridSelectionContext.Provider>
     </DataGridContext.Provider>
   );

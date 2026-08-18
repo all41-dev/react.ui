@@ -35,10 +35,10 @@ export function buildEditorClassName({
 }
 
 /**
- * Ids for the hint and error text so the control can point at whichever is showing.
- * Without these, assistive tech reads the input with no indication that it is invalid
- * or why. The hint is hidden while an error shows, so it must drop out of
- * `aria-describedby` too — pointing at a removed node describes nothing.
+ * Ids for the description and error text so the control points at both. Without these,
+ * assistive tech reads the input with no indication that it is invalid or why. The
+ * description lives in an always-present sr-only span (its visible form is the label's
+ * info-icon tooltip), so it stays listed alongside the error — error first.
  */
 export function buildDescribedBy({
   id,
@@ -51,10 +51,7 @@ export function buildDescribedBy({
   hasError: boolean;
 }): string | undefined {
   return (
-    [
-      hasError ? `${id}-error` : null,
-      description && !hasError ? `${id}-desc` : null,
-    ]
+    [hasError ? `${id}-error` : null, description ? `${id}-desc` : null]
       .filter(Boolean)
       .join(" ") || undefined
   );

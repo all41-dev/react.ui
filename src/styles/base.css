@@ -183,6 +183,26 @@
 }
 
 /*
+ * Tooltip anchors stay inert while a surface animates in. The entrance sweeps them
+ * across the viewport, and one passing under a stationary pointer gets a `mouseover`
+ * with no matching `mouseout` — the tooltip then hangs open over a field the pointer is
+ * nowhere near. Both keyframes hold the same value: the animation exists only to
+ * time-box the property, which reverts by itself once the entrance is over. Scoped to
+ * the anchors so the panel stays clickable throughout.
+ */
+@keyframes ruiAnchorGuard {
+  from,
+  to {
+    pointer-events: none;
+  }
+}
+.animate-drawer-in [data-tooltip-id],
+.animate-sheet-in [data-tooltip-id],
+.animate-pop-in [data-tooltip-id] {
+  animation: ruiAnchorGuard 0.22s;
+}
+
+/*
  * A field the user has actually modified, marked while the form is open. The bar is an
  * absolutely positioned pseudo-element rather than a real border so turning it on costs
  * no layout — the field must not shift sideways the moment you type in it.

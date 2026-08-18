@@ -221,6 +221,14 @@ describe("two grids on one page", () => {
   });
 });
 
+const describedColumns = (): WithMeta<Row, any>[] => [
+  {
+    ...COLUMNS[0],
+    meta: { ...COLUMNS[0].meta, description: "Shown to the customer" },
+  },
+  ...COLUMNS.slice(1),
+];
+
 describe("a field that fails validation", () => {
   it("points the control at its own error message", async () => {
     const user = userEvent.setup({ delay: null });
@@ -240,23 +248,276 @@ describe("a field that fails validation", () => {
     expect(alert.id.startsWith(name.id)).toBe(true);
   });
 
-  it("describes the field by its hint while it is valid", async () => {
+  it("keeps the description in aria-describedby alongside the error", async () => {
     const user = userEvent.setup({ delay: null });
-    renderGrid({
-      columns: [
-        {
-          ...COLUMNS[0],
-          meta: { ...COLUMNS[0].meta, description: "Shown to the customer" },
-        },
-        ...COLUMNS.slice(1),
-      ],
-    });
+    renderGrid({ columns: describedColumns() });
     await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
     await openEditForm(user);
 
     const name = screen.getByLabelText("Name");
-    const hint = screen.getByText("Shown to the customer");
-    expect(name.getAttribute("aria-describedby")).toBe(hint.id);
+    await user.clear(name);
+    await save(user);
+
+    const alert = await screen.findByRole("alert");
+    // The sr-only description never disappears, so it must stay referenced — error first.
+    expect(name.getAttribute("aria-describedby")).toBe(
+      `${alert.id} ${name.id}-desc`
+    );
+  });
+});
+
+describe("the field description", () => {
+  it("renders as a tooltip icon next to the label, not as a hint line", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: describedColumns() });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+    await openEditForm(user);
+
+    const name = screen.getByLabelText("Name");
+    const desc = screen.getByText("Shown to the customer");
+    // The only rendering of the text is the sr-only span aria-describedby points at.
+    expect(desc).toHaveClass("sr-only");
+    expect(name.getAttribute("aria-describedby")).toBe(desc.id);
+
+    const anchor = desc.closest("[data-tooltip-id]")!;
+    expect(anchor).toHaveAttribute(
+      "data-tooltip-content",
+      "Shown to the customer"
+    );
+    // Focusable so the tooltip opens for keyboard users too.
+    expect(anchor).toHaveAttribute("tabindex", "0");
+  });
+
+  // By the anchor attribute: while the tooltip is open its content duplicates the
+  // sr-only span's text, so a text query would match both.
+  const descriptionAnchor = () =>
+    document.querySelector(
+      '[data-tooltip-content="Shown to the customer"]'
+    ) as HTMLElement;
+
+  /* react-tooltip registers new anchors from a rAF-batched MutationObserver, so a
+     hover fired right after the form opens can precede the listeners — retry it. */
+  const hoverUntilTooltip = (user: ReturnType<typeof userEvent.setup>) =>
+    waitFor(async () => {
+      await user.unhover(descriptionAnchor());
+      await user.hover(descriptionAnchor());
+      expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    });
+
+  /* Attribute assertions alone can't tell a live anchor from one pointing at a
+     tooltip id nothing renders — only an actual open proves the wiring. */
+  it("shows the description in the grid tooltip on hover, and hides it again", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: describedColumns() });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+    await openEditForm(user);
+
+    await hoverUntilTooltip(user);
+    expect(screen.getByRole("tooltip")).toHaveTextContent(
+      "Shown to the customer"
+    );
+
+    await user.unhover(descriptionAnchor());
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+  });
+
+  /* Inline container: the overlay's focus trap can't count focusables in jsdom
+     (getClientRects is empty there) and swallows Tab, which a browser doesn't. */
+  it("shows the tooltip on keyboard focus and hides it on blur", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: describedColumns(), editContainer: "inline" });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+    await openEditForm(user);
+
+    // Hover once so the anchor is registered, then put the tooltip away again.
+    await hoverUntilTooltip(user);
+    await user.unhover(descriptionAnchor());
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+
+    // The icon precedes the control in the DOM, so shift-tab from the input lands on it.
+    await user.click(screen.getByLabelText("Name"));
+    // react-tooltip's show handler is a leading-edge debounce with a 50ms cooldown and
+    // no trailing call: the click's own focusin consumed the edge, and a focus landing
+    // inside the cooldown is dropped, not deferred. Let the fixed cooldown lapse.
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    await user.tab({ shift: true });
+
+    expect(descriptionAnchor()).toHaveFocus();
+    const tooltip = await screen.findByRole("tooltip");
+    expect(tooltip).toHaveTextContent("Shown to the customer");
+
+    await user.tab({ shift: true });
+    expect(descriptionAnchor()).not.toHaveFocus();
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+  });
+
+  /* The tooltip instance mounts once per grid, outside the edit containers — the icon
+     must reach it from every container, not only the default panel. */
+  for (const editContainer of ["modal", "bottom"] as const) {
+    it(`opens the same grid tooltip from the ${editContainer} container`, async () => {
+      const user = userEvent.setup({ delay: null });
+      renderGrid({ columns: describedColumns(), editContainer });
+      await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+      await openEditForm(user);
+
+      await hoverUntilTooltip(user);
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "Shown to the customer"
+      );
+    });
+  }
+
+  /* WCAG 1.4.13: focus-triggered content must be dismissable without moving focus.
+     react-tooltip defaults `globalCloseEvents.escape` to false; the grid opts in. */
+  it("hides the tooltip on Escape without moving focus", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: describedColumns(), editContainer: "inline" });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+    await openEditForm(user);
+
+    // Register the anchor, then put the tooltip away again.
+    await hoverUntilTooltip(user);
+    await user.unhover(descriptionAnchor());
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+
+    await user.click(screen.getByLabelText("Name"));
+    // Same leading-edge 50ms show-debounce as the focus test above.
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    await user.tab({ shift: true });
+    expect(descriptionAnchor()).toHaveFocus();
+    await screen.findByRole("tooltip");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+    expect(descriptionAnchor()).toHaveFocus();
+  });
+
+  /* The overlay containers cancel the edit on any Escape that is not defaultPrevented.
+     While the tooltip is open, the first Escape must dismiss only the tooltip — not
+     throw the user's edits away underneath it. */
+  it("keeps the modal form open when Escape dismisses the tooltip", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: describedColumns(), editContainer: "modal" });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+    await openEditForm(user);
+
+    await user.type(screen.getByLabelText("Name"), "!");
+
+    // Register the anchor, then put the tooltip away again.
+    await hoverUntilTooltip(user);
+    await user.unhover(descriptionAnchor());
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+
+    // Same leading-edge 50ms show-debounce as the focus test above. The focus trap
+    // swallows Tab in jsdom (getClientRects is empty), so focus the anchor directly.
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    descriptionAnchor().focus();
+    // The element renders ahead of the visible-open state the Escape guard reads;
+    // only the `react-tooltip__show` class marks the tooltip actually open.
+    await waitFor(() =>
+      expect(screen.getByRole("tooltip")).toHaveClass("react-tooltip__show")
+    );
+
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument()
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Ada!");
+
+    // With the tooltip closed, Escape reaches the container again and cancels.
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    );
+  });
+
+  /* The trap filters candidates by `getClientRects`, which jsdom leaves empty for every
+     element — without a box it rejects them all and falls back to the dialog itself. */
+  const giveElementsABox = () =>
+    vi
+      .spyOn(Element.prototype, "getClientRects")
+      .mockReturnValue([{ width: 10, height: 10 }] as unknown as DOMRectList);
+
+  /* The icon precedes its control in the DOM and carries `tabindex="0"`, so a focus trap
+     seeded from the first focusable node opens the form on an info icon — and, since
+     focus is one of react-tooltip's open events, greets the user with a tooltip over the
+     field they came to fill in. */
+  for (const editContainer of ["right", "modal", "bottom"] as const) {
+    it(`opens the ${editContainer} container on the first field, not its icon`, async () => {
+      const user = userEvent.setup({ delay: null });
+      giveElementsABox();
+      renderGrid({ columns: describedColumns(), editContainer });
+      await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+      await openEditForm(user);
+
+      await waitFor(() => expect(screen.getByLabelText("Name")).toHaveFocus());
+      expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    });
+  }
+
+  it("renders no icon and no tab stop without a description", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid();
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+    await openEditForm(user);
+
+    const form = screen.getByLabelText("Name").closest("form")!;
+    expect(form.querySelector("[data-tooltip-id]")).toBeNull();
+    expect(screen.getByLabelText("Name")).not.toHaveAttribute(
+      "aria-describedby"
+    );
+  });
+
+  it("gives the switch editor the same icon instead of a hint line", async () => {
+    type FlagRow = { id: number; active: boolean };
+    const user = userEvent.setup({ delay: null });
+    render(
+      <DataGrid<FlagRow, any>
+        title="Flags"
+        columns={[
+          {
+            accessorKey: "active",
+            header: "Active",
+            meta: {
+              label: "Active",
+              editor: "switch",
+              description: "Toggles visibility",
+            },
+          } as WithMeta<FlagRow, any>,
+        ]}
+        zodSchema={z.object({ active: z.boolean() }) as never}
+        initialData={[{ id: 1, active: true }]}
+        onPersist={vi.fn()}
+      />
+    );
+    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+
+    const toggle = await screen.findByLabelText("Active");
+    const desc = screen.getByText("Toggles visibility");
+    expect(desc).toHaveClass("sr-only");
+    expect(toggle.getAttribute("aria-describedby")).toBe(desc.id);
+
+    const anchor = desc.closest("[data-tooltip-id]")!;
+    expect(anchor).toHaveAttribute(
+      "data-tooltip-content",
+      "Toggles visibility"
+    );
+    expect(anchor).toHaveAttribute("tabindex", "0");
+    // Outside the <label>: a click on the icon must not toggle the switch.
+    expect(anchor.closest("label")).toBeNull();
   });
 });
 

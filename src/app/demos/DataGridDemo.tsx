@@ -244,17 +244,36 @@ export function DataGridDemo() {
         {
           accessorKey: "name",
           header: "Name",
-          meta: { editor: "text", required: true, formLayout: { order: 1 }, filter: { type: "text", placeholder: "Name…" } },
+          meta: {
+            editor: "text",
+            required: true,
+            description: "Full legal name, as it appears on the contract.",
+            formLayout: { order: 1 },
+            filter: { type: "text", placeholder: "Name…" },
+          },
         },
         {
           accessorKey: "username",
           header: "Username",
-          meta: { editor: "text", required: true, formLayout: { order: 2 } },
+          meta: {
+            editor: "text",
+            required: true,
+            description: "Lowercase, no spaces. Used in mentions and the profile URL.",
+            formLayout: { order: 2 },
+          },
         },
         {
           accessorKey: "email",
           header: "Email",
-          meta: { editor: "text", required: true, formLayout: { order: 3 } },
+          meta: {
+            editor: "text",
+            required: true,
+            /* Long on purpose — exercises the tooltip's 280px clamp and its
+               wrapping. */
+            description:
+              "Primary contact address. Every notification, password reset and billing receipt is delivered here, so it must stay reachable — a bounced address suspends the account until an administrator confirms a replacement.",
+            formLayout: { order: 3 },
+          },
         },
         {
           accessorKey: "role",
@@ -275,6 +294,7 @@ export function DataGridDemo() {
           },
           meta: {
             editor: "select",
+            description: "Admins manage members and billing; editors can publish.",
             options: [
               { label: "Admin", value: "Admin" },
               { label: "User", value: "User" },
@@ -311,6 +331,7 @@ export function DataGridDemo() {
           },
           meta: {
             editor: "select",
+            description: "Pending accounts have not confirmed their email yet.",
             options: [
               { label: "Active", value: "active" },
               { label: "Inactive", value: "inactive" },
@@ -335,7 +356,14 @@ export function DataGridDemo() {
         {
           accessorKey: "website",
           header: "Website",
-          meta: { editor: "text", cellEdit: true, hideOnMobile: true, formLayout: { order: 7 } },
+          // `cellEdit` — the same description also reaches the cell popover.
+          meta: {
+            editor: "text",
+            cellEdit: true,
+            description: "Shown on the public profile. Include the scheme (https://).",
+            hideOnMobile: true,
+            formLayout: { order: 7 },
+          },
         },
         {
           accessorKey: "lastLogin",
@@ -348,7 +376,12 @@ export function DataGridDemo() {
               ? value
               : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
           },
-          meta: { editor: "date", hideOnMobile: true, formLayout: { order: 8 } },
+          meta: {
+            editor: "date",
+            description: "Read-only in practice — set by the auth service on sign-in.",
+            hideOnMobile: true,
+            formLayout: { order: 8 },
+          },
         },
       ] as WithMeta<any>[];
     }
@@ -369,7 +402,13 @@ export function DataGridDemo() {
           accessorKey: "body",
           header: "Body Content",
           // Markdown editor demo — rich fields default to full width.
-          meta: { editor: "markdown", required: true, editorProps: { rows: 8 }, formLayout: { order: 3 } },
+          meta: {
+            editor: "markdown",
+            required: true,
+            description: "Markdown. Headings, links and lists render in the preview.",
+            editorProps: { rows: 8 },
+            formLayout: { order: 3 },
+          },
         },
         {
           accessorKey: "userId",
@@ -397,7 +436,13 @@ export function DataGridDemo() {
           accessorKey: "body",
           header: "Comment",
           // Code editor demo — gutter, Tab-inserts-spaces, Ln/Col footer.
-          meta: { editor: "code", required: true, editorProps: { language: "text", rows: 8 }, formLayout: { order: 3 } },
+          meta: {
+            editor: "code",
+            required: true,
+            description: "Plain text. Tab inserts two spaces rather than moving focus.",
+            editorProps: { language: "text", rows: 8 },
+            formLayout: { order: 3 },
+          },
         },
         {
           accessorKey: "postId",
@@ -480,7 +525,12 @@ export function DataGridDemo() {
             </span>
           );
         },
-        meta: { editor: "switch", label: "Task Completed", formLayout: { order: 2 } },
+        meta: {
+          editor: "switch",
+          label: "Task Completed",
+          description: "Closing a task hides it from the assignee's default queue.",
+          formLayout: { order: 2 },
+        },
       },
       {
         accessorKey: "userId",

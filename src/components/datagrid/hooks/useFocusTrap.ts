@@ -3,13 +3,22 @@ import { useEffect, useRef } from "react";
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
 
+/*
+ * Where focus goes when the surface opens. A narrower set than FOCUSABLE, which also
+ * matches label-level affordances — an editor's description icon precedes its control
+ * in the DOM, so seeding from the first focusable node lands on an info icon rather
+ * than in the field the user came to fill in.
+ */
+const CONTROL =
+  'textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [contenteditable="true"]';
+
 /**
  * Keyboard focus containment for modal surfaces (dialogs, drawers, sheets).
  *
- * While `active`: moves focus into the container, keeps Tab / Shift+Tab cycling
- * inside it, and on deactivate/unmount returns focus to whatever had it before —
- * so a keyboard user closing the editor lands back on the button that opened it
- * instead of at the top of the page.
+ * While `active`: moves focus to the first control inside the container, keeps Tab /
+ * Shift+Tab cycling inside it, and on deactivate/unmount returns focus to whatever
+ * had it before — so a keyboard user closing the editor lands back on the button that
+ * opened it instead of at the top of the page.
  *
  * Attach the returned ref to the container element and give it `tabIndex={-1}`
  * so it can take focus itself when it holds no focusable children.
@@ -31,7 +40,8 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
         (el) => el.getClientRects().length > 0
       );
 
-    (focusables()[0] ?? container).focus();
+    const initial = focusables();
+    (initial.find((el) => el.matches(CONTROL)) ?? initial[0] ?? container).focus();
 
     const onKeyDown = (e: KeyboardEvent) => {
       // A field that consumed Tab keeps it — a code editor indents with it rather than

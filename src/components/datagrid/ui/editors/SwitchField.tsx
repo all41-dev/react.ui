@@ -1,9 +1,11 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
 
+import { FieldDescriptionIcon } from "./FieldDescriptionIcon";
+
 /**
  * The switch editor's whole markup — unlike the plain editors it carries its own label,
- * hint and error in a horizontal layout, so it never goes through the registry's
- * `FieldChrome`/`Field` path.
+ * description icon and error in a horizontal layout, so it never goes through the
+ * registry's `FieldChrome`/`Field` path.
  */
 export function SwitchField({
   id,
@@ -33,40 +35,43 @@ export function SwitchField({
 
   return (
     <div className="flex flex-col">
-      <label
-        htmlFor={id}
-        className="flex items-center gap-3 cursor-pointer group"
-      >
-        {/* A 38×21 track with a 15px knob. Smaller than a default toggle,
-            which looks oversized next to 32px fields. */}
-        <div className="relative inline-flex items-center">
-          <input
-            type="checkbox"
-            id={id}
-            aria-invalid={hasError || undefined}
-            aria-describedby={describedBy}
-            className="sr-only peer"
-            {...(inputProps as unknown as InputHTMLAttributes<HTMLInputElement>)}
-            /* After the spread, like the plain editors do: consumer `editorProps` may
-               add attributes, but it must not take over the controlled binding. */
-            checked={checked}
-            onChange={(e) => onChange(e.target.checked)}
-          />
-          <div className="h-[21px] w-[38px] rounded-full border border-border-translucent bg-surface-raised transition-[background-color,border-color] duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--rui-focus-ring)] peer-checked:border-accent peer-checked:bg-accent after:absolute after:left-0.5 after:top-0.5 after:h-[15px] after:w-[15px] after:rounded-full after:bg-muted after:transition-[transform,background-color] after:duration-200 after:content-[''] peer-checked:after:translate-x-[17px] peer-checked:after:bg-accent-contrast"></div>
-        </div>
-        <div className="flex-1 min-w-0">
+      {/* The icon sits outside the `<label>`: inside it, a click would toggle the
+          switch and the description would join the checkbox's accessible name. */}
+      <div className="flex items-center gap-1.5">
+        <label
+          htmlFor={id}
+          className="flex items-center gap-3 cursor-pointer group"
+        >
+          {/* A 38×21 track with a 15px knob. Smaller than a default toggle,
+              which looks oversized next to 32px fields. */}
+          <div className="relative inline-flex items-center">
+            <input
+              type="checkbox"
+              id={id}
+              aria-invalid={hasError || undefined}
+              aria-describedby={describedBy}
+              className="sr-only peer"
+              {...(inputProps as unknown as InputHTMLAttributes<HTMLInputElement>)}
+              /* After the spread, like the plain editors do: consumer `editorProps` may
+                 add attributes, but it must not take over the controlled binding. */
+              checked={checked}
+              onChange={(e) => onChange(e.target.checked)}
+            />
+            <div className="h-[21px] w-[38px] rounded-full border border-border-translucent bg-surface-raised transition-[background-color,border-color] duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--rui-focus-ring)] peer-checked:border-accent peer-checked:bg-accent after:absolute after:left-0.5 after:top-0.5 after:h-[15px] after:w-[15px] after:rounded-full after:bg-muted after:transition-[transform,background-color] after:duration-200 after:content-[''] peer-checked:after:translate-x-[17px] peer-checked:after:bg-accent-contrast"></div>
+          </div>
           {label && (
-            <span className="text-[.8125rem] font-medium text-body">
+            <span className="min-w-0 text-[.8125rem] font-medium text-body">
               {label}
             </span>
           )}
-          {description && (
-            <p id={`${id}-hint`} className="mt-0.5 text-[.6875rem] text-faint">
-              {description}
-            </p>
-          )}
-        </div>
-      </label>
+        </label>
+        {description && (
+          <FieldDescriptionIcon
+            descriptionId={`${id}-hint`}
+            description={description}
+          />
+        )}
+      </div>
       {hasError && (
         <p
           id={`${id}-error`}

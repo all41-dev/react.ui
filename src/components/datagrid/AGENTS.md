@@ -170,7 +170,7 @@ behave as standard TanStack.
 | Field | Type | Effect |
 |---|---|---|
 | `label` | `string` | Form field label (falls back to `header`) |
-| `description` | `string` | Hint under the field; replaced by the error when invalid |
+| `description` | `string` | Info-icon tooltip next to the field label (grid's shared tooltip, shown on hover/focus); an sr-only copy stays referenced via `aria-describedby` alongside any error |
 | `editor` | `EditorKind` | **Presence puts the column in the edit form.** Absent → display only |
 | `required` | `boolean` | Asterisk + `aria-required`. Actual enforcement is the zod schema |
 | `visibleInForm` | `boolean` | `false` excludes an editor-bearing column from the form |
@@ -289,7 +289,8 @@ field react-hook-form does.
   Clear filters.
 - **Error banner**: under the toolbar, with Retry; disables Add while shown.
 - **a11y**: grid semantics and accessible name from `title`; keyboard-operable rows;
-  labelled pager region with arrow keys; focus trap + Escape + focus restore on overlays;
+  labelled pager region with arrow keys; focus trap (seeded on the first control, not the
+  first focusable node) + Escape + focus restore on overlays;
   `alertdialog` for confirms; `aria-invalid` / `aria-describedby` / `aria-required` wired
   from column meta.
 
@@ -379,6 +380,11 @@ ui/
                         ColumnRow, overflowItems.ts (hasOverflowItems)
   toolbarStyles.ts      BTN / BTN_ON / BTN_OFF / MENU_ITEM, shared by both
   TableView, CardsView, KanbanView, CardItem, GridStates, SelectionPill
+  GridTooltip           The grid's one tooltip instance; swallows Escape while open
+                        so the overlay containers don't cancel underneath it.
+                        `ruiAnchorGuard` in base.css keeps anchors inert while a
+                        container animates in — one sweeping under a resting pointer
+                        gets a mouseover with no mouseout and strands the tooltip
   makeActionColumns     Row action buttons + column factory
   table/                Colgroup, HeaderCell, HeaderFilter, GroupHeaderRow,
                         DataRowFragment, BodyDataCell, SelectionCells,
@@ -388,7 +394,8 @@ ui/
                         control classes; `HeaderFilter` only dispatches
   pagination/           PagerControls (page size + windowed page strip), pageWindow (pure)
   editors/              EditorRegistry (dispatch), editorComponents (kind → control),
-                        SwitchController, FieldChrome, editorChrome, CodeEditor,
+                        SwitchController, FieldChrome, FieldDescriptionIcon,
+                        editorChrome, CodeEditor,
                         MarkdownEditor + MarkdownToolbar + markdownTools (pure
                         selection transforms)
   inputs/               Text, Number, Select, TextArea, Date, Time

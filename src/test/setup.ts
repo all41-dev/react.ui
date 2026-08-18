@@ -20,6 +20,20 @@ class ResizeObserverStub implements ResizeObserver {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub;
 
+/* An open react-tooltip runs @floating-ui's `autoUpdate`, which observes the anchor. */
+class IntersectionObserverStub implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly thresholds: number[] = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+globalThis.IntersectionObserver ??= IntersectionObserverStub;
+
 if (!Element.prototype.scrollTo) {
   Element.prototype.scrollTo = () => {};
 }

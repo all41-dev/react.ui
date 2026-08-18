@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 
+import { FieldDescriptionIcon } from "./FieldDescriptionIcon";
+
 /**
- * The vertical layout every plain editor sits in: micro-label, the control, then hint
- * or error. The error replaces the hint rather than stacking under it — one line of
- * guidance per field.
+ * The vertical layout every plain editor sits in: micro-label (with an info icon
+ * carrying the description as a tooltip), the control, then the error line. The
+ * description also lives in an sr-only span for `aria-describedby`.
  */
 export function FieldChrome({
   id,
@@ -25,29 +27,35 @@ export function FieldChrome({
 }) {
   return (
     <div className="flex flex-col gap-[5px]">
-      {/* A micro-label in the faint tone, kept quiet so it doesn't compete
-          with the value it introduces. */}
-      {label && (
-        <label
-          htmlFor={id}
-          className="block text-[.625rem] font-bold uppercase tracking-[.05em] text-faint"
-        >
-          {label}
-          {required && (
-            // The asterisk was visual only; give it a text equivalent.
-            <span className="text-danger ml-1">
-              *<span className="sr-only"> required</span>
-            </span>
+      {/* A micro-label in the faint tone, kept quiet so it doesn't compete with the
+          value it introduces. The icon is a sibling of the label, not a child — inside
+          it, the description would join the control's accessible name. */}
+      {(label || description) && (
+        <div className="flex items-center gap-1.5">
+          {label && (
+            <label
+              htmlFor={id}
+              className="block text-[.625rem] font-bold uppercase tracking-[.05em] text-faint"
+            >
+              {label}
+              {required && (
+                // The asterisk was visual only; give it a text equivalent.
+                <span className="text-danger ml-1">
+                  *<span className="sr-only"> required</span>
+                </span>
+              )}
+            </label>
           )}
-        </label>
+          {description && (
+            <FieldDescriptionIcon
+              descriptionId={`${id}-desc`}
+              description={description}
+            />
+          )}
+        </div>
       )}
       <div>
         {children}
-        {description && !hasError && (
-          <p id={`${id}-desc`} className="mt-1 text-[.6875rem] text-faint">
-            {description}
-          </p>
-        )}
         {hasError && (
           <p
             id={`${id}-error`}
