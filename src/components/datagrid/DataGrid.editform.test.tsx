@@ -718,3 +718,150 @@ describe("a validation error with no field to show it on", () => {
     expect(onPersist).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * `meta.formLayout.group` collects fields into a captioned section. `groupSpan` sizes the
+ * section in the form grid; `colSpan` sizes a field inside its own section.
+ */
+describe("field groups in the edit form", () => {
+  const GROUPED: WithMeta<Row, any>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      meta: { label: "Name", editor: "text", formLayout: { group: "identity" } },
+    },
+    {
+      accessorKey: "quota",
+      header: "Quota",
+      meta: {
+        label: "Quota",
+        editor: "number",
+        formLayout: { group: "limits", colSpan: "full" },
+      },
+    },
+    {
+      accessorKey: "tier",
+      header: "Tier",
+      meta: { label: "Tier", editor: "select", options: TIERS },
+    },
+  ];
+
+  const group = (id: string) =>
+    document.querySelector<HTMLElement>(`[data-form-group="${id}"]`)!;
+
+  it("renders a section per group, headed and holding only its own fields", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({
+      columns: GROUPED,
+      formLayout: {
+        groups: [
+          { id: "identity", label: "Identity" },
+          { id: "limits", label: "Limits" },
+        ],
+      },
+    });
+    await openEditForm(user);
+
+    // A fieldset/legend, so a screen reader names the section with each control in it.
+    expect(group("identity").tagName).toBe("FIELDSET");
+    expect(screen.getByRole("group", { name: "Identity" })).toBe(group("identity"));
+    expect(within(group("identity")).getByLabelText("Name")).toBeInTheDocument();
+    expect(within(group("limits")).getByLabelText("Quota")).toBeInTheDocument();
+    // Ungrouped fields stay loose in the form grid.
+    expect(screen.getByLabelText("Tier").closest("[data-form-group]")).toBeNull();
+  });
+
+  it("spans the section by `groupSpan` and its fields by `colSpan`", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({
+      columns: GROUPED,
+      formLayout: {
+        columns: 4,
+        groups: [{ id: "limits", label: "Limits", groupSpan: 2 }],
+      },
+    });
+    await openEditForm(user);
+
+    const limits = group("limits");
+    // Spans track the grid's breakpoint; the grid itself is one track below `md`.
+    expect(limits).toHaveClass("col-span-1", "md:col-span-2");
+    // Defaulted from the span, so the fields keep the form's column rhythm.
+    expect(limits.querySelector(".grid")).toHaveClass("md:grid-cols-2");
+    expect(screen.getByLabelText("Quota").closest(".rui-field")).toHaveClass(
+      "col-span-full"
+    );
+  });
+
+  it("keeps a switch in the group it names, out of Options", async () => {
+    type FlagRow = { id: number; active: boolean; archived: boolean };
+    const user = userEvent.setup({ delay: null });
+    render(
+      <DataGrid<FlagRow, any>
+        title="Flags"
+        columns={[
+          {
+            accessorKey: "active",
+            header: "Active",
+            meta: {
+              label: "Active",
+              editor: "switch",
+              formLayout: { group: "access" },
+            },
+          },
+          {
+            accessorKey: "archived",
+            header: "Archived",
+            meta: { label: "Archived", editor: "switch" },
+          },
+        ] as WithMeta<FlagRow, any>[]}
+        zodSchema={z.object({ active: z.boolean(), archived: z.boolean() }) as never}
+        initialData={[{ id: 1, active: true, archived: false }]}
+        onPersist={vi.fn()}
+      />
+    );
+    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+    await screen.findByLabelText("Active");
+
+    expect(within(group("access")).getByLabelText("Active")).toBeInTheDocument();
+    expect(within(group("options")).getByLabelText("Archived")).toBeInTheDocument();
+    expect(within(group("options")).getByText("Options")).toBeInTheDocument();
+  });
+
+  it("does not collide a column's key with a group of the same name", async () => {
+    type OptRow = { id: number; options: string; archived: boolean };
+    const user = userEvent.setup({ delay: null });
+    const warn = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <DataGrid<OptRow, any>
+        title="Keys"
+        columns={[
+          {
+            accessorKey: "options",
+            header: "Options",
+            meta: { label: "Options text", editor: "text" },
+          },
+          {
+            accessorKey: "archived",
+            header: "Archived",
+            meta: { label: "Archived", editor: "switch" },
+          },
+        ] as WithMeta<OptRow, any>[]}
+        zodSchema={
+          z.object({ options: z.string(), archived: z.boolean() }) as never
+        }
+        initialData={[{ id: 1, options: "a", archived: false }]}
+        onPersist={vi.fn()}
+      />
+    );
+    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+    await screen.findByLabelText("Options text");
+
+    // The loose field and the implicit Options section render side by side.
+    expect(screen.getByLabelText("Options text").closest("[data-form-group]")).toBeNull();
+    expect(within(group("options")).getByLabelText("Archived")).toBeInTheDocument();
+    expect(
+      warn.mock.calls.some((args) => String(args[0]).includes("same key"))
+    ).toBe(false);
+    warn.mockRestore();
+  });
+});

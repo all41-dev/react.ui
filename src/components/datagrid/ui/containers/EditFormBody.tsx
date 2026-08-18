@@ -2,10 +2,11 @@ import { FormProvider, type UseFormReturn } from "react-hook-form";
 import type { ZodType } from "zod";
 import type { WithMeta } from "../../types/column";
 import { useEditForm } from "../../hooks/useEditForm";
-import { FormFields, type FormLayoutConfig } from "./FormFields";
+import type { FormLayoutConfig } from "../../types/formLayout";
+import { FormFields } from "./FormFields";
 import { FormActions } from "./FormActions";
 
-export type { FormLayoutConfig } from "./FormFields";
+export type { FormFieldGroup, FormLayoutConfig } from "../../types/formLayout";
 
 /**
  * Fallback id from a row object's conventional keys. Only a last resort: the containers
@@ -47,27 +48,22 @@ export function EditFormBody<TRow extends object, TForm extends object>({
   titleId,
   onSubmittingChange,
 }: EditFormBodyProps<TRow, TForm>) {
-  const {
-    form,
-    submit,
-    isSubmitting,
-    formError,
-    regularFields,
-    switchFields,
-    dirtyKeys,
-  } = useEditForm<TRow, TForm>({
+  const { form, submit, isSubmitting, formError, blocks, dirtyKeys } = useEditForm<
+    TRow,
+    TForm
+  >({
     row,
     columns,
     zodSchema,
     onSubmit,
+    groups: formLayout?.groups,
     onSubmittingChange,
   });
 
   /* Built once, then placed into whichever wrapper the variant calls for. */
   const fieldsContent = (
     <FormFields<TRow, TForm>
-      regularFields={regularFields}
-      switchFields={switchFields}
+      blocks={blocks}
       control={form.control}
       formLayout={formLayout}
       formError={formError}

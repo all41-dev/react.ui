@@ -237,12 +237,46 @@ forces one even when it isn't.
 
 The form's contents come from your columns and schema. `formLayout` on the grid controls
 the shape (`{ columns: 2 }` for a two-column form), and `meta.formLayout` on each column
-controls that field's `order`, `colSpan` and classes. Markdown and code editors take the
-full width by default.
+controls that field's `order`, `colSpan`, `group` and classes. Markdown and code editors
+take the full width by default.
 
 Available editors: `text`, `number`, `select`, `switch`, `date`, `time`, `textarea`,
-`markdown`, `code`. Switches are collected into their own "Options" section at the bottom
-of the form.
+`markdown`, `code`.
+
+#### Field groups
+
+Columns naming the same `group` render as one bordered `<fieldset>`, its label notched
+into the top edge. A section is a cell of the form grid holding a grid of its own, so
+`groupSpan` sizes the section against the form and `colSpan` sizes a field against its
+section:
+
+```tsx
+<DataGrid
+  formLayout={{
+    columns: 4,
+    groups: [
+      { id: "identity", label: "Identity", groupSpan: 2 },
+      { id: "limits", label: "Limits", groupSpan: 2, columns: 1 },
+    ],
+  }}
+  columns={[
+    { accessorKey: "name",  meta: { editor: "text",   formLayout: { group: "identity" } } },
+    { accessorKey: "email", meta: { editor: "text",   formLayout: { group: "identity" } } },
+    { accessorKey: "quota", meta: { editor: "number", formLayout: { group: "limits", colSpan: "full" } } },
+  ]}
+/>
+```
+
+`groups` is optional — a `group` id no entry matches still renders as a section headed by
+the id. A group with no `groupSpan` takes the full width, and its inner grid defaults to
+as many columns as it spans, so fields keep the form's column rhythm at any width. The
+group sits where its earliest field's `order` puts it, unless it declares an `order`.
+
+Switches with no `group` of their own collect into an "Options" section at the bottom,
+each one a filled chip. That section is the group `"options"` — declare it in `groups`
+to relabel, reorder or re-lay it out, and give a switch an explicit `group` to place it
+somewhere else entirely. `variant: "cards"` gives any group the same card treatment —
+its fields flow at their own width, so `colSpan` is ignored inside one.
 
 ### The `code` editor
 
@@ -452,6 +486,8 @@ import type {
   ActionColumnOpts,
   EditContainerKind,
   FormLayoutConfig,
+  FormFieldGroup,
+  FormColSpan,
   CrudAdapter,
   IdLike,
   UseTQAdapterParams,

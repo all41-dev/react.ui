@@ -98,6 +98,8 @@ function transformUser(apiUser: JSONPlaceholderUser): User {
     role: apiUser.id <= 3 ? "Admin" : apiUser.id <= 7 ? "Editor" : "User",
     status: apiUser.id % 3 === 0 ? "inactive" : apiUser.id % 3 === 1 ? "active" : "pending",
     lastLogin: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+    twoFactor: apiUser.id % 3 !== 0,
+    newsletter: apiUser.id % 2 === 1,
   };
 }
 

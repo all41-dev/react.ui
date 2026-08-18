@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-Next release is a minor bump: two breaking changes, both at the public surface.
+Next release is a minor bump: three breaking changes, two at the public surface and
+one in the edit form's layout.
 
 ### Breaking
 
@@ -23,9 +24,28 @@ Next release is a minor bump: two breaking changes, both at the public surface.
 
   Without one, validation now fails on submit where the value previously passed through.
 
+- **`colSpan: "full"` keeps its position in the form.** Full-width fields used to be
+  lifted out of the grid and stacked after every other field; they now stay where their
+  `order` puts them, as a full-width row. A form mixing full-width and normal fields
+  renders in a different sequence than before. Give the field an `order` past its
+  neighbours to restore the old placement.
+
+  `formLayout.className` moved with it: it lands on the form grid element itself, where
+  it used to land on an outer `space-y-4` wrapper. Spacing utilities passed there now
+  act on the grid.
+
 - **React 19.2 is required.** `peerDependencies.react` narrowed from `^19.1.1` to
   `^19.2.0`. The grid uses `useEffectEvent`, which shipped in 19.2; on 19.1 a grid with a
   toolbar menu threw during its first render rather than warning at install time.
+
+### Added
+
+- **Field groups in the edit form.** Columns naming the same `meta.formLayout.group`
+  render as one bordered `<fieldset>`, so every control in a section carries the section
+  name in its accessible name. `formLayout.groups` labels and sizes the sections;
+  `groupSpan` sizes a section against the form grid and `colSpan` sizes a field against
+  its own section. Switches left without a `group` collect into an implicit "Options"
+  section at the bottom.
 
 ### Fixed
 

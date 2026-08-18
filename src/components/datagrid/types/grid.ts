@@ -7,6 +7,7 @@ import type { EditContainerKind } from "../ui/containers/EditContainers";
 import type { ActionColumnOpts } from "../ui/makeActionColumns";
 import type { WithMeta } from "./column";
 import type { GroupOption } from "./grouping";
+import type { FormLayoutConfig } from "./formLayout";
 
 /* The grid's public surface. Also re-exported from DataGrid.tsx, so either import
    path works. */
@@ -49,11 +50,7 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   pagination?: PaginationProp;
   initialSorting?: SortingState; // Initial sorting state
   storageKey?: string;
-  formLayout?: {
-    columns?: 1 | 2 | 3 | 4; // Number of columns in the grid (default: 2)
-    gap?: string; // Gap between fields (default: "gap-4")
-    className?: string; // Additional classes for the form container
-  };
+  formLayout?: FormLayoutConfig;
   onRowClick?: (row: TRow) => void;
   renderExpandedRow?: (row: TRow) => ReactNode;
   /**

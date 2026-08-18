@@ -119,14 +119,45 @@ Defined in `types/grid.ts`, re-exported from `DataGrid.tsx`.
 | Prop | Type | Default |
 |---|---|---|
 | `editContainer` | `"right" \| "bottom" \| "modal" \| "inline" \| "none"` | `"right"` |
-| `formLayout` | `{ columns?: 1\|2\|3\|4; gap?: string; className?: string }` | `{ columns: 2 }` |
+| `formLayout` | `FormLayoutConfig` | `{ columns: 2 }` |
 | `actionColumnOptions` | `Partial<ActionColumnOpts<TRow>>` | — |
+
+```ts
+type FormLayoutConfig = {
+  columns?: 1 | 2 | 3 | 4;   // form grid columns, collapsing to one below `md`
+  gap?: string;              // Tailwind gap class for the field grids
+  className?: string;
+  groups?: FormFieldGroup[];
+};
+
+type FormFieldGroup = {
+  id: string;                          // matched by `meta.formLayout.group`
+  label?: string;                      // default: the id
+  groupSpan?: 1 | 2 | 3 | 4 | "full";  // width in the form grid, default "full"
+  columns?: 1 | 2 | 3 | 4;             // inner grid, default: the columns it spans
+  order?: number;                      // default: the lowest `order` among its fields
+  variant?: "grid" | "cards";          // "cards" flows each field as a filled chip
+  className?: string;
+};
+```
+
+A group is one cell of the form grid holding a grid of its own, so `groupSpan` sizes the
+section against the form and a field's `colSpan` against its own section. Declaring a
+group is optional: an id no entry matches still renders as a section headed by the id.
+
+Switches with no `group` collect into the implicit `"options"` group — headed "Options",
+card variant, rendered last. An entry with `id: "options"` in `groups` overrides any of
+that, and a switch naming a group of its own goes there instead.
+
+A `variant: "cards"` group flows its fields at their own width, so `colSpan` on a field
+inside one has nothing to act on and is ignored.
 
 The object itself may be passed inline — the grid memoizes on its fields, not its
 identity. Its **function and object members must be stable**, though: an inline
-`renderActions` arrow or an inline `labels` literal is a new value every render, which
-rebuilds the grid context and re-renders every visible cell on every keystroke. Hoist
-them to module scope or wrap them in `useCallback`/`useMemo`.
+`renderActions` arrow, an inline `labels` literal or an inline `formLayout.groups` array
+is a new value every render, which rebuilds the grid context and re-renders every visible
+cell on every keystroke. Hoist them to module scope or wrap them in
+`useCallback`/`useMemo`.
 
 ### Table state
 
@@ -191,7 +222,7 @@ behave as standard TanStack.
 | `hideOnMobile` | `boolean` | Drops the column out of the table below `md`. Driven through `columnVisibility`, not a `display:none` class, so the colgroup and every row kind stay in agreement. Beats a stored preference, is never persisted, and is left out of the Columns popover while it applies |
 | `tooltip` | `boolean` | Tooltips attach automatically when text is clipped (measured on pointer-enter). `true` forces one regardless of clipping, `false` disables it |
 | `tooltipContent` | `({ value, row }) => string` | Custom tooltip text |
-| `formLayout` | `{ colSpan?: 1\|2\|3\|4\|"full"; order?: number; className?: string }` | Field placement. Lower `order` first; markdown/code default to `"full"` |
+| `formLayout` | `{ colSpan?: 1\|2\|3\|4\|"full"; order?: number; className?: string; group?: string }` | Field placement. Lower `order` first, which also positions the field's group; markdown/code default to `"full"`. `colSpan` is relative to the field's group |
 
 ```ts
 type EditorKind =
@@ -303,7 +334,8 @@ Values: `DataGrid`, `useCrudAdapter`, `useTanstackQueryAdapter`, `useColumnPrefs
 
 Types: `DataGridProps`, `DataGridHandle`, `WithMeta`, `ColumnMeta`, `EditorKind`, `Option`,
 `SelectOption`, `ColumnFilterMeta`, `ActionColumnOpts`, `EditContainerKind`,
-`FormLayoutConfig`, `CrudAdapter`, `IdLike`, `UseTQAdapterParams`, `LoadingScreenProps`.
+`FormLayoutConfig`, `FormFieldGroup`, `FormColSpan`, `CrudAdapter`, `IdLike`,
+`UseTQAdapterParams`, `LoadingScreenProps`.
 
 Styles: `@all41-dev/react.ui/styles` → `dist/react.ui.css`. Nothing injects it at runtime;
 consumers must import it.

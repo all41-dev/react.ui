@@ -1,5 +1,6 @@
 import type { ZodType } from "zod";
 import type { WithMeta } from "../../types/column";
+import type { FormLayoutConfig } from "../../types/formLayout";
 import { EditDrawerBottom } from "./EditDrawerBottom";
 import { EditDrawerRight } from "./EditDrawerRight";
 import { EditModal } from "./EditModal";
@@ -34,11 +35,7 @@ export function EditContainer<
   rowKey?: string | number;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
-  formLayout?: {
-    columns?: 1 | 2 | 3 | 4;
-    gap?: string;
-    className?: string;
-  };
+  formLayout?: FormLayoutConfig;
   onCancel: () => void;
   onSubmit: (values: TForm) => void | Promise<void>;
 }) {

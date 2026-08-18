@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import type { FormColSpan } from "./formLayout";
 
 export type Option = { value: string; label: string };
 
@@ -76,9 +77,17 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   
   // Form layout control
   formLayout?: {
-    colSpan?: 1 | 2 | 3 | 4 | "full"; // Number of columns to span, or "full" for full width
-    order?: number; // Display order (lower numbers first)
-    className?: string; // Additional CSS classes for the field wrapper
+    /** Columns spanned inside the field's group, or inside the form grid when ungrouped. */
+    colSpan?: FormColSpan;
+    /** Display order, lower first. Also positions the field's group. */
+    order?: number;
+    /** Additional CSS classes for the field wrapper. */
+    className?: string;
+    /**
+     * Id of the section the field belongs to. An id with no matching entry in the form's
+     * `groups` still renders as a section, headed by the id.
+     */
+    group?: string;
   };
 };
 

@@ -152,6 +152,11 @@ follow-up needs them.
 4. **Full-width form fields** — `multiSelect` over the fields that have an `editor`, for
    `formLayout.colSpan: "full"`. Pre-suggest `textarea`, `markdown` and `code` fields (markdown
    and code already default to full) plus any long single-line field like a title or URL.
+5. **Form sections** — Only ask when the form has more than about eight fields: one flat form ✓ ·
+   grouped into sections (follow up for a section per cluster of the plan's fields). A section
+   is `formLayout.groups: [{ id, label }]` on the grid plus `formLayout.group: "<id>"` on each
+   column. Leave `groupSpan` off unless the user wants sections side by side. Switches need no
+   section — ungrouped ones already collect into "Options".
 
 ### Round F — Placement
 

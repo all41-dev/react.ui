@@ -44,7 +44,11 @@ export type {
 
 export type { ActionColumnOpts } from "./components/datagrid/ui/makeActionColumns";
 export type { EditContainerKind } from "./components/datagrid/ui/containers/EditContainers";
-export type { FormLayoutConfig } from "./components/datagrid/ui/containers/EditFormBody";
+export type {
+  FormColSpan,
+  FormFieldGroup,
+  FormLayoutConfig,
+} from "./components/datagrid/types/formLayout";
 
 export { DataGridContext } from "./components/datagrid/DataGridContext";
 

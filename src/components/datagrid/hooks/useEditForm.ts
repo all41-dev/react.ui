@@ -3,6 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ZodType } from "zod";
 import type { WithMeta } from "../types/column";
+import type { FormFieldGroup } from "../types/formLayout";
+import { buildFormBlocks } from "../utils/formBlocks";
 import { applyFromForm, computeDefaults } from "../utils/getAccessorKey";
 import { flattenPaths } from "../utils/objectPath";
 import { useFormError } from "./useFormError";
@@ -13,13 +15,15 @@ type Params<TRow extends object, TForm extends object> = {
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   onSubmit: (values: TForm) => void | Promise<void>;
+  /** Section declarations from `formLayout.groups`. */
+  groups?: FormFieldGroup[];
   /** Reports react-hook-form's isSubmitting up, so a shell can refuse Esc mid-save. */
   onSubmittingChange?: (isSubmitting: boolean) => void;
 };
 
 /**
  * Everything react-hook-form about the edit form: setup, submit with the `fromForm`
- * round-trip and server-error capture, the fields partitioned for layout, and the
+ * round-trip and server-error capture, the fields blocked out for layout, and the
  * dirty-key set. `EditFormBody` keeps only the markup around it.
  */
 export function useEditForm<TRow extends object, TForm extends object>({
@@ -27,6 +31,7 @@ export function useEditForm<TRow extends object, TForm extends object>({
   columns,
   zodSchema,
   onSubmit,
+  groups,
   onSubmittingChange,
 }: Params<TRow, TForm>) {
   const initialDefaults = useMemo(
@@ -97,21 +102,9 @@ export function useEditForm<TRow extends object, TForm extends object>({
     }
   );
 
-  const sortedFields = useMemo(() => {
-    return [...fields].sort((a, b) => {
-      const orderA = a.meta?.formLayout?.order ?? 999;
-      const orderB = b.meta?.formLayout?.order ?? 999;
-      return orderA - orderB;
-    });
-  }, [fields]);
-
-  const regularFields = useMemo(
-    () => sortedFields.filter((c) => c.meta?.editor !== "switch"),
-    [sortedFields]
-  );
-  const switchFields = useMemo(
-    () => sortedFields.filter((c) => c.meta?.editor === "switch"),
-    [sortedFields]
+  const blocks = useMemo(
+    () => buildFormBlocks(fields, groups),
+    [fields, groups]
   );
 
   /*
@@ -136,8 +129,7 @@ export function useEditForm<TRow extends object, TForm extends object>({
     submit,
     isSubmitting,
     formError,
-    regularFields,
-    switchFields,
+    blocks,
     dirtyKeys,
   };
 }
