@@ -25,7 +25,7 @@ function EditorSkeleton() {
  * Every editor except the switch: the control inside `FieldChrome`, bound to the form and
  * wired to its label, description, hint and error.
  */
-export function PlainEditorField<TRow, TForm extends FieldValues>({
+export function PlainEditorField<TRow extends object, TForm extends FieldValues>({
   control,
   name,
   fieldId,
