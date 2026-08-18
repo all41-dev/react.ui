@@ -120,12 +120,16 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
+/* No `forwards`, like the overlay entrances below: a filled transform stays on the element
+   as the identity matrix, and any transform makes it the containing block for its
+   `position: fixed` descendants — which pins a full-screen code editor opened from the
+   inline edit form inside the grid row. The end state is the static style anyway. */
 .animate-slide-down {
-  animation: slideDown 0.15s ease-out forwards;
+  animation: slideDown 0.15s ease-out;
 }
 
 /* Overlay motion per the design spec: drawer slide-in 22px, modal pop .97→1,
