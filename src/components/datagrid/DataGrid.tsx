@@ -3,6 +3,7 @@
 import { DataGridContext, DataGridSelectionContext } from "./DataGridContext";
 import { useDataGridState } from "./hooks/useDataGridState";
 import { useGridChrome } from "./hooks/useGridChrome";
+import { useEditStateChange } from "./hooks/useEditStateChange";
 import { useGridHandle } from "./hooks/useGridHandle";
 import { useGridView } from "./hooks/useGridView";
 import type { DataGridProps } from "./types/grid";
@@ -13,7 +14,7 @@ import { GridToolbarSection } from "./ui/GridToolbarSection";
 import { GridTooltip } from "./ui/GridTooltip";
 import { getRowKey, rowKeyOf } from "./utils/getRowKey";
 
-export type { DataGridProps, DataGridHandle } from "./types/grid";
+export type { DataGridProps, DataGridHandle, EditState } from "./types/grid";
 
 /**
  * Composition only â€” state lives in `useDataGridState`, the view/session logic in
@@ -59,6 +60,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
   });
 
   useGridHandle(ref, edit, selection.clear);
+  useEditStateChange(edit.session, gridProps.onEditStateChange);
 
   /* The containers key the form remount on this; `edit.editingRow` alone is not enough
      for rows keyed by a custom `idAccessor` (no `id`/`uuid` for the fallback to find). */

@@ -18,12 +18,13 @@ export const postColumns: Columns = [
   {
     accessorKey: "body",
     header: "Body Content",
-    // Markdown editor demo — rich fields default to full width.
+    // Markdown editor demo — rich fields default to full width, and `preview: "split"`
+    // puts the source and the preview side by side above `md`.
     meta: {
       editor: "markdown",
       required: true,
       description: "Markdown. Headings, links and lists render in the preview.",
-      editorProps: { rows: 8 },
+      editorProps: { rows: 8, preview: "split" },
       formLayout: { order: 3 },
     },
   },

@@ -1,7 +1,7 @@
 import type { WithMeta } from "../../../../components/datagrid/types/column";
 import type { DemoForm, DemoRow } from "../types";
 import { RoleBadge, StatusBadge } from "./badges";
-import { formatDate } from "./formatDate";
+import { formatDate, relativeDate } from "./formatDate";
 
 const ROLES = [
   { label: "Admin", value: "Admin" },
@@ -94,9 +94,11 @@ export const userColumns: WithMeta<DemoRow, DemoForm>[] = [
     accessorKey: "lastLogin",
     header: "Last Login",
     cell: ({ getValue }) => formatDate(getValue()),
+    // `hint` — the stored timestamp echoed back as elapsed time while it is edited.
     meta: {
       editor: "date",
       description: "Read-only in practice — set by the auth service on sign-in.",
+      hint: (value) => relativeDate(value),
       hideOnMobile: true,
       formLayout: { order: 8 },
     },

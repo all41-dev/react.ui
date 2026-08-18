@@ -865,3 +865,232 @@ describe("field groups in the edit form", () => {
     warn.mockRestore();
   });
 });
+
+/**
+ * A switch takes its layout from the section it sits in: the chip form in a `"cards"`
+ * section, and the plain editors' label-over-control stack everywhere else, so it lines
+ * up with the inputs beside it on a form row.
+ */
+describe("a switch in a grid section", () => {
+  type FlagRow = { id: number; active: boolean; archived: boolean };
+
+  const FLAGS: WithMeta<FlagRow, any>[] = [
+    {
+      accessorKey: "active",
+      header: "Active",
+      meta: { label: "Active", editor: "switch", formLayout: { group: "access" } },
+    },
+    { accessorKey: "archived", header: "Archived", meta: { label: "Archived", editor: "switch" } },
+  ];
+
+  const openFlags = async (user: ReturnType<typeof userEvent.setup>) => {
+    render(
+      <DataGrid<FlagRow, any>
+        title="Flags"
+        columns={FLAGS}
+        zodSchema={z.object({ active: z.boolean(), archived: z.boolean() }) as never}
+        initialData={[{ id: 1, active: true, archived: false }]}
+        onPersist={vi.fn()}
+      />
+    );
+    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+    await screen.findByLabelText("Active");
+  };
+
+  it("labels the track from outside it, the way every other field does", async () => {
+    const user = userEvent.setup({ delay: null });
+    await openFlags(user);
+
+    const grouped = screen.getByLabelText("Active");
+    // A `<label for>` sibling, not a wrapper: that is what puts the label on the row
+    // above the control instead of beside the track.
+    expect(grouped.closest("label")).toBeNull();
+    expect(document.querySelector(`label[for="${grouped.id}"]`)).toHaveTextContent(
+      "Active"
+    );
+
+    // The implicit Options section is still the chip form, with the label inline.
+    expect(screen.getByLabelText("Archived").closest("label")).not.toBeNull();
+  });
+
+  it("still toggles from its label", async () => {
+    const user = userEvent.setup({ delay: null });
+    await openFlags(user);
+
+    const grouped = screen.getByLabelText("Active");
+    expect(grouped).toBeChecked();
+    await user.click(document.querySelector(`label[for="${grouped.id}"]`)!);
+    expect(grouped).not.toBeChecked();
+  });
+});
+
+/**
+ * `meta.hint` says something about the value being edited — a humanised echo of a
+ * machine value — under the control and out of the way of an error.
+ */
+describe("a field hint", () => {
+  const HINTED: WithMeta<Row, any>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      meta: {
+        label: "Name",
+        editor: "text",
+        hint: (value) => `${String(value ?? "").length} characters`,
+      },
+    },
+    {
+      accessorKey: "quota",
+      header: "Quota",
+      meta: {
+        label: "Quota",
+        editor: "number",
+        // Second argument: the live form, not just this field.
+        hint: (value, form) => `${(form as { name: string }).name} may open ${value}`,
+      },
+    },
+  ];
+
+  it("re-reads the value as it is typed", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: HINTED });
+    await openEditForm(user);
+
+    expect(screen.getByText("3 characters")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Name"), "x");
+    expect(screen.getByText("4 characters")).toBeInTheDocument();
+  });
+
+  it("sees the rest of the form", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: HINTED });
+    await openEditForm(user);
+
+    expect(screen.getByText("Ada may open 5")).toBeInTheDocument();
+  });
+
+  /* The switch renders its hint through its own layout rather than through `FieldChrome`,
+     with its own error-precedence rule, so the path is pinned separately. */
+  it("follows a switch, and gives way to its error", async () => {
+    type FlagRow = { id: number; active: boolean };
+    const user = userEvent.setup({ delay: null });
+    render(
+      <DataGrid<FlagRow, any>
+        title="Flags"
+        columns={[
+          {
+            accessorKey: "active",
+            header: "Active",
+            meta: {
+              label: "Active",
+              editor: "switch",
+              hint: (value) => (value ? "Visible to everyone" : "Hidden"),
+            },
+          } as WithMeta<FlagRow, any>,
+        ]}
+        zodSchema={
+          z.object({
+            active: z.boolean().refine((v) => v, "Must stay on"),
+          }) as never
+        }
+        initialData={[{ id: 1, active: true }]}
+        onPersist={vi.fn()}
+      />
+    );
+    await user.click(screen.getAllByRole("button", { name: "Edit" })[0]);
+
+    const toggle = await screen.findByLabelText("Active");
+    expect(screen.getByText("Visible to everyone")).toBeInTheDocument();
+    expect(toggle.getAttribute("aria-describedby")).toBe(`${toggle.id}-hint`);
+
+    await user.click(document.querySelector(`label[for="${toggle.id}"]`)!);
+    expect(screen.getByText("Hidden")).toBeInTheDocument();
+
+    await save(user);
+    await waitFor(() =>
+      expect(document.getElementById(`${toggle.id}-error`)).toBeInTheDocument()
+    );
+    expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
+    expect(toggle.getAttribute("aria-describedby")).toBe(`${toggle.id}-error`);
+  });
+
+  it("describes the control, and gives way to the error", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderGrid({ columns: HINTED });
+    await openEditForm(user);
+
+    const name = screen.getByLabelText("Name");
+    expect(name.getAttribute("aria-describedby")).toContain(`${name.id}-hint`);
+
+    await user.clear(name);
+    await save(user);
+
+    await waitFor(() =>
+      expect(document.getElementById(`${name.id}-error`)).toBeInTheDocument()
+    );
+    expect(screen.queryByText("0 characters")).not.toBeInTheDocument();
+  });
+});
+
+/** The read side of `DataGridHandle`: a parent can react to a session it did not open. */
+describe("onEditStateChange", () => {
+  it("reports each session, and reports it once", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onEditStateChange = vi.fn();
+    renderGrid({ onEditStateChange });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    expect(onEditStateChange).not.toHaveBeenCalled();
+
+    await openEditForm(user);
+    expect(onEditStateChange).toHaveBeenCalledTimes(1);
+    expect(onEditStateChange).toHaveBeenLastCalledWith({
+      kind: "edit",
+      row: ROWS[0],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onEditStateChange).toHaveBeenLastCalledWith({ kind: "idle" });
+    expect(onEditStateChange).toHaveBeenCalledTimes(2);
+  });
+
+  it("reports a create session", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onEditStateChange = vi.fn();
+    renderGrid({ onEditStateChange });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(onEditStateChange).toHaveBeenLastCalledWith({ kind: "create" });
+  });
+
+  /* The cell session is the one state that is not reported as the grid holds it: the
+     popover's anchor rect is the popover's business and must not reach the consumer. */
+  it("reports a cell session without the popover's anchor", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onEditStateChange = vi.fn();
+    renderGrid({
+      onEditStateChange,
+      columns: [
+        {
+          accessorKey: "name",
+          header: "Name",
+          meta: { label: "Name", editor: "text", cellEdit: true },
+        } as WithMeta<Row, any>,
+      ],
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Ada" }));
+
+    expect(onEditStateChange).toHaveBeenCalledTimes(1);
+    expect(onEditStateChange).toHaveBeenLastCalledWith({
+      kind: "cell",
+      row: ROWS[0],
+      columnId: "name",
+    });
+
+    await user.keyboard("{Escape}");
+    expect(onEditStateChange).toHaveBeenLastCalledWith({ kind: "idle" });
+  });
+});

@@ -47,6 +47,27 @@ one in the edit form's layout.
   its own section. Switches left without a `group` collect into an implicit "Options"
   section at the bottom.
 
+- **A switch lays itself out from its section.** In a `variant: "cards"` section it keeps
+  the chip form — track with the label beside it. Anywhere else it now takes the same
+  micro-label-over-control stack as the plain editors, so a switch filed under a topical
+  group lines up with the inputs either side of it on the form row. A cell-edit popover
+  has no section and uses the stacked form. `FormGroupVariant` is exported.
+
+- **`meta.hint`** — `(value, formValues) => ReactNode`, rendered under the control and
+  fed by the value being edited, so a cron expression or a stored timestamp can carry a
+  humanised echo of itself. The error line replaces it while the field is invalid, and
+  returning `null` renders nothing.
+
+- **Side-by-side markdown preview.** `editorProps: { preview: "split" }` puts the source
+  and the live preview in two panes instead of behind tabs. The editor measures its own
+  box and falls back to the tabs where two panes will not fit — a drawer, a narrow
+  column — so the mode is safe to set on a field that appears in more than one container.
+  The default stays `"tab"`. `MarkdownPreviewMode` is exported.
+
+- **`onEditStateChange`** reports every edit session the grid opens, swaps or closes —
+  the read side of `DataGridHandle`, which could only drive one. The reported `EditState`
+  is `idle` / `create` / `edit` with the row / `cell` with the row and column id.
+
 ### Fixed
 
 - Column ids now match TanStack's own rule, so a dotted `accessorKey` (`"user.name"`)

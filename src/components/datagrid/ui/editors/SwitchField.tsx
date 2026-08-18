@@ -1,86 +1,101 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { FieldDescriptionIcon } from "./FieldDescriptionIcon";
+import type { FormGroupVariant } from "../../types/formLayout";
+import { buildDescribedBy } from "./editorChrome";
+import { FieldChrome } from "./FieldChrome";
+import { SwitchChip } from "./SwitchChip";
+import { SwitchTrack } from "./SwitchTrack";
 
-/**
- * The switch editor's whole markup — unlike the plain editors it carries its own label,
- * description icon and error in a horizontal layout, so it never goes through the
- * registry's `FieldChrome`/`Field` path.
- */
-export function SwitchField({
-  id,
-  label,
-  description,
-  checked,
-  onChange,
-  hasError,
-  errorMsg,
-  inputProps,
-}: {
-  /** The checkbox's DOM id; the hint and error ids are derived from it. */
+type SwitchProps = {
+  /** The checkbox's DOM id; the description, hint and error ids are derived from it. */
   id: string;
   label?: ReactNode;
+  required?: boolean;
   description?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
   hasError: boolean;
   errorMsg?: string;
+  /** The field's `meta.hint` output. An error takes its place. */
+  hint?: ReactNode;
   /** Consumer `editorProps`, minus `className` — an override would break `sr-only peer`. */
   inputProps?: Record<string, unknown>;
-}) {
-  const describedBy =
-    [hasError ? `${id}-error` : null, description ? `${id}-hint` : null]
-      .filter(Boolean)
-      .join(" ") || undefined;
+  /**
+   * How the field's section arranges its fields. `"cards"` gets the horizontal chip form;
+   * anything else gets the same micro-label-over-control stack as the plain editors, so a
+   * switch lines up with its neighbours on a form row.
+   */
+  variant?: FormGroupVariant;
+};
+
+/**
+ * The switch editor.
+ *
+ * Two layouts, picked from the section the field sits in rather than from a consumer
+ * option: a chip carrying its own label beside the track in a `"cards"` section, and the
+ * plain editors' `FieldChrome` stack everywhere else. The stacked form is what keeps a
+ * switch aligned with the inputs either side of it on a form row.
+ */
+export function SwitchField({
+  id,
+  label,
+  required,
+  description,
+  checked,
+  onChange,
+  hasError,
+  errorMsg,
+  hint,
+  inputProps,
+  variant = "grid",
+}: SwitchProps) {
+  const describedBy = buildDescribedBy({
+    id,
+    description,
+    hasError,
+    hasHint: !!hint && !hasError,
+  });
+
+  const track = (
+    <SwitchTrack
+      id={id}
+      checked={checked}
+      onChange={onChange}
+      hasError={hasError}
+      required={required}
+      describedBy={describedBy}
+      inputProps={inputProps}
+    />
+  );
+
+  if (variant === "cards") {
+    return (
+      <SwitchChip
+        id={id}
+        label={label}
+        required={required}
+        description={description}
+        hasError={hasError}
+        errorMsg={errorMsg}
+        hint={hint}
+        track={track}
+      />
+    );
+  }
 
   return (
-    <div className="flex flex-col">
-      {/* The icon sits outside the `<label>`: inside it, a click would toggle the
-          switch and the description would join the checkbox's accessible name. */}
-      <div className="flex items-center gap-1.5">
-        <label
-          htmlFor={id}
-          className="flex items-center gap-3 cursor-pointer group"
-        >
-          {/* A 38×21 track with a 15px knob. Smaller than a default toggle,
-              which looks oversized next to 32px fields. */}
-          <div className="relative inline-flex items-center">
-            <input
-              type="checkbox"
-              id={id}
-              aria-invalid={hasError || undefined}
-              aria-describedby={describedBy}
-              className="sr-only peer"
-              {...(inputProps as unknown as InputHTMLAttributes<HTMLInputElement>)}
-              /* After the spread, like the plain editors do: consumer `editorProps` may
-                 add attributes, but it must not take over the controlled binding. */
-              checked={checked}
-              onChange={(e) => onChange(e.target.checked)}
-            />
-            <div className="h-[21px] w-[38px] rounded-full border border-border-translucent bg-surface-raised transition-[background-color,border-color] duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--rui-focus-ring)] peer-checked:border-accent peer-checked:bg-accent after:absolute after:left-0.5 after:top-0.5 after:h-[15px] after:w-[15px] after:rounded-full after:bg-muted after:transition-[transform,background-color] after:duration-200 after:content-[''] peer-checked:after:translate-x-[17px] peer-checked:after:bg-accent-contrast"></div>
-          </div>
-          {label && (
-            <span className="min-w-0 text-[.8125rem] font-medium text-body">
-              {label}
-            </span>
-          )}
-        </label>
-        {description && (
-          <FieldDescriptionIcon
-            descriptionId={`${id}-hint`}
-            description={description}
-          />
-        )}
-      </div>
-      {hasError && (
-        <p
-          id={`${id}-error`}
-          role="alert"
-          className="ml-[50px] mt-1 text-[.6875rem] font-semibold text-danger"
-        >
-          {errorMsg}
-        </p>
-      )}
-    </div>
+    <FieldChrome
+      id={id}
+      label={label}
+      required={required}
+      description={description}
+      hasError={hasError}
+      errorMsg={errorMsg}
+      hint={hint}
+    >
+      {/* The control line is 32px tall for every plain editor; the track centres in it
+          so labels and controls align across the row. */}
+      <div className="flex h-8 items-center">{track}</div>
+    </FieldChrome>
   );
 }

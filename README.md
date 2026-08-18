@@ -150,6 +150,7 @@ The DataGrid is a powerful and flexible table component with built-in CRUD funct
 | `isLoading` | `boolean` | No | Show loading state |
 | `error` | `string \| null` | No | Error message to display |
 | `onRetry` | `() => void` | No | Retry callback for error state |
+| `onEditStateChange` | `(state: EditState<T>) => void` | No | Fires when an editor opens, swaps or closes |
 
 #### Column Configuration
 
@@ -177,10 +178,20 @@ const columns = [
     }
   },
   {
+    accessorKey: 'schedule',
+    header: 'Schedule',
+    meta: {
+      editor: 'text',
+      // Under the control, from the value being edited. Replaced by the error line
+      // while the field is invalid.
+      hint: (value) => describeCron(String(value)),
+    }
+  },
+  {
     accessorKey: 'birthdate',
     header: 'Birth Date',
     meta: {
-      editor: 'datetime-local',
+      editor: 'date',
     }
   },
 ];
@@ -193,7 +204,13 @@ const columns = [
 - `number` - Number input
 - `select` - Dropdown select (requires `options`)
 - `switch` - Boolean toggle
-- `datetime-local` - Date-time picker
+- `date` / `time` - Date and time pickers
+- `markdown` - Markdown with a toolbar and a preview
+- `code` - Code editor with a gutter, completions and diagnostics
+
+Markdown takes `editorProps: { rows, preview }`. `preview: "split"` puts the source and
+the live preview side by side, falling back to the default tabs wherever the field is too
+narrow for two panes.
 
 #### Edit Container Types
 

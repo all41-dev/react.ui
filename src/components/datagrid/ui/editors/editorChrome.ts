@@ -35,23 +35,31 @@ export function buildEditorClassName({
 }
 
 /**
- * Ids for the description and error text so the control points at both. Without these,
- * assistive tech reads the input with no indication that it is invalid or why. The
- * description lives in an always-present sr-only span (its visible form is the label's
- * info-icon tooltip), so it stays listed alongside the error — error first.
+ * Ids for the error, hint and description text so the control points at all three.
+ * Without these, assistive tech reads the input with no indication that it is invalid or
+ * why. The description lives in an always-present sr-only span (its visible form is the
+ * label's info-icon tooltip), so it stays listed alongside the error — error first.
  */
 export function buildDescribedBy({
   id,
   description,
   hasError,
+  hasHint = false,
 }: {
   /** The control's DOM id — `FieldChrome` derives the hint and error ids from the same. */
   id: string;
   description: string | undefined;
   hasError: boolean;
+  /** A value-derived hint is rendered under the control. An error takes its place, so
+      pass `false` while the field is invalid or the id points at nothing. */
+  hasHint?: boolean;
 }): string | undefined {
   return (
-    [hasError ? `${id}-error` : null, description ? `${id}-desc` : null]
+    [
+      hasError ? `${id}-error` : null,
+      hasHint ? `${id}-hint` : null,
+      description ? `${id}-desc` : null,
+    ]
       .filter(Boolean)
       .join(" ") || undefined
   );

@@ -62,7 +62,7 @@ export function GroupSection<TRow extends object, TForm extends object>({
             control={control}
             idPrefix={idPrefix}
             dirtyKeys={dirtyKeys}
-            spanned={!cards}
+            variant={cards ? "cards" : "grid"}
           />
         ))}
       </div>

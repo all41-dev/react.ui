@@ -1,5 +1,6 @@
 import type { Control } from "react-hook-form";
 import type { WithMeta } from "../../types/column";
+import type { FormGroupVariant } from "../../types/formLayout";
 import { getAccessorKey } from "../../utils/getAccessorKey";
 import { renderEditor } from "../editors/EditorRegistry";
 import { colSpanClass } from "./formGrid";
@@ -39,8 +40,8 @@ type CellProps<TRow extends object, TForm extends object> = {
   control: Control<TForm>;
   idPrefix: string;
   dirtyKeys?: ReadonlySet<string>;
-  /** Cards flow at their own width, so the span classes have nothing to act on. */
-  spanned?: boolean;
+  /** Variant of the section the field sits in. Loose fields take the form's own grid. */
+  variant?: FormGroupVariant;
 };
 
 export function FieldCell<TRow extends object, TForm extends object>({
@@ -48,10 +49,12 @@ export function FieldCell<TRow extends object, TForm extends object>({
   control,
   idPrefix,
   dirtyKeys,
-  spanned = true,
+  variant = "grid",
 }: CellProps<TRow, TForm>) {
   const key = getAccessorKey(field);
   const layout = field.meta?.formLayout;
+  // Cards flow at their own width, so the span classes have nothing to act on.
+  const spanned = variant !== "cards";
   // Rich editors span the full width by default; an explicit colSpan overrides.
   const isRich = field.meta?.editor === "markdown" || field.meta?.editor === "code";
   const span = layout?.colSpan ?? (isRich ? "full" : 1);
@@ -61,7 +64,7 @@ export function FieldCell<TRow extends object, TForm extends object>({
       changed={!!key && !!dirtyKeys?.has(key)}
       className={`${spanned ? colSpanClass(span) : ""} ${layout?.className || ""}`}
     >
-      {renderEditor({ column: field, control, idPrefix })}
+      {renderEditor({ column: field, control, idPrefix, variant })}
     </Field>
   );
 }

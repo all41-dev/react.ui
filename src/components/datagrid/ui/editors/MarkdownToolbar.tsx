@@ -3,8 +3,9 @@ import { TOOLS, type ToolAction } from "./markdownTools";
 type Tab = "write" | "preview";
 
 type Props = {
-  tab: Tab;
-  onTabChange: (tab: Tab) => void;
+  /** Omitted in split mode, where both panes are on screen and there is nothing to switch. */
+  tab?: Tab;
+  onTabChange?: (tab: Tab) => void;
   onTool: (action: ToolAction) => void;
 };
 
@@ -39,23 +40,25 @@ export function MarkdownToolbar({ tab, onTabChange, onTool }: Props) {
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-0.5 rounded-md bg-surface-inset p-0.5 text-[.75rem]">
-        {(["write", "preview"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => onTabChange(t)}
-            aria-pressed={tab === t}
-            className={`cursor-pointer rounded px-2 py-0.5 capitalize transition-colors ${
-              tab === t
-                ? "bg-surface-card font-semibold text-accent shadow-[0_1px_2px_rgba(0,0,0,.18)]"
-                : "text-faint hover:text-body"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+      {tab && onTabChange && (
+        <div className="flex items-center gap-0.5 rounded-md bg-surface-inset p-0.5 text-[.75rem]">
+          {(["write", "preview"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onTabChange(t)}
+              aria-pressed={tab === t}
+              className={`cursor-pointer rounded px-2 py-0.5 capitalize transition-colors ${
+                tab === t
+                  ? "bg-surface-card font-semibold text-accent shadow-[0_1px_2px_rgba(0,0,0,.18)]"
+                  : "text-faint hover:text-body"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

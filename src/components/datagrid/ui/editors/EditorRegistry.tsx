@@ -1,30 +1,15 @@
-import { Suspense } from "react";
-import {
-  Controller,
-  type Control,
-  type FieldValues,
-  type Path,
-} from "react-hook-form";
+import type { Control, FieldValues, Path } from "react-hook-form";
+
 import type { WithMeta } from "../../types/column";
+import type { FormGroupVariant } from "../../types/formLayout";
 import { getAccessorKey } from "../../utils/getAccessorKey";
 import {
   editorComponentFor,
   isRichEditor,
   splitEditorProps,
 } from "./editorComponents";
-import { FieldChrome } from "./FieldChrome";
+import { PlainEditorField } from "./PlainEditorField";
 import { SwitchController } from "./SwitchController";
-import { buildDescribedBy, buildEditorClassName } from "./editorChrome";
-
-/** Placeholder at the rich editors' min height, so the form keeps its layout. */
-function EditorSkeleton() {
-  return (
-    <div
-      className="min-h-[118px] w-full animate-pulse rounded-control border border-border-default bg-surface-inset"
-      aria-hidden
-    />
-  );
-}
 
 export function renderEditor<TRow extends object, TForm extends FieldValues>(opts: {
   column: WithMeta<TRow, TForm>;
@@ -35,8 +20,10 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
    * `<label htmlFor>` and `aria-describedby` would resolve to the first form on the page.
    */
   idPrefix: string;
+  /** Variant of the section the field sits in; only the switch lays itself out from it. */
+  variant?: FormGroupVariant;
 }) {
-  const { column, control, idPrefix } = opts;
+  const { column, control, idPrefix, variant } = opts;
   // Columns are keyed by the row type while the form is keyed by the form type; this is
   // the one place that bridge is cast.
   const name = getAccessorKey(column) as Path<TForm> | undefined;
@@ -45,12 +32,9 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
 
   const meta = column.meta ?? {};
   const label = meta.label ?? String(column.header ?? name);
-  const description = meta.description;
-  const editor = meta.editor;
-
   const { editorClassName, inputProps } = splitEditorProps(meta.editorProps);
 
-  if (editor === "switch") {
+  if (meta.editor === "switch") {
     return (
       <div key={String(name)}>
         <SwitchController
@@ -58,80 +42,32 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
           name={name}
           id={fieldId}
           label={label}
-          description={description}
+          required={meta.required}
+          description={meta.description}
+          hint={meta.hint}
           inputProps={inputProps}
+          variant={variant}
         />
       </div>
     );
   }
 
-  const Field = editorComponentFor(editor);
+  const Field = editorComponentFor(meta.editor);
   if (!Field) return null;
-  const isRich = isRichEditor(editor);
 
   return (
     <div key={String(name)} className="space-y-1.5">
-      <Controller
+      <PlainEditorField
         control={control}
         name={name}
-        render={({ field, fieldState }) => {
-          const hasError = !!fieldState.error;
-          const errorMsg = fieldState.error?.message;
-
-          /* `inputProps` goes first: the accessibility wiring below is derived from the
-             column meta and the live field state, so a consumer's `editorProps` must not
-             be able to overwrite it. `splitEditorProps` protects `className` the same way. */
-          const forwarded: Record<string, unknown> = {
-            ...inputProps,
-            id: fieldId,
-            "aria-invalid": hasError || undefined,
-            "aria-describedby": buildDescribedBy({
-              id: fieldId,
-              description,
-              hasError,
-            }),
-            "aria-required": meta.required || undefined,
-            className: buildEditorClassName({
-              editor,
-              isRich,
-              hasError,
-              editorClassName,
-            }),
-          };
-
-          if (editor === "select") {
-            forwarded.options = meta.options ?? [];
-          }
-
-          return (
-            <FieldChrome
-              id={fieldId}
-              label={label}
-              required={meta.required}
-              description={description}
-              hasError={hasError}
-              errorMsg={errorMsg}
-            >
-              {/* The rich editors are code-split, so they need a boundary; the fallback
-                  holds the field's height so the form doesn't jump as one arrives. */}
-              {isRich ? (
-                <Suspense fallback={<EditorSkeleton />}>
-                  <Field
-                    {...forwarded}
-                    value={field.value ?? ""}
-                    onChange={field.onChange}
-                  />
-                </Suspense>
-              ) : (
-                <Field
-                  {...forwarded}
-                  value={field.value ?? ""}
-                  onChange={field.onChange}
-                />
-              )}
-            </FieldChrome>
-          );
-        }}
+        fieldId={fieldId}
+        label={label}
+        meta={meta}
+        editor={meta.editor}
+        isRich={isRichEditor(meta.editor)}
+        Field={Field}
+        editorClassName={editorClassName}
+        inputProps={inputProps}
       />
     </div>
   );

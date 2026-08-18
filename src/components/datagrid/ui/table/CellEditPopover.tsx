@@ -122,6 +122,9 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
             column: column as unknown as WithMeta<TRow, CellForm>,
             control: form.control,
             idPrefix,
+            /* There is no section here to take a variant from. A switch gets the same
+               stacked chrome as every other editor the popover opens. */
+            variant: "grid",
           })}
           <CellEditActions error={error} saving={saving} onCancel={onCancel} />
         </form>

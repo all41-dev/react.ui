@@ -32,8 +32,8 @@ const MarkdownEditor: EditorControl = lazy(() =>
 );
 
 /*
- * "switch" is deliberately absent — `SwitchField` renders the track inline with its own
- * label, hint and error, and never goes through a control from this map.
+ * "switch" is deliberately absent — `SwitchField` owns its whole layout, including the
+ * chrome around the track, and never goes through a control from this map.
  */
 const BY_KIND: Partial<Record<EditorKind, EditorControl>> = {
   text: TextInput,

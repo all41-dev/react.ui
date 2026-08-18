@@ -1,6 +1,13 @@
 /** Field width inside a group's grid, or inside the form grid when the field has no group. */
 export type FormColSpan = 1 | 2 | 3 | 4 | "full";
 
+/**
+ * How a section arranges its fields. `"cards"` flows each field as a filled chip, which
+ * suits switches; `"grid"` places them on the form's column tracks, where every field is
+ * expected to line its label and control up with its neighbours.
+ */
+export type FormGroupVariant = "grid" | "cards";
+
 /** A captioned section of the edit form, holding the columns that name it. */
 export type FormFieldGroup = {
   /** Matches `meta.formLayout.group` on the columns that belong here. */
@@ -17,7 +24,7 @@ export type FormFieldGroup = {
   /** Position among the form's blocks. Defaults to the lowest `order` of its fields. */
   order?: number;
   /** `"cards"` flows each field as a filled chip rather than gridding them; suits switches. */
-  variant?: "grid" | "cards";
+  variant?: FormGroupVariant;
   className?: string;
 };
 

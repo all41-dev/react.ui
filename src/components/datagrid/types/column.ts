@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 import type { FormColSpan } from "./formLayout";
 
 export type Option = { value: string; label: string };
@@ -36,7 +37,9 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
    */
   visibleInTable?: boolean;
   /**
-   * For markdown: `rows`. For code: `language`, `mode`, `rows`, plus `completions` and
+   * For markdown: `rows` and `preview` (`"tab"` | `"split"`; a split field that is too
+   * narrow for two panes falls back to the tabs). For code: `language`, `mode`, `rows`,
+   * plus `completions` and
    * `diagnostics` — the domain-aware sources typed as `CodeCompletionSource` and
    * `CodeDiagnosticSource`. Anything else is forwarded untouched.
    */
@@ -65,6 +68,19 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
   toForm?: (value: unknown, row: TRow) => unknown;
   /** Form field value → stored value. Applied on submit and on a cell-edit save. */
   fromForm?: (value: unknown, formValues: TForm) => unknown;
+
+  /**
+   * Text under the field's control, derived from the value being edited — a humanised
+   * echo of a machine value, so a cron expression or a timestamp can be checked as it is
+   * typed. Runs on every keystroke anywhere in the form; keep it cheap and pure.
+   * Returning `null` renders nothing, and an error on the field replaces it.
+   *
+   * `formValues` holds the fields of the form the hint is rendered in, which is not
+   * always the whole row: a cell-edit popover is a one-field form, so a hint that reads a
+   * sibling field must tolerate `undefined` there. The result is rendered inside a `<p>`
+   * — inline content only.
+   */
+  hint?: (value: unknown, formValues: TForm) => ReactNode;
 
   filter?: ColumnFilterMeta;
   headerClassName?: string;

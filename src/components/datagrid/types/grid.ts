@@ -52,6 +52,12 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   storageKey?: string;
   formLayout?: FormLayoutConfig;
   onRowClick?: (row: TRow) => void;
+  /**
+   * Fires whenever the grid opens, swaps or closes an editor — the read side of what
+   * {@link DataGridHandle} drives. Closing reports `{ kind: "idle" }`; unmounting the
+   * grid does not, so a parent that unmounts it mid-session resets its own state.
+   */
+  onEditStateChange?: (state: EditState<TRow>) => void;
   renderExpandedRow?: (row: TRow) => ReactNode;
   /**
    * Row expansion is fully controlled: the grid renders a panel for every id in this set
@@ -62,6 +68,16 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   /** Imperative control over the edit session and selection. See {@link DataGridHandle}. */
   ref?: Ref<DataGridHandle<TRow>>;
 };
+
+/**
+ * What the grid is editing, as reported to `onEditStateChange`. The cell state carries
+ * the column being edited; the popover's own position is not part of it.
+ */
+export type EditState<TRow> =
+  | { kind: "idle" }
+  | { kind: "create" }
+  | { kind: "edit"; row: TRow }
+  | { kind: "cell"; row: TRow; columnId: string };
 
 /**
  * What a parent can ask the grid to do.

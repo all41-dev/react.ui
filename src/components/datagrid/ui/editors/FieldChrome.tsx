@@ -4,8 +4,8 @@ import { FieldDescriptionIcon } from "./FieldDescriptionIcon";
 
 /**
  * The vertical layout every plain editor sits in: micro-label (with an info icon
- * carrying the description as a tooltip), the control, then the error line. The
- * description also lives in an sr-only span for `aria-describedby`.
+ * carrying the description as a tooltip), the control, then the hint and the error line.
+ * The description also lives in an sr-only span for `aria-describedby`.
  */
 export function FieldChrome({
   id,
@@ -14,6 +14,7 @@ export function FieldChrome({
   description,
   hasError,
   errorMsg,
+  hint,
   children,
 }: {
   /** The control's DOM id; the hint and error ids are derived from it. */
@@ -23,6 +24,8 @@ export function FieldChrome({
   description?: string;
   hasError: boolean;
   errorMsg?: string;
+  /** Value-derived text under the control. An error takes its place. */
+  hint?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -56,6 +59,7 @@ export function FieldChrome({
       )}
       <div>
         {children}
+        {!hasError && hint}
         {hasError && (
           <p
             id={`${id}-error`}
