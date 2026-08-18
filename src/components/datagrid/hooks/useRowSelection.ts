@@ -5,20 +5,24 @@ const EMPTY_SELECTION: ReadonlySet<string> = new Set();
 type Params<TRow> = {
   /** The parent's canonical data. Watched by identity to prune stale selections. */
   initialData: TRow[];
-  /** The rows currently displayed, used to resolve ids back to objects for the callback. */
+  /** The rows currently displayed, used to resolve keys back to objects for the callback. */
   rows: TRow[];
-  getId: (row: TRow) => string | number | undefined;
+  /**
+   * The grid's row identity — the same function the table gets as `getRowId`, so the keys
+   * held here are exactly the `row.id`s the checkbox cells toggle.
+   */
+  getKey: (row: TRow) => string;
   onSelectionChange?: (rows: TRow[]) => void;
 };
 
 /**
- * Checkbox selection (multi). Ids are stored as strings and survive paging and
- * filtering — the set is the source of truth, not TanStack's own row-selection state.
+ * Checkbox selection (multi). Keys survive paging and filtering — the set is the source
+ * of truth, not TanStack's own row-selection state.
  */
 export function useRowSelection<TRow>({
   initialData,
   rows,
-  getId,
+  getKey,
   onSelectionChange,
 }: Params<TRow>) {
   const [selectedIds, setSelectedIds] =
@@ -35,7 +39,7 @@ export function useRowSelection<TRow>({
     setSyncedData(initialData);
     setSelectedIds((prev) => {
       if (prev.size === 0) return prev;
-      const alive = new Set((initialData ?? []).map((r) => String(getId(r))));
+      const alive = new Set((initialData ?? []).map((r) => getKey(r)));
       const next = new Set([...prev].filter((id) => alive.has(id)));
       return next.size === prev.size ? prev : next;
     });
@@ -63,23 +67,24 @@ export function useRowSelection<TRow>({
 
   const clear = useCallback(() => setSelectedIds(EMPTY_SELECTION), []);
 
-  const deselect = useCallback((id: string | number | undefined) => {
-    if (id === undefined) return;
+  const deselect = useCallback((key: string) => {
     setSelectedIds((prev) => {
-      if (!prev.has(String(id))) return prev;
+      if (!prev.has(key)) return prev;
       const next = new Set(prev);
-      next.delete(String(id));
+      next.delete(key);
       return next;
     });
   }, []);
 
   /*
-   * Notify the consumer with row objects (not ids). The guard compares what would be
-   * announced against what WAS announced — both the selection set and the resolved row
-   * objects. Comparing the set alone silenced real changes: a refetch that replaces the
-   * row objects (same ids) or a local `replaceRow` after an edit left the consumer's
-   * copy of the selected rows permanently stale. A ref compared inside the effect rather
-   * than a trimmed dependency list, which keeps every ref access out of render.
+   * Notify the consumer with row objects, not keys. The guard compares what would be
+   * announced against what WAS announced, and must compare BOTH the key set and the
+   * resolved row objects: the keys alone are unchanged by a refetch that swaps the row
+   * objects or by a local `replaceRow`, which would leave the consumer holding stale
+   * copies of the selected rows indefinitely.
+   *
+   * Compared through a ref inside the effect rather than by trimming the dependency list,
+   * which keeps every ref access out of render.
    *
    * `null` means nothing has been announced yet: the initial empty selection is skipped,
    * because announcing "nothing is selected" on mount is noise.
@@ -89,7 +94,7 @@ export function useRowSelection<TRow>({
     rows: TRow[];
   } | null>(null);
   useEffect(() => {
-    const selectedRows = rows.filter((r) => selectedIds.has(String(getId(r))));
+    const selectedRows = rows.filter((r) => selectedIds.has(getKey(r)));
     const prev = lastAnnouncedRef.current;
     const same =
       prev !== null &&
@@ -100,7 +105,7 @@ export function useRowSelection<TRow>({
     lastAnnouncedRef.current = { ids: selectedIds, rows: selectedRows };
     if (prev === null && selectedIds.size === 0) return;
     onSelectionChange?.(selectedRows);
-  }, [selectedIds, rows, getId, onSelectionChange]);
+  }, [selectedIds, rows, getKey, onSelectionChange]);
 
   /** The value handed to `DataGridSelectionContext`. */
   const contextValue = useMemo(

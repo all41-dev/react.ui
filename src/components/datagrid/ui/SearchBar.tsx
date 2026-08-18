@@ -18,9 +18,9 @@ type SearchBarProps = {
  * The grid's primary control: one field holding the search term AND the active criteria,
  * with the menu trigger attached to its right edge as a single unit.
  *
- * The pills used to be a separate band under the toolbar, which spent a whole row on
- * something that belongs in the field it describes. Keeping them here also means the
- * criteria sit where you go to change them.
+ * The pills belong in the field, not in a band under the toolbar: a separate band spends
+ * a whole row on something that describes this field, and puts the criteria somewhere
+ * other than where you go to change them.
  */
 export function SearchBar({
   value,

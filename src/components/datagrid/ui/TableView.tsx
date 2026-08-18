@@ -9,10 +9,9 @@ import type { GroupBucket } from "../types/grouping";
 
 type TableViewProps<TRow extends object> = {
   table: Table<TRow>;
-  getId: (row: TRow) => string | number | undefined;
   isLoading: boolean;
   error: string | Error | null;
-  /** Accessible name for the grid — the table had none at all. */
+  /** Accessible name for the grid. */
   label?: string;
   /** Renders the per-column filter row under the header (toolbar Filters toggle). */
   showFilters?: boolean;
@@ -23,19 +22,18 @@ type TableViewProps<TRow extends object> = {
   groups?: GroupBucket<Row<TRow>>[];
   collapsedGroups?: ReadonlySet<string>;
   onToggleGroup?: (key: string) => void;
-  editingRowId?: string | number | undefined;
+  editingRowId?: string;
   inlineEditor?: ReactNode;
   isCreating?: boolean;
-  selectedRowId?: string | number | undefined;
+  selectedRowId?: string;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
-  changedRowId?: string | number;
+  changedRowId?: string;
 };
 
 export function TableView<TRow extends object>({
   table,
-  getId,
   isLoading,
   error,
   label,
@@ -107,7 +105,6 @@ export function TableView<TRow extends object>({
       >
         <GridBodies
           table={table}
-          getId={getId}
           isLoading={isLoading}
           error={error}
           emptyLabel={emptyLabel}

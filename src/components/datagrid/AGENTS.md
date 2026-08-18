@@ -9,7 +9,7 @@ filter row, the edit form and its validation from those two inputs. Sorting, fil
 search, pagination, grouping, cards/kanban views, row virtualization, column persistence
 and create/edit/delete flows are built in.
 
-**Published as:** `@all41-dev/react.ui` (v0.1.1). Consumers import from the package root.
+**Published as:** `@all41-dev/react.ui` (version in `package.json`). Consumers import from the package root.
 In-repo code imports relative paths. Entry: `src/index.ts`.
 
 ---
@@ -20,10 +20,14 @@ In-repo code imports relative paths. Entry: `src/index.ts`.
    re-syncs during render whenever `initialData` changes identity. A new array each render
    discards pending local mutations. Wrap derived arrays in `useMemo`. Same contract
    TanStack Table places on its `data` prop.
-2. **Row identity resolves as `idAccessor(row) ?? row.id ?? row.uuid`**
-   (`utils/getRowKey.ts`). Everything downstream compares `String(key)`. If a row resolves
-   to `undefined`, every row keys to `"undefined"` — one checkbox selects all rows and no
-   edit or delete matches its row. Pass `idAccessor` for any other shape.
+2. **Row identity has one implementation: `rowKeyOf`** (`utils/getRowKey.ts`), which
+   resolves `idAccessor(row) ?? row.id ?? row.uuid` and falls back to a key held against
+   the row object itself. It is the table's `getRowId`, so a TanStack `row.id` and a
+   `rowKeyOf(row)` are always the same string — read `row.id` wherever a table row is in
+   hand and never derive a key alongside it. `getRowKey` (the raw, possibly-`undefined`
+   declared id) is public-facing only: the `id` passed to `renderActions`. A reference key
+   works for selection and editing but survives no refetch and cannot be named by
+   `expandedRowIds`, so pass `idAccessor` for any row shape without `id`/`uuid`.
 3. **Controlled pagination requires both `state` and `onChange`.** `state` alone leaves the
    pager writing to an unused internal atom while rendering the parent's frozen state. The
    grid `console.warn`s in development.
@@ -73,7 +77,7 @@ Defined in `types/grid.ts`, re-exported from `DataGrid.tsx`.
 
 | Prop | Type | Default |
 |---|---|---|
-| `idAccessor` | `(r: TRow) => string \| number \| undefined` | `row.id ?? row.uuid` |
+| `idAccessor` | `(r: TRow) => string \| number \| undefined` | `row.id ?? row.uuid`, then the row's object reference |
 | `onPersist` | `(mode: "create" \| "edit" \| "cell", values: TForm, prev?: TRow) => Promise<TRow> \| TRow` | — |
 | `onDelete` | `(row: TRow) => Promise<void> \| void` | — |
 | `isLoading` | `boolean` | — |
@@ -303,6 +307,12 @@ Types: `DataGridProps`, `DataGridHandle`, `WithMeta`, `ColumnMeta`, `EditorKind`
 Styles: `@all41-dev/react.ui/styles` → `dist/react.ui.css`. Nothing injects it at runtime;
 consumers must import it.
 
+Subpath: `@all41-dev/react.ui/code-editor` → `CodeEditor` (`src/code-editor.ts`). The
+value export lives there, never in the root entry — a root export is statically reachable
+from every consumer and would ship the CodeMirror engine to grids that never render a
+code column. The root keeps the type exports (`CodeEditorProps`, the engine-neutral
+completion/diagnostic shapes); types are erased at build.
+
 **Do not export grid internals** (`EditFormBody`, `getRowId`, `FormLayout`,
 `computeDefaults`, `toTooltipText`). Exporting freezes their signatures into the published
 API.
@@ -323,7 +333,7 @@ Peers: `react` 19, `react-dom`, `zod` 4, `react-hook-form`, `@hookform/resolvers
 ## 7. File map
 
 ```
-DataGrid.tsx  (373)     Composition only. Add no logic here
+DataGrid.tsx            Composition only. Add no logic here
 DataGridContext.ts      tooltipId, canCellEdit, startCellEdit, getId, rowActions
 types/grid.ts           DataGridProps, DataGridHandle
 types/column.ts         ColumnMeta, WithMeta, EditorKind, ColumnFilterMeta
@@ -376,9 +386,11 @@ ui/
                         Resizer
   table/filters/        One component per `ColumnFilterMeta` kind, plus the shared
                         control classes; `HeaderFilter` only dispatches
+  pagination/           PagerControls (page size + windowed page strip), pageWindow (pure)
   editors/              EditorRegistry (dispatch), editorComponents (kind → control),
-                        SwitchController, FieldChrome, editorChrome,
-                        MarkdownEditor, CodeEditor
+                        SwitchController, FieldChrome, editorChrome, CodeEditor,
+                        MarkdownEditor + MarkdownToolbar + markdownTools (pure
+                        selection transforms)
   inputs/               Text, Number, Select, TextArea, Date, Time
   containers/           EditContainers, OverlayEditContainer, EditInline,
                         EditFormBody (shared form), FormLayout, EditModal,
@@ -387,7 +399,8 @@ ui/
 utils/
   filterFns.ts          dgText, dgSelect, dgMultiSelect, dgBoolean, dgDateRange,
                         filterFnFor, toDayString
-  getRowKey.ts          Row identity
+  getRowKey.ts          Row identity: `rowKeyOf` (the grid's key) and `getRowKey` (the
+                        consumer's declared id)
   getAccessorKey.ts     getAccessorKey, computeDefaults, applyFromForm
   objectPath.ts         getPath / setPath / flattenPaths — dotted accessor keys, and
                         react-hook-form's nested `errors` / `dirtyFields` flattened onto
@@ -406,10 +419,12 @@ applies (`ui/table/BodyDataCell.tsx` for cells, `ui/editors/EditorRegistry.tsx` 
 fields, `hooks/useGridColumns.ts` for column assembly).
 
 **Add an editor kind** → add to the `EditorKind` union; build the component in
-`ui/inputs/` (plain control) or `ui/editors/` (rich); add a branch to the `Comp` chain in
-`EditorRegistry.tsx`. Rich editors need `isRich` handling so the plain input border/focus
-classes aren't layered on top. `"switch"` is deliberately absent from that chain — it has
-its own inline branch further down.
+`ui/inputs/` (plain control) or `ui/editors/` (rich); register it in `BY_KIND`
+(`editorComponents.ts`). Rich editors must be reported by `isRichEditor`: that flag both
+keeps the plain input border/focus classes off them and tells `EditorRegistry` to render
+them inside `<Suspense>`. A heavy editor is registered through `lazy()` — `editorComponents`
+is reached from every grid, so a static import there ships the editor's engine to every
+consumer. `"switch"` is deliberately absent from the map — it has its own inline branch.
 
 **Add a filter kind** → extend `ColumnFilterMeta`; write the `FilterFn` in
 `utils/filterFns.ts` and map it in `filterFnFor`; add a control component under
@@ -429,7 +444,7 @@ its own inline branch further down.
 
 - **Tests colocate** with their subject (`X.tsx` → `X.test.tsx`). Excluded from the
   published build by `tsconfig.build.json` and by never entering the import graph.
-  `npm test` (321 tests, 28 files), `npm run test:coverage` (writes `coverage/`, gitignored).
+  `npm test` runs them all, `npm run test:coverage` (writes `coverage/`, gitignored).
 - **Verify with** `npx tsc -p tsconfig.app.json --noEmit`, `npm test`, `npm run build:lib`.
   `eslint src` reports **0 problems**; `eslint .` adds **1 parsing error** on
   `vitest.config.ts`, which the tsconfig project service doesn't cover.

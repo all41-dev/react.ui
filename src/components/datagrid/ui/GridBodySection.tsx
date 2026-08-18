@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import type { useDataGridState } from "../hooks/useDataGridState";
 import type { useGridView } from "../hooks/useGridView";
@@ -15,7 +15,6 @@ export function GridBodySection<TRow extends object, TForm extends object>({
   props,
   state,
   view,
-  getId,
   card,
   onRowClick,
   editingRowKey,
@@ -23,13 +22,21 @@ export function GridBodySection<TRow extends object, TForm extends object>({
   props: DataGridProps<TRow, TForm>;
   state: ReturnType<typeof useDataGridState<TRow, TForm>>;
   view: ReturnType<typeof useGridView<TRow>>;
-  getId: (row: TRow) => string | number | undefined;
   card?: (row: TRow) => ReactNode;
   onRowClick?: (row: TRow) => void;
   /** The grid's resolved identity for the row under edit — keys the form remount. */
-  editingRowKey: string | number | undefined;
+  editingRowKey: string | undefined;
 }) {
   const { edit, filters, grouping, mutations, selection } = state;
+
+  /* `expandedRowIds` is the consumer's, so it may hold numeric ids; the bodies compare
+     against the grid's string keys. Normalising here accepts either. */
+  const { expandedRowIds } = props;
+  const expandedKeys = useMemo(
+    () =>
+      expandedRowIds && new Set([...expandedRowIds].map((id) => String(id))),
+    [expandedRowIds]
+  );
 
   /* The inline form renders INSIDE the table body, unlike the overlay containers, so it
      travels to `GridBody` as a node rather than living in `GridEditors`. */
@@ -53,7 +60,6 @@ export function GridBodySection<TRow extends object, TForm extends object>({
   return (
     <GridBody<TRow>
       table={state.table}
-      getId={getId}
       label={props.title ?? "Data"}
       isLoading={!!props.isLoading}
       error={props.error ?? null}
@@ -69,7 +75,7 @@ export function GridBodySection<TRow extends object, TForm extends object>({
       inlineEditor={inlineEditor}
       isCreating={view.inlineEditing && edit.session.kind === "create"}
       changedRowId={state.changedRowId}
-      expandedRowIds={props.expandedRowIds}
+      expandedRowIds={expandedKeys}
       renderExpandedRow={props.renderExpandedRow}
     />
   );

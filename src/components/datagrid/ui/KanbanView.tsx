@@ -6,11 +6,11 @@ import { CardItem } from "./CardItem";
 
 type KanbanViewProps<TRow extends object> = {
   groups: GroupBucket<Row<TRow>>[];
-  getId: (row: TRow) => string | number | undefined;
   card: (row: TRow) => ReactNode;
+  /* Row keys are TanStack `row.id`s, i.e. the grid's own `getRowId` value. */
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
 };
 
@@ -20,7 +20,6 @@ const GAP = 12;
 /** Cards plus a group-by: one 268–320px column per bucket, with a coloured underline. */
 export function KanbanView<TRow extends object>({
   groups,
-  getId,
   card,
   selectedRowIds,
   onRowClick,
@@ -33,7 +32,6 @@ export function KanbanView<TRow extends object>({
         <KanbanColumn
           key={group.key}
           group={group}
-          getId={getId}
           card={card}
           selectedRowIds={selectedRowIds}
           onRowClick={onRowClick}
@@ -47,7 +45,6 @@ export function KanbanView<TRow extends object>({
 
 function KanbanColumn<TRow extends object>({
   group,
-  getId,
   card,
   selectedRowIds,
   onRowClick,
@@ -55,11 +52,10 @@ function KanbanColumn<TRow extends object>({
   renderExpandedRow,
 }: {
   group: GroupBucket<Row<TRow>>;
-  getId: (row: TRow) => string | number | undefined;
   card: (row: TRow) => ReactNode;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -100,11 +96,9 @@ function KanbanColumn<TRow extends object>({
           >
             {virtualizer.getVirtualItems().map((vi) => {
               const r = group.rows[vi.index];
-              const rawKey = getId(r.original) ?? r.id;
-              const id = String(rawKey);
               return (
                 <div
-                  key={id}
+                  key={r.id}
                   ref={virtualizer.measureElement}
                   data-index={vi.index}
                   className="absolute left-0 top-0 w-full pb-3"
@@ -113,9 +107,9 @@ function KanbanColumn<TRow extends object>({
                   <CardItem
                     row={r}
                     card={card}
-                    selected={selectedRowIds?.has(id) ?? false}
+                    selected={selectedRowIds?.has(r.id) ?? false}
                     onRowClick={onRowClick}
-                    expanded={expandedRowIds?.has(rawKey) ?? false}
+                    expanded={expandedRowIds?.has(r.id) ?? false}
                     renderExpandedRow={renderExpandedRow}
                   />
                 </div>

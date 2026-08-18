@@ -2,6 +2,7 @@ import { flexRender, type Cell } from "@tanstack/react-table";
 import { Pencil } from "lucide-react";
 import { useContext } from "react";
 import { DataGridContext } from "../../DataGridContext";
+import { useIsTruncated } from "../../hooks/useIsTruncated";
 import { readAccessorKey, readColumnMeta } from "../../utils/readColumnDef";
 import { CellWithTooltip } from "./CellWithTooltip";
 
@@ -11,15 +12,15 @@ export function BodyDataCell<TRow extends object>({
   c: Cell<TRow, unknown>;
 }) {
   const ctx = useContext(DataGridContext);
+  const { ref: contentRef, truncated, measure } = useIsTruncated<HTMLSpanElement>();
   const m = readColumnMeta(c.column.columnDef);
   const paddingClass = m?.cellClassName ?? "px-3";
   const raw = typeof c.getValue === "function" ? c.getValue() : undefined;
 
   /*
-   * This is where `format` belongs and, until now, the one place it was never called.
-   * Its only caller was `computeDefaults`, which used it to seed the EDIT FORM — so a
-   * column formatting 1234 as "1 234 €" put that string in the input while the cell
-   * itself showed the bare number. `format` is display-only now, and this is the display.
+   * The only place `format` is applied. It is display-only — never use it to seed the
+   * edit form, or a column rendering 1234 as "1 234 €" puts that string in the input.
+   * `toForm` / `fromForm` are the form's hooks.
    *
    * A custom `cell` renderer is the lower-level hook and stays in charge of its own
    * output; declaring both means `format` decides the value and `cell` is bypassed.
@@ -45,6 +46,11 @@ export function BodyDataCell<TRow extends object>({
   return (
     <td
       data-col-id={c.column.id}
+      onMouseEnter={measure}
+      /* `focusin` bubbles, so this also fires when the cell-edit button below takes
+         focus — its accessible name is the clipped text, and a keyboard user has no
+         other way to read the rest of it. */
+      onFocus={measure}
       /*
        * A hairline at 65% opacity, so a dense grid doesn't read as a wireframe. Text size
        * is inherited from the grid root rather than set here.
@@ -52,7 +58,6 @@ export function BodyDataCell<TRow extends object>({
       className={[
         "h-10 align-middle border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)]",
         paddingClass,
-        // `mono` and `align` were declared in ColumnMeta but read nowhere.
         m?.mono ? "font-mono text-[.75rem] text-muted" : "",
         m?.align === "right"
           ? "text-right"
@@ -81,6 +86,8 @@ export function BodyDataCell<TRow extends object>({
               value={value}
               row={c.row.original}
               rendered={rendered}
+              contentRef={contentRef}
+              truncated={truncated}
               className="block whitespace-nowrap overflow-hidden text-ellipsis"
             />
           </span>
@@ -95,6 +102,8 @@ export function BodyDataCell<TRow extends object>({
           value={value}
           row={c.row.original}
           rendered={rendered}
+          contentRef={contentRef}
+          truncated={truncated}
           className="block whitespace-nowrap overflow-hidden text-ellipsis"
         />
       )}

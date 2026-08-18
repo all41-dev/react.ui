@@ -9,20 +9,20 @@ type VirtualRowListProps<TRow extends object> = {
   items: BodyItem<TRow>[];
   virtualItems: VirtualItem[];
   measureElement: Virtualizer<HTMLDivElement, Element>["measureElement"];
-  getId: (row: TRow) => string | number | undefined;
   leafCols: Column<TRow, unknown>[];
   /** Header rows come first under `role="grid"`, so body rows start after them. */
   rowIndexOffset: number;
   collapsedGroups?: ReadonlySet<string>;
   onToggleGroup?: (key: string) => void;
-  editingRowId?: string | number | undefined;
+  /* Row keys below are all TanStack `row.id`s, i.e. the grid's own `getRowId` value. */
+  editingRowId?: string;
   inlineEditor?: ReactNode;
-  selectedRowId?: string | number | undefined;
+  selectedRowId?: string;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
-  changedRowId?: string | number;
+  changedRowId?: string;
 };
 
 /** The mounted window of body rows: group headers and data rows, one tbody each. */
@@ -30,7 +30,6 @@ export function VirtualRowList<TRow extends object>({
   items,
   virtualItems,
   measureElement,
-  getId,
   leafCols,
   rowIndexOffset,
   collapsedGroups,
@@ -68,22 +67,19 @@ export function VirtualRowList<TRow extends object>({
         }
 
         const r = item.row;
-        const key = getId(r.original) ?? r.id;
-        const isEditing =
-          editingRowId !== undefined && String(key) === String(editingRowId);
+        // `row.id` is the grid's own key — the table is configured with `getRowId`.
+        const key = r.id;
+        const isEditing = editingRowId !== undefined && key === editingRowId;
         const isSelected =
-          (selectedRowId !== undefined &&
-            String(selectedRowId) === String(key)) ||
-          (selectedRowIds?.has(String(key)) ?? false);
+          selectedRowId === key || (selectedRowIds?.has(key) ?? false);
         const isExpanded = expandedRowIds?.has(key) ?? false;
-        const isChanged =
-          changedRowId !== undefined && String(changedRowId) === String(key);
+        const isChanged = changedRowId === key;
 
         return (
           /* No zebra striping — rows sit on the card surface, separated by the
              cell hairline alone. */
           <tbody
-            key={String(key)}
+            key={key}
             ref={measureElement}
             data-index={virtualRow.index}
           >

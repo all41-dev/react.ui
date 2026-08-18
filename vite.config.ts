@@ -50,10 +50,18 @@ export default defineConfig(({ mode }) => {
       plugins: [tailwindcss(), react()],
       build: {
         lib: {
-          entry: 'src/index.ts',
+          /*
+           * Two entries so the standalone code editor is its own import path. Bundling
+           * it into the main entry would hand every consumer the CodeMirror engine;
+           * the grid itself reaches the editor through a dynamic import.
+           */
+          entry: {
+            'react-ui': 'src/index.ts',
+            'code-editor': 'src/code-editor.ts',
+          },
           name: 'ReactUI',
           formats: ['es', 'cjs'],
-          fileName: (format) => `react-ui.${format === 'es' ? 'js' : 'cjs'}`
+          fileName: (format, entryName) => `${entryName}.${format === 'es' ? 'js' : 'cjs'}`
         },
         rollupOptions: {
           external: libExternal,

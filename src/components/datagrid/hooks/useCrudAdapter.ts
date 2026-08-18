@@ -26,8 +26,12 @@ export function useCrudAdapter<TRow extends object, TForm extends object = TRow>
     prev?: TRow
   ): Promise<TRow> => {
     if (mode === "create") return (await createAsync(values)) as TRow;
-    const id = getId(prev!);
-    return (await updateAsync(id, values)) as TRow;
+    if (!prev) {
+      throw new Error(
+        `[DataGrid] onPersist("${mode}") requires the previous row to resolve its id.`
+      );
+    }
+    return (await updateAsync(getId(prev), values)) as TRow;
   }, [createAsync, updateAsync, getId]);
 
   const onDelete = useCallback(async (row: TRow) => {

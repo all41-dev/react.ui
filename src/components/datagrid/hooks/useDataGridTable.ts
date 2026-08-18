@@ -18,6 +18,11 @@ import type { WithMeta } from "../types/column";
 type Params<TRow extends object, TForm extends object> = {
   data: TRow[];
   columns: WithMeta<TRow, TForm>[];
+  /**
+   * The grid's row identity. Given to TanStack so `row.id` IS the grid key — every other
+   * site reads `row.id` rather than deriving a key of its own.
+   */
+  getRowId: (row: TRow) => string;
   prefs: {
     columnSizing: Record<string, number>;
     columnVisibility: VisibilityState;
@@ -50,6 +55,7 @@ const DEFAULT_COLUMN = {
 export function useDataGridTable<TRow extends object, TForm extends object>({
   data,
   columns,
+  getRowId,
   prefs,
   prefHandlers,
   columnFilters,
@@ -71,6 +77,7 @@ export function useDataGridTable<TRow extends object, TForm extends object>({
   return useReactTable({
     data,
     columns,
+    getRowId,
     getCoreRowModel: coreRowModel,
     getSortedRowModel: sortedRowModel,
     getFilteredRowModel: filteredRowModel,

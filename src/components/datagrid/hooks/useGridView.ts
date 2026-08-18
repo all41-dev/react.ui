@@ -9,7 +9,8 @@ type Params<TRow extends object> = {
   editContainer: EditContainerKind;
   grouped: boolean;
   edit: ReturnType<typeof useEditSession<TRow>>;
-  getId: (row: TRow) => string | number | undefined;
+  /** The grid's row identity — the same function the table gets as `getRowId`. */
+  getKey: (row: TRow) => string;
   onRowClick?: (row: TRow) => void;
 };
 
@@ -20,13 +21,13 @@ export function useGridView<TRow extends object>({
   editContainer,
   grouped,
   edit,
-  getId,
+  getKey,
   onRowClick,
 }: Params<TRow>) {
   const [view, setView] = useState<"list" | "cards">(defaultView);
-  const [selectedRowId, setSelectedRowId] = useState<
-    string | number | undefined
-  >(undefined);
+  const [selectedRowId, setSelectedRowId] = useState<string | undefined>(
+    undefined
+  );
 
   const { close: closeEdit } = edit;
 
@@ -65,13 +66,11 @@ export function useGridView<TRow extends object>({
 
   const handleRowClick = useCallback(
     (row: TRow) => {
-      const rowId = getId(row);
-      setSelectedRowId((prev) =>
-        prev !== undefined && String(prev) === String(rowId) ? undefined : rowId
-      );
+      const key = getKey(row);
+      setSelectedRowId((prev) => (prev === key ? undefined : key));
       onRowClick?.(row);
     },
-    [getId, onRowClick]
+    [getKey, onRowClick]
   );
 
   return {

@@ -106,15 +106,11 @@ function HeaderCellInner<TRow extends object>({
 }
 
 /*
- * Deliberately NOT memoized.
+ * Deliberately NOT memoized. Don't add a comparator here.
  *
- * The previous comparator asked `prev.h.column.getIsSorted()` and
- * `next.h.column.getIsSorted()` — but TanStack reuses the same header object across
- * renders, so both calls read the same live value, compared equal, and the cell never
- * re-rendered. Sort direction, aria-sort and the chevron were all frozen, and the
- * select-all checkbox needed a hand-written escape hatch for the same reason.
- *
- * A comparator cannot see state that lives on the table, and there are only a handful of
- * header cells, so memoizing them was never worth the correctness risk.
+ * TanStack reuses the same header object across renders, so a comparator reading
+ * `h.column.getIsSorted()` on both sides reads one live value twice and always compares
+ * equal — which freezes sort direction, `aria-sort` and the chevron. A comparator cannot
+ * see state that lives on the table, and a grid has only a handful of header cells.
  */
 export const HeaderCell = HeaderCellInner;

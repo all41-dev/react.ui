@@ -13,7 +13,6 @@ import { VirtualRowList } from "./VirtualRowList";
 
 type GridBodiesProps<TRow extends object> = {
   table: Table<TRow>;
-  getId: (row: TRow) => string | number | undefined;
   isLoading: boolean;
   error: string | Error | null;
   emptyLabel?: string;
@@ -28,21 +27,20 @@ type GridBodiesProps<TRow extends object> = {
   rowIndexOffset: number;
   collapsedGroups?: ReadonlySet<string>;
   onToggleGroup?: (key: string) => void;
-  editingRowId?: string | number | undefined;
+  editingRowId?: string;
   inlineEditor?: ReactNode;
   isCreating?: boolean;
-  selectedRowId?: string | number | undefined;
+  selectedRowId?: string;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: Row<TRow>["original"]) => ReactNode;
-  changedRowId?: string | number;
+  changedRowId?: string;
 };
 
 /** Every `<tbody>` under the head, in paint order: skeleton, create row, rows, states. */
 export function GridBodies<TRow extends object>({
   table,
-  getId,
   isLoading,
   error,
   emptyLabel,
@@ -78,16 +76,14 @@ export function GridBodies<TRow extends object>({
 
       <PaddingBody height={paddingTop} colSpan={leafColCount} />
 
-      {/* Rows stay mounted while loading. Gating them on `!isLoading` blanked the body on
-          every refresh — the skeleton above only covers the first load, when there is
-          nothing to keep — so the grid collapsed to header height and snapped back when
-          the data returned. GridBody's scrim is what says "loading"; the rows underneath
-          stay put, which is what CardsView already does. */}
+      {/* Rows stay mounted while loading — don't gate them on `!isLoading`. The skeleton
+          above covers the first load only, so hiding the rows on a refresh collapses the
+          grid to header height and snaps back when the data returns. GridBody's scrim is
+          what says "loading", the same way CardsView keeps its cards. */}
       <VirtualRowList
         items={items}
         virtualItems={virtualItems}
         measureElement={measureElement}
-        getId={getId}
         leafCols={leafCols}
         rowIndexOffset={rowIndexOffset}
         collapsedGroups={collapsedGroups}

@@ -279,6 +279,57 @@ describe("the select column and the table's own geometry", () => {
 });
 
 /**
+ * Rows carrying no `id` or `uuid`, with no `idAccessor` to fall back on. The grid keys
+ * these by object reference, and the checkbox cells, the selection set and the callback
+ * must all agree on that key — a disagreement is silent, ticking the box and reporting an
+ * empty selection to the consumer.
+ */
+describe("rows the consumer gave no id", () => {
+  type Bare = { name: string };
+  const BARE: Bare[] = [{ name: "Ada" }, { name: "Bo" }, { name: "Cy" }];
+  const bareColumns: WithMeta<Bare, any>[] = [
+    { accessorKey: "name", header: "Name" },
+  ];
+
+  const renderBare = (onSelectionChange: (rows: Bare[]) => void) =>
+    render(
+      <DataGrid<Bare, any>
+        title="Bare"
+        columns={bareColumns}
+        zodSchema={z.object({ name: z.string() }) as never}
+        initialData={BARE}
+        selectable
+        onSelectionChange={onSelectionChange}
+      />
+    );
+
+  it("reports the row it ticked, not an empty selection", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onSelectionChange = vi.fn();
+    renderBare(onSelectionChange);
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    await user.click(screen.getAllByRole("checkbox", { name: "Select row" })[1]);
+
+    await waitFor(() => expect(onSelectionChange).toHaveBeenCalled());
+    expect(onSelectionChange.mock.lastCall![0]).toEqual([{ name: "Bo" }]);
+  });
+
+  it("ticks one box rather than all of them", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderBare(vi.fn());
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    const boxes = () =>
+      screen.getAllByRole("checkbox", { name: "Select row" }) as HTMLInputElement[];
+    await user.click(boxes()[0]);
+
+    await waitFor(() => expect(boxes()[0].checked).toBe(true));
+    expect(boxes().filter((b) => b.checked)).toHaveLength(1);
+  });
+});
+
+/**
  * The chevron and the label are what a user aims at. The collapse lives on the
  * surrounding row, so the button has to toggle and then stop the event — passing it up
  * would let the row's handler collapse the group straight back.

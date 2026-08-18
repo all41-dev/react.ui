@@ -18,8 +18,9 @@ type Params<TRow extends object, TForm extends object> = {
   replaceRow: (prevRow: TRow, saved: TRow) => void;
   addRow: (created: TRow) => void;
   removeRow: (row: TRow) => void;
-  deselect: (id: string | number | undefined) => void;
-  getId: (row: TRow) => string | number | undefined;
+  deselect: (key: string) => void;
+  /** The grid's row identity — the same function the table gets as `getRowId`. */
+  getKey: (row: TRow) => string;
   confirm: ReturnType<typeof useConfirm>["confirm"];
 };
 
@@ -37,7 +38,7 @@ export function useGridMutations<TRow extends object, TForm extends object>({
   addRow,
   removeRow,
   deselect,
-  getId,
+  getKey,
   confirm,
 }: Params<TRow, TForm>) {
   // See `useCellEditMutations` — `edit` is a fresh literal every render, its members are
@@ -59,9 +60,9 @@ export function useGridMutations<TRow extends object, TForm extends object>({
       // Errors deliberately propagate: the action button owns the catch, the toast and
       // its own spinner state.
       removeRow(row);
-      deselect(getId(row));
+      deselect(getKey(row));
     },
-    [onDelete, confirm, removeRow, deselect, getId]
+    [onDelete, confirm, removeRow, deselect, getKey]
   );
 
   const handleSubmit = useCallback(

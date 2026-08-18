@@ -1,6 +1,5 @@
 import type { ColumnMeta } from "../../types/column";
 import { useDataGridContext } from "../../DataGridContext";
-import { useIsTruncated } from "../../hooks/useIsTruncated";
 
 type Props<TRow extends object> = {
   meta?: ColumnMeta<TRow, any>;
@@ -10,6 +9,9 @@ type Props<TRow extends object> = {
   rendered: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  /** Measured by the owning cell — the clipped element is the span rendered here. */
+  contentRef?: React.Ref<HTMLSpanElement>;
+  truncated?: boolean;
 };
 
 export function toTooltipText(value: unknown): string {
@@ -24,9 +26,10 @@ export function toTooltipText(value: unknown): string {
 /**
  * Cell content, with a tooltip attached ONLY when the text is actually clipped.
  *
- * Truncation is measured on pointer-enter (see useIsTruncated), so the tooltip attributes
- * appear just before they could be needed rather than on every cell in the grid.
- * `meta.tooltip === true` forces a tooltip regardless of clipping.
+ * `truncated` is measured by the owning cell, which binds the measurement to hover and
+ * focus on the whole `<td>`; that keeps one measurement per cell whether or not the
+ * content sits inside a cell-edit button. `meta.tooltip === true` forces a tooltip
+ * regardless of clipping.
  */
 export function CellWithTooltip<TRow extends object>({
   meta,
@@ -35,9 +38,10 @@ export function CellWithTooltip<TRow extends object>({
   rendered,
   className = "",
   style,
+  contentRef,
+  truncated = false,
 }: Props<TRow>) {
   const { tooltipId } = useDataGridContext();
-  const { ref, truncated, onMouseEnter } = useIsTruncated<HTMLSpanElement>();
 
   const cls = `${className} dg-cell-content truncate block w-full`;
 
@@ -51,8 +55,8 @@ export function CellWithTooltip<TRow extends object>({
 
   const tooltipText =
     (meta?.tooltipContent &&
-      // Previously called with `row: undefined as any`, which crashed any consumer
-      // whose tooltipContent read the row.
+      /* Guard the row: `tooltipContent`'s signature promises one, and a caller that has
+         no row must not reach it. */
       row !== undefined &&
       meta.tooltipContent({ value, row })) ||
     toTooltipText(value);
@@ -61,8 +65,7 @@ export function CellWithTooltip<TRow extends object>({
 
   return (
     <span
-      ref={ref}
-      onMouseEnter={onMouseEnter}
+      ref={contentRef}
       className={cls}
       style={style}
       {...(show ? { "data-tooltip-id": tooltipId, "data-tooltip-content": tooltipText } : {})}

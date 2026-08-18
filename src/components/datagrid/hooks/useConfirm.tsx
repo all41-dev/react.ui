@@ -22,10 +22,10 @@ export function useConfirm() {
   const descId = `${baseId}-desc`;
 
   /*
-   * The pending resolver lives in a ref rather than in state so every exit path can
-   * settle it. Previously a second confirm() while one was open replaced the stored
-   * resolver and the first promise never settled — the awaiting caller hung forever.
-   * Unmounting mid-prompt had the same effect.
+   * The pending resolver lives in a ref rather than in state so every exit path can settle
+   * it. Every path must: a second `confirm()` while one is open replaces this resolver, and
+   * unmounting mid-prompt drops it — either way an unsettled promise hangs its caller
+   * forever.
    */
   const pendingResolve = useRef<((v: boolean) => void) | null>(null);
 

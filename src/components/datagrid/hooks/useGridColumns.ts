@@ -65,7 +65,7 @@ export function useGridColumns<TRow extends object, TForm extends object>({
         .map((c) => {
           const cfg = c.meta?.filter;
           if (!cfg || c.filterFn) return c;
-          const fn = filterFnFor(cfg);
+          const fn = filterFnFor<TRow>(cfg);
           return fn ? { ...c, filterFn: fn } : c;
         }),
     [columns]

@@ -63,9 +63,9 @@ export function PaddingBody({
 
 /**
  * "Nothing here yet" and "nothing matches your filters" are different states with
- * different fixes — filtering to zero rows must not suppress the empty state. Reads its
- * own facts off the table rather than the parent's unfiltered row array, which hid the
- * empty state whenever filters brought the count to zero.
+ * different fixes, so filtering to zero rows must still show an empty state. Read the
+ * counts off the table, not off the parent's unfiltered row array — that array cannot
+ * tell the two apart.
  */
 export function EmptyBody<TRow extends object>({
   table,

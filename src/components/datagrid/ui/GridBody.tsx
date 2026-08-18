@@ -9,7 +9,6 @@ import { TableView } from "./TableView";
 
 type GridBodyProps<TRow extends object> = {
   table: Table<TRow>;
-  getId: (row: TRow) => string | number | undefined;
   /** Accessible name for the grid. */
   label: string;
   isLoading: boolean;
@@ -21,27 +20,29 @@ type GridBodyProps<TRow extends object> = {
   /** Passed whole rather than unpacked — six of these props would be pure plumbing. */
   grouping: ReturnType<typeof useGridGrouping<TRow>>;
   showFilters: boolean;
+  /* Row keys below are all the grid's own `getRowId` value, matching TanStack's `row.id`. */
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
-  selectedRowId?: string | number;
-  editingRowId?: string | number;
+  selectedRowId?: string;
+  editingRowId?: string;
   inlineEditor?: ReactNode;
   isCreating: boolean;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
   /** The row a write just landed on, flashed so the change is locatable. */
-  changedRowId?: string | number;
+  changedRowId?: string;
 };
 
 /**
  * Which of the three views renders, plus the loading scrim over whichever it is.
  *
- * `overflow-x-auto` with `overflow-y-visible` is deliberate: header filters and cell
- * popovers need to escape vertically while wide column sets still scroll sideways.
+ * This is a scroll container on both axes: per CSS overflow, `overflow-y-visible`
+ * computes to `auto` while the other axis scrolls. Anything that must escape the body
+ * vertically — header filter panels, cell popovers, tooltips — is portaled or `fixed`,
+ * not relying on visible overflow here.
  */
 export function GridBody<TRow extends object>({
   table,
-  getId,
   label,
   isLoading,
   error,
@@ -77,7 +78,6 @@ export function GridBody<TRow extends object>({
         // Cards plus a group-by become kanban columns.
         <KanbanView
           groups={grouping.groups}
-          getId={getId}
           card={card!}
           selectedRowIds={selectedRowIds}
           onRowClick={onRowClick}
@@ -87,7 +87,6 @@ export function GridBody<TRow extends object>({
       ) : showCards ? (
         <CardsView
           table={table}
-          getId={getId}
           card={card!}
           isLoading={isLoading}
           error={error}
@@ -100,7 +99,6 @@ export function GridBody<TRow extends object>({
       ) : (
         <TableView
           table={table}
-          getId={getId}
           isLoading={isLoading}
           error={error}
           label={label}

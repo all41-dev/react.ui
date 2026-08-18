@@ -18,17 +18,17 @@ import { useRowSelection } from "./useRowSelection";
  */
 export function useDataGridState<TRow extends object, TForm extends object>(
   props: DataGridProps<TRow, TForm>,
-  getId: (row: TRow) => string | number | undefined
+  getKey: (row: TRow) => string
 ) {
   const { rows, replaceRow, addRow, removeRow, changedRowId } = useGridRows({
     initialData: props.initialData,
-    getId,
+    getKey,
   });
 
   const selection = useRowSelection({
     initialData: props.initialData,
     rows,
-    getId,
+    getKey,
     onSelectionChange: props.onSelectionChange,
   });
 
@@ -72,6 +72,7 @@ export function useDataGridState<TRow extends object, TForm extends object>(
   const table = useDataGridTable<TRow, TForm>({
     data: rows,
     columns: gridColumns.orderedColumns,
+    getRowId: getKey,
     prefs: gridColumns.prefs,
     prefHandlers: gridColumns.prefHandlers,
     columnFilters: filters.columnFilters,
@@ -113,7 +114,7 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     addRow,
     removeRow,
     deselect: selection.deselect,
-    getId,
+    getKey,
     confirm,
   });
 

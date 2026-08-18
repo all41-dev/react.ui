@@ -56,8 +56,8 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
   onCancel,
   onSubmit,
 }: OverlayEditContainerProps<TRow, TForm> & { position: OverlayPosition }) {
-  // The submit flag lives in react-hook-form inside EditFormBody; it reports up so
-  // the shell can refuse Escape/scrim dismissal mid-save. (#17 hardcoded this false.)
+  // The submit flag lives in react-hook-form inside EditFormBody; it reports up so the
+  // shell can refuse Escape/scrim dismissal mid-save. Don't hardcode it.
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleId = useId();
   const trapRef = useFocusTrap<HTMLDivElement>(open);

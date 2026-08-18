@@ -2,10 +2,7 @@ import type { CellContext, ColumnDef, HeaderContext } from "@tanstack/react-tabl
 import { Check, Minus } from "lucide-react";
 import { useContext, useEffect, useRef } from "react";
 
-import {
-  DataGridContext,
-  DataGridSelectionContext,
-} from "../../DataGridContext";
+import { DataGridSelectionContext } from "../../DataGridContext";
 
 /**
  * 15px custom checkbox per the design spec. A real <input type="checkbox"> underneath
@@ -56,24 +53,20 @@ function Checkbox({
   );
 }
 
-/**
+/*
  * TanStack renders `header` / `cell` through `flexRender`, which mounts a function as a
  * real component — so these can hold hooks, and the selection state can arrive by
- * context instead of being baked into the column def. That is the whole point: closing
- * over `selectedIds` meant a brand-new column array on every checkbox click, and a new
- * column array makes TanStack rebuild its entire column model.
+ * context instead of being baked into the column def. Don't close over `selectedIds`
+ * here: that makes a brand-new column array on every checkbox click, and a new column
+ * array makes TanStack rebuild its entire column model.
+ *
+ * `row.id` is the grid's own key — the table is configured with `getRowId` — so these
+ * cells never derive one of their own.
  */
-function useRowKey() {
-  const grid = useContext(DataGridContext);
-  return (r: { original: unknown; id: string }) =>
-    String(grid?.getId(r.original) ?? r.id);
-}
-
 function SelectAllHeader<TRow extends object>({
   table,
 }: HeaderContext<TRow, unknown>) {
   const selection = useContext(DataGridSelectionContext);
-  const rowKey = useRowKey();
   if (!selection) return null;
 
   /* Scoped to the rows actually on screen. Grouping renders the whole sorted set and
@@ -83,7 +76,7 @@ function SelectAllHeader<TRow extends object>({
     selection.rendersAllRows
       ? table.getSortedRowModel().rows
       : table.getRowModel().rows
-  ).map(rowKey);
+  ).map((r) => r.id);
   const selectedVisible = visibleIds.filter((id) => selection.selectedIds.has(id)).length;
   const all = visibleIds.length > 0 && selectedVisible === visibleIds.length;
   const some = selectedVisible > 0 && !all;
@@ -101,10 +94,9 @@ function SelectAllHeader<TRow extends object>({
 
 function SelectRowCell<TRow extends object>({ row }: CellContext<TRow, unknown>) {
   const selection = useContext(DataGridSelectionContext);
-  const rowKey = useRowKey();
   if (!selection) return null;
 
-  const id = rowKey(row);
+  const id = row.id;
   return (
     <Checkbox
       checked={selection.selectedIds.has(id)}

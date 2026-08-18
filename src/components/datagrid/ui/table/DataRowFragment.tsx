@@ -66,12 +66,8 @@ function DataRowFragmentInner<TRow extends object>({
             : undefined
         }
         onClick={interactive ? () => onRowClick(row.original) : undefined}
-        /*
-         * The row was click-only: `onClick` and `cursor-pointer` with no tabIndex, no key
-         * handler and no role, so selecting or expanding a row was impossible without a
-         * pointer. Enter and Space now do what a click does — and only when there IS a
-         * click handler, so a static row stays out of the tab order.
-         */
+        /* Enter and Space do what a click does. Wired only when the row is interactive —
+           a static row must stay out of the tab order. */
         tabIndex={interactive ? 0 : undefined}
         onKeyDown={
           interactive

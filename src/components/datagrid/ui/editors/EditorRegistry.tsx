@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   Controller,
   type Control,
@@ -14,6 +15,16 @@ import {
 import { FieldChrome } from "./FieldChrome";
 import { SwitchController } from "./SwitchController";
 import { buildDescribedBy, buildEditorClassName } from "./editorChrome";
+
+/** Placeholder at the rich editors' min height, so the form keeps its layout. */
+function EditorSkeleton() {
+  return (
+    <div
+      className="min-h-[118px] w-full animate-pulse rounded-control border border-border-default bg-surface-inset"
+      aria-hidden
+    />
+  );
+}
 
 export function renderEditor<TRow extends object, TForm extends FieldValues>(opts: {
   column: WithMeta<TRow, TForm>;
@@ -67,7 +78,11 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
           const hasError = !!fieldState.error;
           const errorMsg = fieldState.error?.message;
 
+          /* `inputProps` goes first: the accessibility wiring below is derived from the
+             column meta and the live field state, so a consumer's `editorProps` must not
+             be able to overwrite it. `splitEditorProps` protects `className` the same way. */
           const forwarded: Record<string, unknown> = {
+            ...inputProps,
             id: fieldId,
             "aria-invalid": hasError || undefined,
             "aria-describedby": buildDescribedBy({
@@ -82,7 +97,6 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
               hasError,
               editorClassName,
             }),
-            ...inputProps,
           };
 
           if (editor === "select") {
@@ -98,11 +112,23 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
               hasError={hasError}
               errorMsg={errorMsg}
             >
-              <Field
-                {...forwarded}
-                value={field.value ?? ""}
-                onChange={field.onChange}
-              />
+              {/* The rich editors are code-split, so they need a boundary; the fallback
+                  holds the field's height so the form doesn't jump as one arrives. */}
+              {isRich ? (
+                <Suspense fallback={<EditorSkeleton />}>
+                  <Field
+                    {...forwarded}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  />
+                </Suspense>
+              ) : (
+                <Field
+                  {...forwarded}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                />
+              )}
             </FieldChrome>
           );
         }}

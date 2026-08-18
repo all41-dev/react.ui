@@ -37,11 +37,11 @@ export function useVirtualRows<TRow extends object>({
   }, [groups, collapsedGroups, allRows]);
 
   /*
-   * The scroll element is the wrapper div, but the virtualized rows start AFTER the
-   * sticky `<thead>` — so every offset the virtualizer computes was shifted by the
-   * header's height. `overscan: 10` hid it, but the window was wrong by ~34px (~70px
-   * with the filter row shown) and grew with the header. `scrollMargin` is the
-   * documented fix; measured rather than hard-coded because the filter row toggles.
+   * The scroll element is the wrapper div, but the virtualized rows start AFTER the sticky
+   * `<thead>`, so every offset the virtualizer computes is shifted by the header's height.
+   * `scrollMargin` corrects it. Measure the header rather than hard-coding a height — the
+   * filter row toggles, and a wrong margin only shows as a subtly misplaced window that
+   * `overscan` hides.
    */
   const { ref: headRef, height: headerHeight } =
     useElementHeight<HTMLTableSectionElement>();

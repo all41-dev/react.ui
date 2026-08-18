@@ -11,7 +11,7 @@ import { GridBodySection } from "./ui/GridBodySection";
 import { GridEditors } from "./ui/GridEditors";
 import { GridFooter } from "./ui/GridFooter";
 import { GridToolbarSection } from "./ui/GridToolbarSection";
-import { getRowKey } from "./utils/getRowKey";
+import { getRowKey, rowKeyOf } from "./utils/getRowKey";
 
 export type { DataGridProps, DataGridHandle } from "./types/grid";
 
@@ -27,12 +27,18 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
      refuses property reads on an object that also carries a ref. */
   const { ref, idAccessor, card, onRowClick, ...gridProps } = props;
 
+  /*
+   * Two layers of one rule. `getKey` is the grid's identity — the table's `getRowId`, so
+   * every internal comparison is against a TanStack `row.id`. `getId` is the consumer's
+   * declared id, `undefined` when there is none, and reaches only `renderActions`.
+   */
+  const getKey = useCallback((r: TRow) => rowKeyOf(r, idAccessor), [idAccessor]);
   const getId = useCallback(
     (r: TRow) => getRowKey(r, idAccessor),
     [idAccessor]
   );
 
-  const state = useDataGridState<TRow, TForm>(gridProps, getId);
+  const state = useDataGridState<TRow, TForm>(gridProps, getKey);
   const { edit, selection, grouping, pagination, mutations } = state;
 
   const view = useGridView<TRow>({
@@ -41,7 +47,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
     editContainer: gridProps.editContainer ?? "right",
     grouped: !!grouping.groups,
     edit,
-    getId,
+    getKey,
     onRowClick,
   });
 
@@ -56,7 +62,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
 
   /* The containers key the form remount on this; `edit.editingRow` alone is not enough
      for rows keyed by a custom `idAccessor` (no `id`/`uuid` for the fallback to find). */
-  const editingRowKey = edit.editingRow ? getId(edit.editingRow) : undefined;
+  const editingRowKey = edit.editingRow ? getKey(edit.editingRow) : undefined;
 
   return (
     <DataGridContext.Provider value={chrome.contextValue}>
@@ -88,7 +94,6 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
             props={gridProps}
             state={state}
             view={view}
-            getId={getId}
             card={card}
             onRowClick={onRowClick}
             editingRowKey={editingRowKey}

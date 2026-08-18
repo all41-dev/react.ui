@@ -3,13 +3,12 @@ import type { FilterFn } from "@tanstack/react-table";
 import type { ColumnFilterMeta } from "../types/column";
 
 /*
- * One filter function per `meta.filter.type`.
- *
- * Without these the column falls back to TanStack's `auto`, which picks a builtin
- * from the FIRST ROW'S value type — so a `select` filter on a string column became a
- * substring match (picking "active" also matched "inactive"), a multi-select stringified
- * to "a,b" and matched nothing, and a dateRange stringified to "[object Object]" and
- * could never match anything at all. Only the boolean case happened to line up.
+ * One filter function per `meta.filter.type`. Every filtered column must be given one
+ * explicitly — never rely on TanStack's `auto`, which picks a builtin from the FIRST
+ * ROW'S value type and knows nothing about what the filter UI writes: a `select` on a
+ * string column degrades to a substring match ("active" then matches "inactive"), a
+ * multi-select stringifies to "a,b" and matches nothing, and a dateRange stringifies to
+ * "[object Object]".
  *
  * All of these are pure and take (row, columnId, filterValue) — the cheapest possible
  * unit-test target.
@@ -20,7 +19,7 @@ const autoRemoveEmpty = (v: unknown) =>
   v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
 
 /** Contains, case-insensitive. Non-strings are coerced so numeric columns work too. */
-export const dgText: FilterFn<any> = (row, columnId, filterValue) => {
+export const dgText: FilterFn<unknown> = (row, columnId, filterValue) => {
   const needle = String(filterValue ?? "").toLowerCase().trim();
   if (needle === "") return true;
   const value = row.getValue(columnId);
@@ -30,7 +29,7 @@ export const dgText: FilterFn<any> = (row, columnId, filterValue) => {
 dgText.autoRemove = autoRemoveEmpty;
 
 /** Exact match against the option's `value`, compared as text (ids arrive as string | number). */
-export const dgSelect: FilterFn<any> = (row, columnId, filterValue) => {
+export const dgSelect: FilterFn<unknown> = (row, columnId, filterValue) => {
   if (autoRemoveEmpty(filterValue)) return true;
   const value = row.getValue(columnId);
   if (value === undefined || value === null) return false;
@@ -39,7 +38,7 @@ export const dgSelect: FilterFn<any> = (row, columnId, filterValue) => {
 dgSelect.autoRemove = autoRemoveEmpty;
 
 /** OR across the selected options. */
-export const dgMultiSelect: FilterFn<any> = (row, columnId, filterValue) => {
+export const dgMultiSelect: FilterFn<unknown> = (row, columnId, filterValue) => {
   const selected = Array.isArray(filterValue) ? filterValue : [filterValue];
   if (selected.length === 0) return true;
   const value = row.getValue(columnId);
@@ -65,7 +64,7 @@ const toBool = (v: unknown): boolean | undefined => {
   return undefined;
 };
 
-export const dgBoolean: FilterFn<any> = (row, columnId, filterValue) => {
+export const dgBoolean: FilterFn<unknown> = (row, columnId, filterValue) => {
   if (typeof filterValue !== "boolean") return true; // "Any"
   return toBool(row.getValue(columnId)) === filterValue;
 };
@@ -95,7 +94,7 @@ export const toDayString = (v: unknown): string | undefined => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-export const dgDateRange: FilterFn<any> = (row, columnId, filterValue) => {
+export const dgDateRange: FilterFn<unknown> = (row, columnId, filterValue) => {
   const range = (filterValue ?? {}) as { from?: string; to?: string };
   const from = range.from || undefined;
   const to = range.to || undefined;
@@ -116,18 +115,28 @@ dgDateRange.autoRemove = (v: unknown) => {
 /**
  * `select` resolves to one of two functions depending on `multi`, so this is keyed by
  * the filter config rather than by `type` alone.
+ *
+ * The single row-type-erasure bridge: the fns above read cells through `row.getValue`
+ * only, so they are written against `unknown` — but `FilterFn`'s row parameter makes it
+ * invariant under `strictFunctionTypes`, and attaching one to a `ColumnDef<TRow>` needs
+ * this cast.
  */
-export function filterFnFor(cfg: ColumnFilterMeta): FilterFn<any> | undefined {
-  switch (cfg.type) {
-    case "text":
-      return dgText;
-    case "select":
-      return cfg.multi ? dgMultiSelect : dgSelect;
-    case "boolean":
-      return dgBoolean;
-    case "dateRange":
-      return dgDateRange;
-    default:
-      return undefined;
-  }
+export function filterFnFor<TRow>(
+  cfg: ColumnFilterMeta
+): FilterFn<TRow> | undefined {
+  const fn = (() => {
+    switch (cfg.type) {
+      case "text":
+        return dgText;
+      case "select":
+        return cfg.multi ? dgMultiSelect : dgSelect;
+      case "boolean":
+        return dgBoolean;
+      case "dateRange":
+        return dgDateRange;
+      default:
+        return undefined;
+    }
+  })();
+  return fn as FilterFn<TRow> | undefined;
 }

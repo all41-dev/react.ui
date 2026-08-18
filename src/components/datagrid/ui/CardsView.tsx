@@ -7,14 +7,14 @@ import { CardItem } from "./CardItem";
 
 type CardsViewProps<TRow extends object> = {
   table: Table<TRow>;
-  getId: (row: TRow) => string | number | undefined;
   card: (row: TRow) => ReactNode;
   isLoading: boolean;
   error: string | Error | null;
   emptyLabel?: string;
+  /* Row keys are TanStack `row.id`s, i.e. the grid's own `getRowId` value. */
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
-  expandedRowIds?: ReadonlySet<string | number>;
+  expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
 };
 
@@ -38,7 +38,6 @@ const ESTIMATED_CARD_HEIGHT = 170;
  */
 export function CardsView<TRow extends object>({
   table,
-  getId,
   card,
   isLoading,
   error,
@@ -102,22 +101,17 @@ export function CardsView<TRow extends object>({
             <div className="grid gap-3" style={gridStyle}>
               {/* `columns` is derived from the measured width; if it changes between the
                   virtualizer's count and this render the chunk can be gone. */}
-              {chunks[vi.index]?.map((r) => {
-                // Raw key for the expansion lookup — TableView compares unstringified.
-                const rawKey = getId(r.original) ?? r.id;
-                const id = String(rawKey);
-                return (
-                  <CardItem
-                    key={id}
-                    row={r}
-                    card={card}
-                    selected={selectedRowIds?.has(id) ?? false}
-                    onRowClick={onRowClick}
-                    expanded={expandedRowIds?.has(rawKey) ?? false}
-                    renderExpandedRow={renderExpandedRow}
-                  />
-                );
-              })}
+              {chunks[vi.index]?.map((r) => (
+                <CardItem
+                  key={r.id}
+                  row={r}
+                  card={card}
+                  selected={selectedRowIds?.has(r.id) ?? false}
+                  onRowClick={onRowClick}
+                  expanded={expandedRowIds?.has(r.id) ?? false}
+                  renderExpandedRow={renderExpandedRow}
+                />
+              ))}
             </div>
           </div>
         ))}

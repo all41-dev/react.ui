@@ -248,7 +248,12 @@ of the form.
 
 CodeMirror 6: syntax highlighting, find/replace, bracket matching, folding, formatting
 (Prettier, `Shift+Alt+F`) and syntax-error marks. Configure it through
-`meta.editorProps`, or use `<CodeEditor>` directly outside a grid.
+`meta.editorProps`. The engine loads on demand — a grid with no `code` or `markdown`
+column never downloads it. To use the editor standalone, import it from its own entry:
+
+```tsx
+import { CodeEditor } from "@all41-dev/react.ui/code-editor";
+```
 
 ```tsx
 {
@@ -373,8 +378,10 @@ something else, say so:
 <DataGrid idAccessor={(r) => r.employeeNumber} />
 ```
 
-Get this wrong and the symptom is strange rather than obvious — one checkbox selects every
-row, and edits don't stick.
+A row that resolves to none of those is keyed by object reference instead. Selection and
+editing still work, but the key is not something you can name: it does not survive a
+refetch that replaces the row objects, and `expandedRowIds` cannot address the row at all.
+The grid warns about it once in development.
 
 ---
 

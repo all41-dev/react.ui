@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
 import { env } from "../config/env";
-import { ApiError, ApiAuthError } from "./errors";
+import { ApiError, ApiAuthError, getApiMessage } from "./errors";
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: env.API_PATH,
@@ -17,9 +17,9 @@ apiClient.interceptors.response.use(
     }
 
     /*
-     * Cancellations must pass through untouched. Wrapping them in ApiError made the
-     * exported `isCancel` return false for them, so a deliberately aborted request
-     * surfaced to callers as a real failure — and as an error toast. (#21)
+     * Cancellations must pass through untouched. Wrapping one in ApiError makes the
+     * exported `isCancel` return false for it, and a deliberately aborted request then
+     * surfaces to callers as a real failure — and as an error toast.
      */
     if (axios.isCancel(error)) {
       return Promise.reject(error);
@@ -29,10 +29,11 @@ apiClient.interceptors.response.use(
       const ax = error as AxiosError;
       const status = ax.response?.status;
       const payload = ax.response?.data;
-      const baseMsg =
-        (payload as any)?.message ||
-        ax.message ||
-        (status ? `Request failed (${status})` : "Network error");
+      // Walks response.data.message → message → the fallback, same as the UI helpers.
+      const baseMsg = getApiMessage(
+        ax,
+        status ? `Request failed (${status})` : "Network error"
+      );
 
       if (status === 401) {
         return Promise.reject(
@@ -46,7 +47,7 @@ apiClient.interceptors.response.use(
     }
 
     return Promise.reject(
-      new ApiError((error as any)?.message ?? "Unexpected error", {
+      new ApiError(getApiMessage(error, "Unexpected error"), {
         cause: error,
       })
     );

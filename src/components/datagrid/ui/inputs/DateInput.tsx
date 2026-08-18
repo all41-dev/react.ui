@@ -10,12 +10,12 @@ export type DateInputProps = Omit<
 };
 
 /**
- * <input type="date"> only understands yyyy-MM-dd. Feeding it a Date or an ISO
- * datetime ("2024-01-15T10:30:00Z") rendered an empty control, and saving wrote
- * a bare date string over the datetime. (#9)
+ * `<input type="date">` only understands yyyy-MM-dd. Hand it a Date or an ISO datetime
+ * ("2024-01-15T10:30:00Z") and the control renders empty, then saves a bare date string
+ * over the datetime — so coerce on the way in.
  *
- * Coercion uses LOCAL calendar parts — an ISO instant run through toISOString()
- * can land on the previous/next day in the user's timezone.
+ * Coercion uses LOCAL calendar parts. An ISO instant run through `toISOString()` can land
+ * on the previous or next day in the user's timezone.
  */
 function toDateInputValue(v: unknown): string {
   if (v == null || v === "") return "";

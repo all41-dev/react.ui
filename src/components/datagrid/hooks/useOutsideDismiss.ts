@@ -13,9 +13,9 @@ export function useOutsideDismiss(
   ref: RefObject<HTMLElement | null>,
   onDismiss: () => void
 ): void {
-  /* Every call site passes an inline arrow, so listing `onDismiss` as a dependency tore
-     both document listeners down and re-subscribed them on every render of an open
-     panel. `useEffectEvent` keeps the callback fresh without restarting the effect. */
+  /* Keep `onDismiss` out of the effect's dependencies: every call site passes an inline
+     arrow, which would tear both document listeners down and re-subscribe them on every
+     render of an open panel. `useEffectEvent` keeps the callback fresh instead. */
   const dismiss = useEffectEvent(() => onDismiss());
 
   useEffect(() => {

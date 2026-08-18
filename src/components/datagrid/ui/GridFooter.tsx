@@ -16,12 +16,12 @@ type GridFooterProps<TRow extends object> = {
 };
 
 /**
- * The band under the body — one of two footers, or neither.
+ * The band under the body — one of two footers.
  *
  * The pager belongs to the ungrouped list view only: the cards grid shows the whole
- * filtered set and grouping replaces paging altogether, so a pager under either would
- * be misleading. Grouping still keeps the footer for its total, and the cards view gets
- * a minimal band of its own so the bulk-selection pill has somewhere to live.
+ * filtered set and grouping replaces paging altogether, so a pager under either would be
+ * misleading. Everything else gets a minimal band carrying the row count and the
+ * bulk-selection pill.
  */
 export function GridFooter<TRow extends object>({
   table,
@@ -50,17 +50,18 @@ export function GridFooter<TRow extends object>({
     );
   }
 
-  /* No pager on screen, but a selection to report: the cards view, and any list view
-     with paging turned off. Without this band the count and its Clear have nowhere to
-     live and bulk selection becomes invisible. */
-  if (selectable && selectedCount > 0) {
-    return (
-      <div className="flex items-center gap-3 border-t border-border-default bg-surface-card px-3.5 py-[9px] text-[.75rem] text-muted">
-        <SelectionPill count={selectedCount} onClear={onClearSelection} />
-        <span className="text-[.75rem] text-muted">{filteredCount} shown</span>
-      </div>
-    );
-  }
-
-  return null;
+  /* No pager on screen: the cards view, and any list view with paging turned off. The
+     count is unconditional — the cards grid has no other place that reports how many rows
+     are on screen. `SelectionPill` hides itself at zero. */
+  return (
+    <div className="flex items-center gap-3 border-t border-border-default bg-surface-card px-3.5 py-[9px] text-[.75rem] text-muted">
+      <SelectionPill
+        count={selectable ? selectedCount : 0}
+        onClear={onClearSelection}
+      />
+      <span aria-live="polite" className="text-[.75rem] text-muted">
+        {filteredCount} shown
+      </span>
+    </div>
+  );
 }

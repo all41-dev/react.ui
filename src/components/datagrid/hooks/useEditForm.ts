@@ -89,8 +89,11 @@ export function useEditForm<TRow extends object, TForm extends object>({
       }
     },
     (validationErrors) => {
-      // Surface validation failures so they're visible to the user
-      console.warn("[DataGrid] Form validation failed:", validationErrors);
+      /* Development only. The messages are already rendered on the fields, and these
+         error objects carry DOM refs that have no business in a consumer's console. */
+      if (import.meta.env.DEV) {
+        console.warn("[DataGrid] Form validation failed:", validationErrors);
+      }
     }
   );
 
@@ -120,10 +123,9 @@ export function useEditForm<TRow extends object, TForm extends object>({
    * `user.name` arrives as `{ user: { name: true } }`, while the layout asks
    * `dirtyKeys.has("user.name")`.
    *
-   * Rebuilt every render on purpose. react-hook-form mutates this object in place, so
-   * memoising on its identity pinned the set to whatever the FIRST dirty field was and
-   * every later change went unmarked. It is a handful of keys — recomputing is cheaper
-   * than getting it wrong.
+   * Rebuilt every render on purpose — don't memoize on `dirtyFields`. react-hook-form
+   * mutates that object in place, so its identity never changes and the set would pin to
+   * whatever the first dirty field was. It is a handful of keys.
    */
   const dirtyKeys = new Set(
     flattenPaths(dirtyFields, { isLeaf: (node) => node === true })

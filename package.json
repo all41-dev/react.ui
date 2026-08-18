@@ -22,6 +22,11 @@
       "import": "./dist/react-ui.js",
       "require": "./dist/react-ui.cjs"
     },
+    "./code-editor": {
+      "types": "./dist/code-editor.d.ts",
+      "import": "./dist/code-editor.js",
+      "require": "./dist/code-editor.cjs"
+    },
     "./styles": {
       "types": "./dist/react.ui.css.d.ts",
       "default": "./dist/react.ui.css"

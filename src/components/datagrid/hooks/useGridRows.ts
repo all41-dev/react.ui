@@ -3,15 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /** How long a just-written row stays marked. Matches `ruiRowFlash` in base.css. */
 const FLASH_MS = 1600;
 
-/** Row ids arrive as string | number depending on the accessor; compare them as text. */
-export const sameRowId = (
-  a: string | number | undefined,
-  b: string | number | undefined
-) => a !== undefined && b !== undefined && String(a) === String(b);
-
 type Params<TRow> = {
   initialData: TRow[];
-  getId: (row: TRow) => string | number | undefined;
+  /** The grid's row identity — the same function the table gets as `getRowId`. */
+  getKey: (row: TRow) => string;
 };
 
 /**
@@ -25,7 +20,7 @@ type Params<TRow> = {
  * its own `data` prop. Rebuilding the array inline on every render discards any pending
  * local mutation.
  */
-export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
+export function useGridRows<TRow>({ initialData, getKey }: Params<TRow>) {
   const [rows, setRows] = useState<TRow[]>(() => initialData ?? []);
 
   const [syncedData, setSyncedData] = useState(initialData);
@@ -39,39 +34,35 @@ export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
    * touched a hidden or off-screen column looks like it did nothing — the form closes and
    * the table appears unchanged.
    */
-  const [changedRowId, setChangedRowId] = useState<string | number>();
+  const [changedRowId, setChangedRowId] = useState<string>();
   const flashTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const flash = useCallback((id: string | number | undefined) => {
-    if (id === undefined) return;
+  const flash = useCallback((key: string) => {
     clearTimeout(flashTimer.current);
-    setChangedRowId(id);
+    setChangedRowId(key);
     flashTimer.current = setTimeout(() => setChangedRowId(undefined), FLASH_MS);
   }, []);
 
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 
-  /** Replace the row matching `prevRow`'s id with the server's version. */
+  /** Replace the row matching `prevRow`'s key with the server's version. */
   const replaceRow = useCallback(
     (prevRow: TRow, saved: TRow) => {
-      const prevId = getId(prevRow);
-      /* Object identity for a row the grid cannot key: `sameRowId` is false whenever
-         either side is undefined, so an id-less row would otherwise never be replaced
-         and the save would look like it did nothing. */
-      const isTarget = (r: TRow) =>
-        prevId === undefined ? r === prevRow : sameRowId(getId(r), prevId);
-      setRows((prev) => prev.map((r) => (isTarget(r) ? saved : r)));
-      flash(getId(saved) ?? prevId);
+      const prevKey = getKey(prevRow);
+      setRows((prev) => prev.map((r) => (getKey(r) === prevKey ? saved : r)));
+      /* Flash the saved row's key: a write is free to change the id the row is keyed by,
+         and the row on screen is the saved one. */
+      flash(getKey(saved));
     },
-    [getId, flash]
+    [getKey, flash]
   );
 
   const addRow = useCallback(
     (created: TRow) => {
       setRows((prev) => [...prev, created]);
-      flash(getId(created));
+      flash(getKey(created));
     },
-    [getId, flash]
+    [getKey, flash]
   );
 
   /*
@@ -80,10 +71,10 @@ export function useGridRows<TRow>({ initialData, getId }: Params<TRow>) {
    */
   const removeRow = useCallback(
     (row: TRow) => {
-      const deletedId = getId(row);
-      setRows((prev) => prev.filter((r) => !sameRowId(getId(r), deletedId)));
+      const deletedKey = getKey(row);
+      setRows((prev) => prev.filter((r) => getKey(r) !== deletedKey));
     },
-    [getId]
+    [getKey]
   );
 
   return { rows, replaceRow, addRow, removeRow, changedRowId };

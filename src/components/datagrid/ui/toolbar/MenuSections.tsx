@@ -42,8 +42,8 @@ export function FilterSection({
        * at a glance. `aria-pressed` alone is invisible, so the row carries a
        * track-and-knob and says which state it is in.
        *
-       * Stays open. Applying three criteria used to mean opening this menu three times;
-       * only Escape, an outside click, or a one-shot command closes it.
+       * Applying a criterion leaves the menu open, so several can be set in one visit.
+       * Only Escape, an outside click, or a one-shot command closes it.
        */}
       <button
         type="button"

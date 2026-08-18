@@ -40,11 +40,17 @@ function setup(onCancel: () => void) {
   );
 }
 
-function view(): EditorView {
-  const el = document.querySelector(".cm-content");
-  const found = el ? EditorView.findFromDOM(el as HTMLElement) : null;
-  if (!found) throw new Error("the popover did not mount a CodeMirror view");
-  return found;
+/*
+ * The code editor is code-split, so its view arrives a tick after the popover itself —
+ * anything reaching into CodeMirror has to wait for it.
+ */
+async function view(): Promise<EditorView> {
+  return await waitFor(() => {
+    const el = document.querySelector(".cm-content");
+    const found = el ? EditorView.findFromDOM(el as HTMLElement) : null;
+    if (!found) throw new Error("the popover did not mount a CodeMirror view");
+    return found;
+  });
 }
 
 /*
@@ -64,6 +70,7 @@ describe("CellEditPopover", () => {
     const onCancel = vi.fn();
     setup(onCancel);
     await screen.findByRole("dialog", { name: "Edit Filter" });
+    await view();
 
     escapeFromEditor();
     expect(onCancel).toHaveBeenCalled();
@@ -78,17 +85,17 @@ describe("CellEditPopover", () => {
     setup(onCancel);
     await screen.findByRole("dialog", { name: "Edit Filter" });
 
-    const cm = view();
+    const cm = await view();
     cm.dispatch({
       changes: { from: 0, insert: "context.obj." },
       selection: { anchor: 12 },
     });
     startCompletion(cm);
-    await waitFor(() => expect(currentCompletions(view().state)).toHaveLength(1));
+    await waitFor(() => expect(currentCompletions(cm.state)).toHaveLength(1));
 
     escapeFromEditor();
     expect(onCancel).not.toHaveBeenCalled();
-    expect(view().state.doc.toString()).toBe("context.obj.");
+    expect(cm.state.doc.toString()).toBe("context.obj.");
 
     // The popup is gone, so the next Escape is the one that closes the popover.
     escapeFromEditor();
@@ -114,7 +121,7 @@ describe("CellEditPopover", () => {
         onSave={onSave}
       />
     );
-    view().dispatch({ changes: { from: 0, insert: "context.obj.city" } });
+    (await view()).dispatch({ changes: { from: 0, insert: "context.obj.city" } });
 
     await userEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledWith("context.obj.city"));
@@ -151,7 +158,7 @@ describe("CellEditPopover", () => {
         onSave={async () => {}}
       />
     );
-    expect(view().state.doc.toString()).toBe("cents(1250)");
+    expect((await view()).state.doc.toString()).toBe("cents(1250)");
   });
 });
 
