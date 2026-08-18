@@ -120,6 +120,7 @@ export function TableView<TRow extends object>({
           onToggleGroup={onToggleGroup}
           editingRowId={editingRowId}
           inlineEditor={inlineEditor}
+          viewportWidth={containerW}
           isCreating={isCreating}
           selectedRowId={selectedRowId}
           selectedRowIds={selectedRowIds}

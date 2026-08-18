@@ -1,6 +1,7 @@
 import type { Table } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import { SkeletonRow, EmptyState, NoResultsState } from "../GridStates";
+import { InlineEditorPanel } from "./DataRowParts";
 
 /** First-load placeholder — three skeleton rows, only while loading with nothing kept. */
 export function SkeletonBody<TRow extends object>({
@@ -25,18 +26,21 @@ export function SkeletonBody<TRow extends object>({
 /** The inline create form, rendered as its own body above the data rows. */
 export function CreatingEditorBody({
   leafColCount,
+  viewportWidth,
   children,
 }: {
   leafColCount: number;
+  /** Visible width of the scroll wrapper — see `InlineEditorPanel`. */
+  viewportWidth?: number;
   children: ReactNode;
 }) {
   return (
     <tbody className="border-b border-border-default">
       <tr>
-        <td colSpan={leafColCount} className="h-auto overflow-hidden p-0">
-          <div className="animate-slide-down border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset">
+        <td colSpan={leafColCount} className="h-auto p-0">
+          <InlineEditorPanel viewportWidth={viewportWidth}>
             {children}
-          </div>
+          </InlineEditorPanel>
         </td>
       </tr>
     </tbody>

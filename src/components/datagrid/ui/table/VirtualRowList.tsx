@@ -17,6 +17,8 @@ type VirtualRowListProps<TRow extends object> = {
   /* Row keys below are all TanStack `row.id`s, i.e. the grid's own `getRowId` value. */
   editingRowId?: string;
   inlineEditor?: ReactNode;
+  /** Visible width of the scroll wrapper, for the inline form. */
+  viewportWidth?: number;
   selectedRowId?: string;
   selectedRowIds?: ReadonlySet<string>;
   onRowClick?: (row: TRow) => void;
@@ -36,6 +38,7 @@ export function VirtualRowList<TRow extends object>({
   onToggleGroup,
   editingRowId,
   inlineEditor,
+  viewportWidth,
   selectedRowId,
   selectedRowIds,
   onRowClick,
@@ -99,6 +102,7 @@ export function VirtualRowList<TRow extends object>({
               isExpanded={isExpanded}
               isChanged={isChanged}
               inlineEditor={isEditing ? inlineEditor : undefined}
+              viewportWidth={viewportWidth}
               renderExpandedRow={renderExpandedRow}
               onRowClick={onRowClick}
             />

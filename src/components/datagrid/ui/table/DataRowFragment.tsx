@@ -17,6 +17,8 @@ type DataRowFragmentProps<TRow extends object> = {
   /** Just written to — flashed briefly so the change is locatable. */
   isChanged?: boolean;
   inlineEditor?: ReactNode;
+  /** Visible width of the scroll wrapper, for the inline form — see `InlineEditorPanel`. */
+  viewportWidth?: number;
   renderExpandedRow?: (row: TRow) => ReactNode;
   onRowClick?: (row: TRow) => void;
   /** 1-based position in the whole filtered set, for `aria-rowindex`. */
@@ -31,6 +33,7 @@ function DataRowFragmentInner<TRow extends object>({
   isExpanded,
   isChanged,
   inlineEditor,
+  viewportWidth,
   renderExpandedRow,
   onRowClick,
   ariaRowIndex,
@@ -96,7 +99,7 @@ function DataRowFragmentInner<TRow extends object>({
       )}
 
       {isEditing && inlineEditor && (
-        <InlineEditorRow leafColCount={leafColCount}>
+        <InlineEditorRow leafColCount={leafColCount} viewportWidth={viewportWidth}>
           {inlineEditor}
         </InlineEditorRow>
       )}
@@ -133,6 +136,7 @@ export const DataRowFragment = React.memo(
 
     // Layout props
     if (prev.ariaRowIndex !== next.ariaRowIndex) return false;
+    if (prev.viewportWidth !== next.viewportWidth) return false;
 
     // Callbacks & renderers
     if (prev.inlineEditor !== next.inlineEditor) return false;

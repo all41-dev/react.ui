@@ -57,20 +57,49 @@ export function ExpandedRowPanel({
   );
 }
 
-/** The inline edit form hanging off the edited row, tied to it by an accent border. */
+/**
+ * The inline edit form's surface, tied to the row above it by an accent border.
+ *
+ * The cell it sits in spans every column, so it is as wide as the table — wider than the
+ * scroll wrapper whenever the columns overflow it. Pinned to the wrapper's visible width
+ * instead, so the fields and the Save button stay on screen rather than sitting off to
+ * the right behind a horizontal scroll. The cell must not clip: `overflow: hidden` on an
+ * ancestor takes the sticky panel out of the wrapper's scrollport.
+ */
+export function InlineEditorPanel({
+  viewportWidth,
+  children,
+}: {
+  viewportWidth?: number;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="animate-slide-down sticky left-0 border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset"
+      style={viewportWidth ? { width: `${viewportWidth}px` } : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** The inline edit form hanging off the edited row, as its own full-width `<tr>`. */
 export function InlineEditorRow({
   leafColCount,
+  viewportWidth,
   children,
 }: {
   leafColCount: number;
+  /** Visible width of the scroll wrapper — see `InlineEditorPanel`. */
+  viewportWidth?: number;
   children: ReactNode;
 }) {
   return (
     <tr>
-      <td colSpan={leafColCount} className="h-auto overflow-hidden p-0">
-        <div className="animate-slide-down border-t border-[color-mix(in_srgb,var(--rui-accent)_45%,transparent)] bg-surface-inset">
+      <td colSpan={leafColCount} className="h-auto p-0">
+        <InlineEditorPanel viewportWidth={viewportWidth}>
           {children}
-        </div>
+        </InlineEditorPanel>
       </td>
     </tr>
   );

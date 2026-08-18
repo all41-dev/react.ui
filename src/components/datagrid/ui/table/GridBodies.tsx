@@ -29,6 +29,8 @@ type GridBodiesProps<TRow extends object> = {
   onToggleGroup?: (key: string) => void;
   editingRowId?: string;
   inlineEditor?: ReactNode;
+  /** Visible width of the scroll wrapper, for the inline form. */
+  viewportWidth?: number;
   isCreating?: boolean;
   selectedRowId?: string;
   selectedRowIds?: ReadonlySet<string>;
@@ -56,6 +58,7 @@ export function GridBodies<TRow extends object>({
   onToggleGroup,
   editingRowId,
   inlineEditor,
+  viewportWidth,
   isCreating,
   selectedRowId,
   selectedRowIds,
@@ -69,7 +72,10 @@ export function GridBodies<TRow extends object>({
       <SkeletonBody table={table} isLoading={isLoading} cols={leafColCount} />
 
       {isCreating && inlineEditor && (
-        <CreatingEditorBody leafColCount={leafColCount}>
+        <CreatingEditorBody
+          leafColCount={leafColCount}
+          viewportWidth={viewportWidth}
+        >
           {inlineEditor}
         </CreatingEditorBody>
       )}
@@ -90,6 +96,7 @@ export function GridBodies<TRow extends object>({
         onToggleGroup={onToggleGroup}
         editingRowId={editingRowId}
         inlineEditor={inlineEditor}
+        viewportWidth={viewportWidth}
         selectedRowId={selectedRowId}
         selectedRowIds={selectedRowIds}
         onRowClick={onRowClick}
