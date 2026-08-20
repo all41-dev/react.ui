@@ -70,6 +70,10 @@ one in the edit form's layout.
 
 ### Fixed
 
+- A switch in a grid section could not be clicked. Its track is the only part of the
+  control a pointer can see — the input itself is `sr-only` — and in the stacked layout
+  nothing labelled it, because the micro-label sits on the row above. The track now
+  carries `htmlFor` itself there; in a cards section the chip's own label still wraps it.
 - Column ids now match TanStack's own rule, so a dotted `accessorKey` (`"user.name"`)
   works end to end — visibility, ordering, cell editing, the form field, the "changed"
   badge and the validation banner.

@@ -913,6 +913,34 @@ describe("a switch in a grid section", () => {
     expect(screen.getByLabelText("Archived").closest("label")).not.toBeNull();
   });
 
+  it("toggles from the track, which is the only part of it a pointer can see", async () => {
+    const user = userEvent.setup({ delay: null });
+    await openFlags(user);
+
+    // The input is `sr-only`; the track beside it is what the user actually clicks.
+    const grouped = screen.getByLabelText("Active");
+    const track = grouped.nextElementSibling!;
+    expect(track.tagName).toBe("LABEL");
+
+    expect(grouped).toBeChecked();
+    await user.click(track);
+    expect(grouped).not.toBeChecked();
+  });
+
+  it("toggles from the track in a cards section too", async () => {
+    const user = userEvent.setup({ delay: null });
+    await openFlags(user);
+
+    // Wrapped by the chip label rather than carrying `htmlFor` itself.
+    const chip = screen.getByLabelText("Archived");
+    const track = chip.nextElementSibling!;
+    expect(track.tagName).toBe("SPAN");
+
+    expect(chip).not.toBeChecked();
+    await user.click(track);
+    expect(chip).toBeChecked();
+  });
+
   it("still toggles from its label", async () => {
     const user = userEvent.setup({ delay: null });
     await openFlags(user);

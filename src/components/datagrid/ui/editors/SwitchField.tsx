@@ -65,6 +65,7 @@ export function SwitchField({
       required={required}
       describedBy={describedBy}
       inputProps={inputProps}
+      variant={variant}
     />
   );
 
