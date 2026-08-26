@@ -28,6 +28,14 @@ describe("Markdown", () => {
     expect(screen.getByText("[bad](javascript:void%200)")).toBeInTheDocument();
   });
 
+  it("renders CRLF source, block by block, without stalling", () => {
+    render(<Markdown source={"# Title\r\n\r\n- a\r\n- b\r\n\r\ntext\r\n"} />);
+
+    expect(screen.getByRole("heading", { name: "Title" })).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByText("text")).toBeInTheDocument();
+  });
+
   it("renders nothing for blank source", () => {
     const { container } = render(<Markdown source={"  \n "} />);
 

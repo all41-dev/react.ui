@@ -80,7 +80,9 @@ function renderInline(text: string): ReactNode[] {
 }
 
 export function renderMarkdown(src: string): ReactNode[] {
-  const lines = src.split("\n");
+  // CRLF is normalised first: a trailing "\r" defeats every "$"-anchored block
+  // pattern below while still matching the paragraph guard's prefix.
+  const lines = src.replace(/\r\n?/g, "\n").split("\n");
   const out: ReactNode[] = [];
   let k = 0;
   let i = 0;
@@ -166,8 +168,11 @@ export function renderMarkdown(src: string): ReactNode[] {
       continue;
     }
 
-    // Paragraph: consume until blank line or a block start.
+    // Paragraph: consume until blank line or a block start. A line the guard
+    // calls a block start but no block above accepted still has to be consumed,
+    // or the loop never advances.
     const buf: string[] = [];
+    if (/^(#{1,6})\s|^> |^[-*]\s|^\d+\.\s|^```/.test(line)) buf.push(lines[i++]);
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&

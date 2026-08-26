@@ -76,6 +76,11 @@ one in the edit form's layout.
 
 ### Fixed
 
+- **Markdown preview hung the page on CRLF source.** A heading line ending in `\r`
+  matched the paragraph loop's block-start guard but not the heading pattern, so the
+  renderer never advanced. Line endings are normalised before parsing, and the paragraph
+  fallback always consumes the line it is on.
+
 - The full-screen code editor was painted over by the grid around it. `editContainer:
   "inline"` renders the form inside the table body, which is `isolation: isolate`, and no
   z-index escapes a stacking context — so the toolbar and the pagination footer sat on top
