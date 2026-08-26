@@ -313,14 +313,50 @@ describe("CodeEditor", () => {
   });
 
   it("collapses when the scrim is clicked", async () => {
+    render(<CodeEditor value="a.b" onChange={() => {}} language="javascript" />);
+    await userEvent.click(screen.getByRole("button", { name: "Expand" }));
+
+    const scrim = document.querySelector(".fixed.inset-0") as HTMLElement;
+    await userEvent.click(scrim);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  /*
+   * An inline edit form renders inside the table body, which is `isolation: isolate`.
+   * A frame left in place is trapped in that stacking context and the grid's own toolbar
+   * and footer paint over it whatever its z-index, so it moves to the body instead.
+   */
+  it("moves the expanded frame to the body", async () => {
+    const { container } = render(
+      <CodeEditor value="a.b" onChange={() => {}} language="javascript" />
+    );
+    const before = editor();
+    await userEvent.click(screen.getByRole("button", { name: "Expand" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.parentElement?.parentElement).toBe(document.body);
+    // Moved, not remounted: the cursor and undo history survive the trip.
+    expect(editor()).toBe(before);
+  });
+
+  it("brings the frame back into the form when collapsed", async () => {
     const { container } = render(
       <CodeEditor value="a.b" onChange={() => {}} language="javascript" />
     );
     await userEvent.click(screen.getByRole("button", { name: "Expand" }));
+    await userEvent.click(screen.getByRole("button", { name: "Collapse" }));
 
-    const scrim = container.querySelector(".fixed.inset-0") as HTMLElement;
-    await userEvent.click(scrim);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(container.contains(content())).toBe(true);
+  });
+
+  it("leaves nothing on the body when unmounted while expanded", async () => {
+    const { unmount } = render(
+      <CodeEditor value="a.b" onChange={() => {}} language="javascript" />
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Expand" }));
+    unmount();
+    expect(document.querySelector(".cm-content")).toBeNull();
   });
 
   /*

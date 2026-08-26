@@ -64,12 +64,25 @@ one in the edit form's layout.
   column — so the mode is safe to set on a field that appears in more than one container.
   The default stays `"tab"`. `MarkdownPreviewMode` is exported.
 
+- **`Markdown`** — read-only markdown, rendered as the markdown editor's preview renders
+  it: `<Markdown source={text} className="text-xs" />`. Built as React nodes, so the
+  source is never parsed as HTML, and link targets pass the same scheme allowlist. For
+  a comment or note stored as markdown and shown outside a grid. `MarkdownProps` is
+  exported.
+
 - **`onEditStateChange`** reports every edit session the grid opens, swaps or closes —
   the read side of `DataGridHandle`, which could only drive one. The reported `EditState`
   is `idle` / `create` / `edit` with the row / `cell` with the row and column id.
 
 ### Fixed
 
+- The full-screen code editor was painted over by the grid around it. `editContainer:
+  "inline"` renders the form inside the table body, which is `isolation: isolate`, and no
+  z-index escapes a stacking context — so the toolbar and the pagination footer sat on top
+  of the expanded editor. The frame now moves to `document.body` while expanded, above the
+  overlay edit containers, and back into the form on collapse. The CodeMirror view is
+  re-parented rather than remounted, so the cursor, undo history and selection survive
+  both ways.
 - A switch in a grid section could not be clicked. Its track is the only part of the
   control a pointer can see — the input itself is `sr-only` — and in the stacked layout
   nothing labelled it, because the micro-label sits on the row above. The track now

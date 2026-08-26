@@ -5,6 +5,8 @@ import "./styles/library.css";
 export { DataGrid } from "./components/datagrid/DataGrid";
 export { Tooltip } from "./components/Tooltip";
 export { LoadingScreen } from "./components/LoadingScreen";
+export { Markdown } from "./components/Markdown";
+export type { MarkdownProps } from "./components/Markdown";
 export { toast } from "./utils/toast";
 
 export type {
