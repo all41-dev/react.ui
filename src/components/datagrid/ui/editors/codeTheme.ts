@@ -3,20 +3,20 @@ import { HighlightStyle } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 
 /*
- * Colours resolve to the library's own tokens, so the editor follows light/dark with
- * everything else instead of carrying a second theme definition.
+ * Colours resolve to the library's `--rui-syntax-*` tokens, so the editor and the code
+ * view follow light/dark with everything else instead of carrying a second theme.
  */
 export const highlightStyle = HighlightStyle.define([
-  { tag: tags.comment, color: "var(--rui-text-faint)", fontStyle: "italic" },
-  { tag: [tags.keyword, tags.moduleKeyword], color: "var(--rui-accent)" },
-  { tag: [tags.controlKeyword, tags.operatorKeyword], color: "var(--rui-accent)" },
-  { tag: [tags.string, tags.special(tags.string)], color: "var(--rui-success)" },
-  { tag: [tags.number, tags.bool, tags.null], color: "var(--rui-warning)" },
-  { tag: [tags.propertyName, tags.attributeName], color: "var(--rui-info)" },
-  { tag: tags.function(tags.variableName), color: "var(--rui-info)" },
+  { tag: tags.comment, color: "var(--rui-syntax-comment)", fontStyle: "italic" },
+  { tag: [tags.keyword, tags.moduleKeyword], color: "var(--rui-syntax-keyword)" },
+  { tag: [tags.controlKeyword, tags.operatorKeyword], color: "var(--rui-syntax-keyword)" },
+  { tag: [tags.string, tags.special(tags.string)], color: "var(--rui-syntax-string)" },
+  { tag: [tags.number, tags.bool, tags.null], color: "var(--rui-syntax-number)" },
+  { tag: [tags.propertyName, tags.attributeName], color: "var(--rui-syntax-key)" },
+  { tag: tags.function(tags.variableName), color: "var(--rui-syntax-key)" },
   { tag: [tags.variableName, tags.definition(tags.variableName)], color: "var(--rui-text-body)" },
-  { tag: [tags.operator, tags.punctuation, tags.separator], color: "var(--rui-text-muted)" },
-  { tag: tags.invalid, color: "var(--rui-danger)" },
+  { tag: [tags.operator, tags.punctuation, tags.separator], color: "var(--rui-syntax-punct)" },
+  { tag: tags.invalid, color: "var(--rui-syntax-invalid)" },
 ]);
 
 export const baseTheme = EditorView.theme({
@@ -32,6 +32,8 @@ export const baseTheme = EditorView.theme({
    * survives, and with it the cursor, the undo history and any open completion.
    */
   ".cm-scroller": { maxHeight: "var(--rui-code-max-h, none)", overflow: "auto" },
+  /* A filling view takes its host's height and scrolls inside it. */
+  "&.rui-code-fill": { height: "100%" },
   ".cm-content": {
     fontFamily: "var(--rui-font-mono)",
     padding: "9px 0",
@@ -62,6 +64,15 @@ export const baseTheme = EditorView.theme({
   ".cm-selectionMatch": {
     backgroundColor: "color-mix(in srgb, var(--rui-accent) 18%, transparent)",
   },
+  ".cm-foldPlaceholder": {
+    backgroundColor: "var(--rui-surface-raised)",
+    border: "1px solid var(--rui-border-default)",
+    borderRadius: "var(--rui-radius-control)",
+    color: "var(--rui-text-muted)",
+    margin: "0 4px",
+    padding: "0 6px",
+  },
+  ".cm-foldGutter .cm-gutterElement": { cursor: "pointer" },
   ".cm-tooltip": {
     backgroundColor: "var(--rui-surface-card)",
     border: "1px solid var(--rui-border-default)",

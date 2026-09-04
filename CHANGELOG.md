@@ -74,6 +74,25 @@ one in the edit form's layout.
   the read side of `DataGridHandle`, which could only drive one. The reported `EditState`
   is `idle` / `create` / `edit` with the row / `cell` with the row and column id.
 
+- **`CodeView`** — read-only code on the code editor's engine and palette, from the
+  `@all41-dev/react.ui/code-editor` entry: `<CodeView value={text} language="json" />`.
+  Highlighting, a fold gutter, bracket matching and Ctrl+F find, with no toolbar or
+  status bar; the host carries whatever border and background the consumer wants.
+  `fill` makes it take its host's height and scroll inside; `rows` caps it otherwise.
+  For a raw record, a stored snippet, a response body. `CodeViewProps` is exported from
+  the root entry.
+
+- **`--rui-syntax-*` tokens.** Seven colours for code — `key`, `string`, `number`,
+  `keyword`, `punct`, `comment`, `invalid` — with light and dark defaults that clear
+  4.5:1 on the inset and card surfaces. The editor and the view read them.
+
+### Changed
+
+- **Code highlighting no longer borrows the status colours.** Keys were `--rui-info` and
+  numbers `--rui-warning`, both under 2:1 on a light surface at editor sizes. A consumer
+  that overrode `--rui-info` to recolour keys sets `--rui-syntax-key` now; nothing else
+  changes for a consumer that did not.
+
 ### Fixed
 
 - **Markdown preview hung the page on CRLF source.** A heading line ending in `\r`

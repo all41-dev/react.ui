@@ -25,13 +25,14 @@ export { useTanstackQueryAdapter } from "./components/datagrid/hooks/useTanstack
 export { useConfirm } from "./components/datagrid/hooks/useConfirm";
 
 /*
- * The standalone `CodeEditor` lives at `@all41-dev/react.ui/code-editor`
+ * The standalone `CodeEditor` and `CodeView` live at `@all41-dev/react.ui/code-editor`
  * (`src/code-editor.ts`), NOT here: a value export from this file is statically
  * reachable from every consumer, which puts the whole CodeMirror engine in front of
  * grids that never render a code column and defeats the lazy() split in
- * `editorComponents.ts`. Type-only exports are erased at build, so its types are safe.
+ * `editorComponents.ts`. Type-only exports are erased at build, so their types are safe.
  */
 export type { CodeEditorProps } from "./components/datagrid/ui/editors/CodeEditor";
+export type { CodeViewProps } from "./components/CodeView";
 /*
  * Engine-neutral on purpose: a consumer writes completion and diagnostic sources against
  * these shapes, never against CodeMirror's, so the editor's engine stays swappable and

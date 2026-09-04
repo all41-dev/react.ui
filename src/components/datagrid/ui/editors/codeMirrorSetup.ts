@@ -46,6 +46,48 @@ function languageExtension(language: CodeEditorLanguage): Extension[] {
   return [];
 }
 
+export type BuildViewExtensionsOpts = {
+  language: CodeEditorLanguage;
+  lineNumbers: boolean;
+  wrap: boolean;
+  fill: boolean;
+  ariaLabel?: string;
+};
+
+/**
+ * The read-only subset for `CodeView`: highlighting, folding, bracket matching and
+ * find, on the same theme as the editor. Nothing that needs a caret — no history,
+ * completion, lint, active-line or indentation — and no change listener, since the
+ * document only changes when the consumer hands in a new value.
+ */
+export function buildViewExtensions(opts: BuildViewExtensionsOpts): Extension[] {
+  const extensions: Extension[] = [
+    highlightSpecialChars(),
+    drawSelection(),
+    bracketMatching(),
+    highlightSelectionMatches(),
+    syntaxHighlighting(highlightStyle),
+    ...languageExtension(opts.language),
+    baseTheme,
+    EditorState.readOnly.of(true),
+    EditorView.editable.of(false),
+    /* A non-editable content element is not focusable on its own; the tab stop is what
+       lets the keyboard scroll it, open find and fold from it. */
+    EditorView.contentAttributes.of({
+      tabindex: "0",
+      ...(opts.ariaLabel ? { "aria-label": opts.ariaLabel } : {}),
+    }),
+    keymap.of([...defaultKeymap, ...searchKeymap, ...foldKeymap]),
+    search({ top: true }),
+  ];
+
+  if (opts.wrap) extensions.push(EditorView.lineWrapping);
+  if (opts.lineNumbers) extensions.push(lineNumbers(), foldGutter());
+  if (opts.fill) extensions.push(EditorView.editorAttributes.of({ class: "rui-code-fill" }));
+
+  return extensions;
+}
+
 export type BuildExtensionsOpts = {
   language: CodeEditorLanguage;
   mode: CodeEditorMode;

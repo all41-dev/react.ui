@@ -48,6 +48,17 @@
     --rui-warning: #ffc107;
     --rui-info: #0dcaf0;
 
+    /* Syntax colours for the code editor and the code view. Each text value clears
+       4.5:1 on --rui-surface-inset and --rui-surface-card in its theme; the status
+       colours above do not at small sizes, which is why they are not reused here. */
+    --rui-syntax-key: oklch(0.45 0.12 250);
+    --rui-syntax-string: oklch(0.48 0.12 158);
+    --rui-syntax-number: oklch(0.52 0.15 45);
+    --rui-syntax-keyword: var(--rui-accent);
+    --rui-syntax-punct: var(--rui-text-muted);
+    --rui-syntax-comment: var(--rui-text-faint);
+    --rui-syntax-invalid: var(--rui-danger);
+
     --rui-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
       Arial, sans-serif;
     --rui-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
@@ -80,5 +91,9 @@
     --rui-focus-ring: rgba(96, 165, 250, 0.38);
     --rui-link: #60a5fa;
     --rui-link-hover: #93c5fd;
+
+    --rui-syntax-key: oklch(0.78 0.10 230);
+    --rui-syntax-string: oklch(0.78 0.13 158);
+    --rui-syntax-number: oklch(0.80 0.14 70);
   }
 }

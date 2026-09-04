@@ -5,7 +5,17 @@ ships. An item leaves this file when it is released and the CHANGELOG carries it
 
 ## Open
 
-None.
+From the ops workbench's raw-record inspector (`react-front`,
+`features/workbench/frame/JsonInspector.tsx`), in the Unreleased CHANGELOG:
+
+- **`CodeView`** at the `/code-editor` entry — the editor's engine and palette without
+  its chrome, for showing a value rather than editing one. The consumer supplies the
+  frame (border, background, header) and passes the serialised text; `fill` inside a
+  drawer, `rows` inside a card.
+- **`--rui-syntax-*` tokens** replacing the status colours in the highlight style. A
+  consumer does nothing unless it had overridden `--rui-info` or `--rui-warning` to
+  recolour code, in which case the override moves to `--rui-syntax-key` /
+  `--rui-syntax-number`.
 
 ## Shipped
 

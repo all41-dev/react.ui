@@ -8,3 +8,5 @@
  */
 export { CodeEditor } from "./components/datagrid/ui/editors/CodeEditor";
 export type { CodeEditorProps } from "./components/datagrid/ui/editors/CodeEditor";
+export { CodeView } from "./components/CodeView";
+export type { CodeViewProps } from "./components/CodeView";

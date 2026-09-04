@@ -81,6 +81,7 @@ this package's stylesheet.
 | Borders | `--rui-border-default`, `--rui-border-translucent` |
 | Interaction | `--rui-focus-ring`, `--rui-link`, `--rui-link-hover` |
 | Status | `--rui-success`, `--rui-danger`, `--rui-warning`, `--rui-info` |
+| Syntax | `--rui-syntax-key`, `--rui-syntax-string`, `--rui-syntax-number`, `--rui-syntax-keyword`, `--rui-syntax-punct`, `--rui-syntax-comment`, `--rui-syntax-invalid` |
 | Type | `--rui-font-sans`, `--rui-font-mono` |
 | Radius | `--rui-radius-control`, `--rui-radius-surface` |
 
@@ -281,6 +282,26 @@ import { Tooltip } from 'react.ui';
   <button>Hover me</button>
 </Tooltip>
 ```
+
+### CodeView
+
+Read-only code on the code editor's engine: highlighting, a fold gutter, bracket
+matching and Ctrl+F find, with none of the editor's toolbar. It lives at the
+`code-editor` entry with `CodeEditor`, so the CodeMirror engine stays out of a bundle
+that only renders grids.
+
+```tsx
+import { CodeView } from '@all41-dev/react.ui/code-editor';
+
+<div className="rounded-lg border border-border-default bg-surface-inset">
+  <CodeView value={JSON.stringify(record, null, 2)} language="json" rows={20} />
+</div>
+```
+
+`language` is `"json"`, `"javascript"` or `"text"`. `fill` makes the view take its
+host's height and scroll inside it; without it the view grows with the content, capped
+at `rows` visible lines. `lineNumbers={false}` drops the gutter and the fold handles.
+The host carries the frame; the view paints only the text.
 
 ## 🛠️ Development
 
