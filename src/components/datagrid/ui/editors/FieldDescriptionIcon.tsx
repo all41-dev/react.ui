@@ -1,12 +1,14 @@
+import { useContext } from "react";
 import { Info } from "lucide-react";
 
-import { useDataGridContext } from "../../DataGridContext";
+import { DataGridContext } from "../../DataGridContext";
+import { TooltipIdContext } from "../tooltipContext";
 
 /**
- * Info icon next to a field label carrying the column's `description` in the grid's
- * shared tooltip (hover and keyboard focus). The sr-only span is the target of the
- * control's `aria-describedby` and doubles as the anchor's accessible name — it sits
- * outside the `<label>` element so the description never leaks into the control's name.
+ * Info icon next to a field label carrying the column's `description` in the shared
+ * tooltip (hover and keyboard focus). The sr-only span is the target of the control's
+ * `aria-describedby` and doubles as the anchor's accessible name — it sits outside the
+ * `<label>` element so the description never leaks into the control's name.
  */
 export function FieldDescriptionIcon({
   descriptionId,
@@ -16,7 +18,15 @@ export function FieldDescriptionIcon({
   descriptionId: string;
   description: string;
 }) {
-  const { tooltipId } = useDataGridContext();
+  /* A standalone form carries its own anchor; inside a grid, the grid's is used. */
+  const standaloneId = useContext(TooltipIdContext);
+  const grid = useContext(DataGridContext);
+  const tooltipId = standaloneId ?? grid?.tooltipId;
+  if (!tooltipId) {
+    throw new Error(
+      "FieldDescriptionIcon must render inside a DataGrid or a RecordForm"
+    );
+  }
 
   return (
     <span

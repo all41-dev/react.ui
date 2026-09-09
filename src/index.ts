@@ -66,8 +66,21 @@ export type { LoadingScreenProps } from "./components/LoadingScreen";
 
 export { EmptyState } from "./components/datagrid/ui/GridStates";
 
+export { RecordForm } from "./components/RecordForm";
+export type { RecordFormProps } from "./components/RecordForm";
+
+export { Tabs, TabPanel } from "./components/Tabs";
+export { tabId, tabPanelId } from "./components/tabIds";
+export type { TabItem, TabsProps } from "./components/Tabs";
+export { ErrorState } from "./components/ErrorState";
+export { CountBadge } from "./components/CountBadge";
+export type { CountBadgeTone } from "./components/CountBadge";
+export { KeyValue } from "./components/KeyValue";
+export type { KeyValueTone } from "./components/KeyValue";
+
 /*
  * Keep `EditFormBody`, `getRowId`, `FormLayout`, `computeDefaults` and `toTooltipText`
  * out of this file. They're internals of the grid, and exporting them would freeze their
  * signatures into the published API — every change to one becomes a breaking change.
+ * `RecordForm` is the public form: the same parts behind a prop set that is meant to hold.
  */

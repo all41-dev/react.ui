@@ -2,22 +2,49 @@ import { useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Providers } from "./providers/providers";
 import { useTheme } from "./providers/theme-context";
+import { Tabs, type TabItem } from "../components/Tabs";
+import { tabId, tabPanelId } from "../components/tabIds";
 import { DataGridDemo } from "./demos/DataGridDemo";
 import { ToasterDemo } from "./demos/ToasterDemo";
 import { TooltipDemo } from "./demos/TooltipDemo";
 import { LoadingScreenDemo } from "./demos/LoadingScreenDemo";
+import { TabsDemo } from "./demos/TabsDemo";
+import { StatesDemo } from "./demos/StatesDemo";
+import { BadgesDemo } from "./demos/BadgesDemo";
 
-type DemoTab = "datagrid" | "toaster" | "tooltip" | "loading";
+type DemoTab =
+  | "datagrid"
+  | "tabs"
+  | "states"
+  | "badges"
+  | "toaster"
+  | "tooltip"
+  | "loading";
 
-const TABS: { id: DemoTab; label: string }[] = [
-  { id: "datagrid", label: "DataGrid" },
-  { id: "toaster", label: "Toaster" },
-  { id: "tooltip", label: "Tooltip" },
-  { id: "loading", label: "Loading screen" },
+/* The sandbox's own navigation is the library's Tabs — the first thing on the page is a component under test. */
+const TABS: TabItem<DemoTab>[] = [
+  { key: "datagrid", label: "DataGrid" },
+  { key: "tabs", label: "Tabs" },
+  { key: "states", label: "Empty & error states" },
+  { key: "badges", label: "Badge & key–value" },
+  { key: "toaster", label: "Toaster" },
+  { key: "tooltip", label: "Tooltip" },
+  { key: "loading", label: "Loading screen" },
 ];
+
+const DEMOS: Record<DemoTab, () => React.JSX.Element> = {
+  datagrid: DataGridDemo,
+  tabs: TabsDemo,
+  states: StatesDemo,
+  badges: BadgesDemo,
+  toaster: ToasterDemo,
+  tooltip: TooltipDemo,
+  loading: LoadingScreenDemo,
+};
 
 function App() {
   const [activeTab, setActiveTab] = useState<DemoTab>("datagrid");
+  const Demo = DEMOS[activeTab];
 
   return (
     <Providers>
@@ -40,24 +67,23 @@ function App() {
         </header>
 
         <div className="px-9">
-          <nav className="mx-auto flex max-w-7xl gap-1 border-b border-border-default">
-            {TABS.map((tab) => (
-              <TabButton
-                key={tab.id}
-                active={activeTab === tab.id}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </TabButton>
-            ))}
-          </nav>
+          <Tabs
+            tabs={TABS}
+            value={activeTab}
+            onChange={setActiveTab}
+            label="Demos"
+            idPrefix="demo"
+            className="mx-auto max-w-7xl"
+          />
         </div>
 
-        <main className="mx-auto max-w-7xl px-9 py-6">
-          {activeTab === "datagrid" && <DataGridDemo />}
-          {activeTab === "toaster" && <ToasterDemo />}
-          {activeTab === "tooltip" && <TooltipDemo />}
-          {activeTab === "loading" && <LoadingScreenDemo />}
+        <main
+          id={tabPanelId("demo", activeTab)}
+          role="tabpanel"
+          aria-labelledby={tabId("demo", activeTab)}
+          className="mx-auto max-w-7xl px-9 py-6"
+        >
+          <Demo />
         </main>
       </div>
     </Providers>
@@ -82,31 +108,6 @@ function ThemeToggle() {
     >
       <Icon size={15} strokeWidth={1.75} aria-hidden />
       {next === "dark" ? "Dark theme" : "Light theme"}
-    </button>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={`-mb-px border-b-2 px-4 py-3 text-[.8125rem] transition-colors ${
-        active
-          ? "border-accent font-semibold text-accent"
-          : "border-transparent text-muted hover:border-border-translucent hover:text-body"
-      }`}
-    >
-      {children}
     </button>
   );
 }

@@ -14,6 +14,10 @@ A modern, feature-rich React UI component library built with TypeScript, Vite, a
   - Virtual scrolling support
   - Custom cell renderers
   
+- **RecordForm** - The grid's edit form on its own, fed the same columns and schema
+- **Tabs** - A tab row with roving focus, disabled tabs that carry a reason, and its panel
+- **EmptyState / ErrorState** - Centred states for a box with nothing to show or a load that failed
+- **CountBadge / KeyValue** - A count in a pill, and a label beside the value it names
 - **Tooltip** - Accessible tooltip component
 - **Toast** - Beautiful toast notifications powered by Sonner
 - **Responsive** - Mobile-first design approach
@@ -244,6 +248,106 @@ narrow for two panes.
   meta: { editor: 'select', options: [...] }
 }
 ```
+
+### RecordForm
+
+The grid's edit form without the grid: for a record edited in a band, a side panel
+or a card, from the same column declarations and zod schema a `DataGrid` takes.
+
+```tsx
+import { RecordForm } from '@all41-dev/react.ui';
+
+<div className="flex max-h-[55vh] flex-col border-b border-border-default bg-surface-inset">
+  <RecordForm
+    id="record-42"
+    title="Record"
+    row={record}
+    columns={columns}
+    zodSchema={schema}
+    formLayout={{ columns: 2, groups }}
+    autoFocus
+    onDirtyChange={setDirty}
+    onSubmit={async (values, { dirtyKeys }) => {
+      if (dirtyKeys.size === 0) return close();
+      await save(values);
+      close();
+    }}
+    onCancel={close}
+  />
+</div>
+```
+
+Only columns with a `meta.editor` become fields; `meta.formLayout` groups, `meta.hint`
+and `meta.description` work as they do in the grid. `onSubmit` receives the schema's
+output and the accessor keys the user changed; a throw keeps the form open and shows
+the error under the fields. Inside a height-capped flex column the fields scroll and the
+heading with Cancel and Save stays put. `intro` renders above the fields — server-written
+columns, a note. Escape cancels and Ctrl/⌘+S saves while focus is inside the form.
+
+### Tabs
+
+A tab row and the panel it labels. One tab stop: arrows move within the row and select
+as they go, Home and End jump to the ends, Tab leaves. A tab with a `disabledReason` is
+shown but cannot be opened — the reason is its accessible description and its tooltip,
+and the arrow keys step over it.
+
+```tsx
+import { Tabs, TabPanel, type TabItem } from '@all41-dev/react.ui';
+
+type Key = 'overview' | 'history' | 'audit';
+
+const TABS: TabItem<Key>[] = [
+  { key: 'overview', label: 'Overview', icon: <ListChecks size={13} aria-hidden />, count: 12 },
+  { key: 'history', label: 'History' },
+  { key: 'audit', label: 'Audit', disabledReason: 'No audit trail is served yet' },
+];
+
+const [tab, setTab] = useState<Key>('overview');
+
+<Tabs tabs={TABS} value={tab} onChange={setTab} idPrefix="record" size="sm" />
+<TabPanel idPrefix="record" tab={tab} className="p-4">…</TabPanel>
+```
+
+`idPrefix` names the ids — the tab `<prefix>-tab-<key>` controls the panel
+`<prefix>-panel-<key>` — and is generated when omitted; pass the same one to `TabPanel`.
+`size="sm"` is the dense row for a toolbar-height host. The panel carries no layout of
+its own: sizing and scrolling classes go in its `className`, and `focusable` gives it a
+tab stop when nothing inside it takes one.
+
+### EmptyState and ErrorState
+
+Two centred states with the same footprint, so a host swaps one for the other in place.
+
+```tsx
+import { EmptyState, ErrorState } from '@all41-dev/react.ui';
+
+<EmptyState title="Nothing selected" description="Pick an item on the left." />
+
+<ErrorState
+  title="Configuration could not be loaded"
+  message={getApiMessage(error)}
+  onRetry={refetch}
+/>
+```
+
+`ErrorState` renders as an alert; `onRetry` adds the button, labelled `retryLabel`
+("Try again" by default). `EmptyState` takes an `action` node for a recovery control.
+
+### CountBadge and KeyValue
+
+```tsx
+import { CountBadge, KeyValue } from '@all41-dev/react.ui';
+
+<CountBadge count={3} tone="danger" size="sm" title="3 objects in error" />
+
+<KeyValue label="State" value="Enabled" tone="accent" />
+<KeyValue label="Code" value="supplier.v1" mono />
+```
+
+`CountBadge` tones are `neutral`, `accent` and `danger`; sizes `sm` and `md`. `KeyValue`
+tones are `accent`, `faint` and `danger`, with `mono` for ids and numbers. The `danger`
+tone of both mixes the danger colour toward the body text, so the text keeps its
+contrast at the small sizes these are set in.
 
 ### Toast
 

@@ -14,7 +14,11 @@ type Params<TRow extends object, TForm extends object> = {
   row?: TRow;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
-  onSubmit: (values: TForm) => void | Promise<void>;
+  /** `dirtyKeys` names the fields the user actually changed — the set built below. */
+  onSubmit: (
+    values: TForm,
+    meta: { dirtyKeys: ReadonlySet<string> }
+  ) => void | Promise<void>;
   /** Section declarations from `formLayout.groups`. */
   groups?: FormFieldGroup[];
   /** Reports react-hook-form's isSubmitting up, so a shell can refuse Esc mid-save. */
@@ -80,7 +84,9 @@ export function useEditForm<TRow extends object, TForm extends object>({
       // the same set, and `fromForm` describes storage rather than the form UI.
       const out = applyFromForm(values, columns);
       try {
-        await onSubmit(out);
+        // `dirtyKeys` is the set of the render the submit was clicked in; the handler
+        // runs after validation, by which time the binding below is initialised.
+        await onSubmit(out, { dirtyKeys });
         form.clearErrors("root.server");
       } catch (e) {
         const message = getApiMessage(

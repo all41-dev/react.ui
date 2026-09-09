@@ -40,6 +40,45 @@ one in the edit form's layout.
 
 ### Added
 
+- **`Tabs` and `TabPanel`** — a tab row with one tab stop: arrows move within the row
+  and select as they go, Home and End jump to the ends. A tab with a `disabledReason`
+  is shown but cannot be opened; it points at no panel, carries the reason as its
+  accessible description and tooltip, and the arrow walk steps over it. `count` shows
+  a figure after the label, `icon` renders before it, `size: "sm"` is the dense row.
+  `idPrefix` names the ids (`<prefix>-tab-<key>` controls `<prefix>-panel-<key>`) and
+  is generated when omitted; `tabId` and `tabPanelId` are exported for a host that
+  needs them. `TabItem` and `TabsProps` are exported.
+
+- **`ErrorState`** — the sibling of `EmptyState`: a centred icon over a title and a
+  message, for a load that failed rather than a list that is empty, with an `onRetry`
+  button labelled `retryLabel`. Renders as an alert.
+
+- **`CountBadge`** — a count in a pill, tones `neutral`, `accent` and `danger`, sizes
+  `sm` and `md`. `CountBadgeTone` is exported.
+
+- **`KeyValue`** — a small uppercase label beside the value it names, tones `accent`,
+  `faint` and `danger`, `mono` for ids and numbers, `title` for a hover explanation.
+  `KeyValueTone` is exported.
+
+  The `danger` tone of both mixes `--rui-danger` 80% toward `--rui-text-body`, so the
+  text clears contrast at the small sizes these are set in, where the base status colour
+  does not. A consumer that overrides `--rui-danger` gets the mixed value for free.
+
+- **`RecordForm`** — the grid's edit form on its own, for a record edited outside a
+  grid: a band under a header bar, a side panel, a card. It takes the same `columns`,
+  `zodSchema` and `formLayout` a `DataGrid` does and renders the same editors, sections,
+  hints and validation, under a heading with Cancel and Save. `title` names it, `id` puts
+  an id on the `<form>` for a disclosure's `aria-controls`, `intro` renders above the
+  fields, `autoFocus` moves focus to the first control, and `onDirtyChange` reports
+  whether any field differs from what the form opened on (false again on unmount).
+  Inside a height-capped flex column the field body scrolls and the heading stays put.
+  Escape cancels and Ctrl/⌘+S saves while focus is inside. `RecordFormProps` is exported.
+
+- **`onSubmit` receives the changed keys.** The edit form's submit handler now gets a
+  second argument, `{ dirtyKeys }`: the accessor keys the user actually changed, as the
+  "changed" badge tracks them. A consumer that PATCHes only what moved reads it instead
+  of diffing. Handlers written against the one-argument shape are unaffected.
+
 - **Field groups in the edit form.** Columns naming the same `meta.formLayout.group`
   render as one bordered `<fieldset>`, so every control in a section carries the section
   name in its accessible name. `formLayout.groups` labels and sizes the sections;

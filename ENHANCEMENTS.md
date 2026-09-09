@@ -5,6 +5,18 @@ ships. An item leaves this file when it is released and the CHANGELOG carries it
 
 ## Open
 
+From the ops workbench's frame (`react-front`, `features/workbench/`), where each of
+these existed as a one-consumer component, in the Unreleased CHANGELOG:
+
+- **`Tabs` + `TabPanel`** replacing the workbench's `ObjectTabs`/`TabPanel`. The consumer
+  keeps its tab lists, labels and icons and maps them onto `TabItem[]`; the ids follow
+  `idPrefix`, so a host that asserted on `wb-panel-*` passes `idPrefix="wb"`.
+- **`ErrorState`** replacing the workbench's load-error card. The consumer keeps its
+  wording and its message formatting and passes them in.
+- **`CountBadge`** replacing the rail's error pill; **`KeyValue`** replacing the bar's
+  summary chip. The consumer's `danger` text token is no longer needed — the library
+  mixes the danger colour toward the body text itself.
+
 From the ops workbench's raw-record inspector (`react-front`,
 `features/workbench/frame/JsonInspector.tsx`), in the Unreleased CHANGELOG:
 
@@ -16,6 +28,16 @@ From the ops workbench's raw-record inspector (`react-front`,
   consumer does nothing unless it had overridden `--rui-info` or `--rui-warning` to
   recolour code, in which case the override moves to `--rui-syntax-key` /
   `--rui-syntax-number`.
+
+From the ops workbench's record band (`react-front`,
+`features/workbench/record/RecordEditor.tsx`), in the Unreleased CHANGELOG:
+
+- **`RecordForm`** — the edit form outside a grid, from the same columns and schema, so
+  the workbench's module, exchange and subscription records stop carrying a second
+  form implementation. The consumer wraps it in a height-capped flex column and
+  reads `onDirtyChange` to guard navigation away from a draft.
+- **`onSubmit(values, { dirtyKeys })`** — the changed keys, so a record that PATCHes
+  only what moved does not diff the values itself.
 
 ## Shipped
 
