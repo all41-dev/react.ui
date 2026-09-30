@@ -12,6 +12,11 @@ type GridBodyProps<TRow extends object> = {
   /** Accessible name for the grid. */
   label: string;
   isLoading: boolean;
+  /**
+   * `isLoading` past the loading delay. `isLoading` itself reserves the skeleton's
+   * space and holds the empty state back; this is what paints a placeholder.
+   */
+  loadingShown: boolean;
   error: string | Error | null;
   emptyLabel?: string;
   /** Present and `showCards` → the cards/kanban branch; absent → always the table. */
@@ -34,7 +39,9 @@ type GridBodyProps<TRow extends object> = {
 };
 
 /**
- * Which of the three views renders, plus the loading scrim over whichever it is.
+ * Which of the three views renders, plus the loading scrim over whichever it is. The
+ * scrim covers rows that are already there — a refresh — and never an empty grid,
+ * whose skeleton rows already say what is happening.
  *
  * This is a scroll container on both axes: per CSS overflow, `overflow-y-visible`
  * computes to `auto` while the other axis scrolls. Anything that must escape the body
@@ -45,6 +52,7 @@ export function GridBody<TRow extends object>({
   table,
   label,
   isLoading,
+  loadingShown,
   error,
   emptyLabel,
   card,
@@ -66,7 +74,7 @@ export function GridBody<TRow extends object>({
       className="relative overflow-x-auto overflow-y-visible isolate w-full"
       aria-busy={isLoading}
     >
-      {isLoading && (
+      {loadingShown && table.getCoreRowModel().rows.length > 0 && (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-surface-card/50">
           <div className="pointer-events-auto rounded-control border border-border-default bg-surface-card px-3 py-2 shadow-[var(--elev-1)]">
             <Spinner label="Loading…" />
@@ -89,6 +97,7 @@ export function GridBody<TRow extends object>({
           table={table}
           card={card!}
           isLoading={isLoading}
+          loadingShown={loadingShown}
           error={error}
           emptyLabel={emptyLabel}
           selectedRowIds={selectedRowIds}
@@ -100,6 +109,7 @@ export function GridBody<TRow extends object>({
         <TableView
           table={table}
           isLoading={isLoading}
+          loadingShown={loadingShown}
           error={error}
           label={label}
           showFilters={showFilters}

@@ -1,5 +1,6 @@
 import { Inbox } from "lucide-react";
 import type { ReactNode } from "react";
+import { Skeleton } from "../../Skeleton";
 
 export function Spinner({ label }: { label?: string }) {
   return (
@@ -15,22 +16,21 @@ export function Spinner({ label }: { label?: string }) {
 
 /*
  * One shimmer bar per column in a full-height row, so the skeleton occupies the same
- * layout the data will.
+ * layout the data will. `hidden` keeps the row's height while showing no bar, for
+ * the loading delay: the space is reserved from the first frame, the shimmer only
+ * once the wait has lasted long enough to deserve one.
  *
  * Widths cycle through a fixed list rather than being random — a fresh random width each
  * render makes the skeleton twitch.
  */
-const SKELETON_WIDTHS = ["70%", "45%", "85%", "35%", "60%"];
+const SKELETON_WIDTHS = ["w-[70%]", "w-[45%]", "w-[85%]", "w-[35%]", "w-[60%]"];
 
-export function SkeletonRow({ cols }: { cols: number }) {
+export function SkeletonRow({ cols, hidden = false }: { cols: number; hidden?: boolean }) {
   return (
     <tr aria-hidden>
       {Array.from({ length: Math.max(1, cols) }, (_, i) => (
         <td key={i} className="h-10 px-3 align-middle">
-          <div
-            className="rui-skeleton"
-            style={{ width: SKELETON_WIDTHS[i % SKELETON_WIDTHS.length] }}
-          />
+          <Skeleton hidden={hidden} className={SKELETON_WIDTHS[i % SKELETON_WIDTHS.length]} />
         </td>
       ))}
     </tr>

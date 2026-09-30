@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 
+import { useLoadingIndicator } from "../../../hooks/useLoadingIndicator";
 import type { useDataGridState } from "../hooks/useDataGridState";
 import type { useGridView } from "../hooks/useGridView";
 import type { DataGridProps } from "../types/grid";
@@ -28,6 +29,13 @@ export function GridBodySection<TRow extends object, TForm extends object>({
   editingRowKey: string | undefined;
 }) {
   const { edit, filters, grouping, mutations, selection } = state;
+
+  /* Space for the skeleton is reserved as soon as `isLoading` is true; the bars and
+     the scrim wait for the delay, so a fast answer never flashes them. */
+  const loadingShown = useLoadingIndicator(!!props.isLoading, {
+    delayMs: props.loadingDelayMs,
+    minVisibleMs: props.loadingMinVisibleMs,
+  });
 
   /* `expandedRowIds` is the consumer's, so it may hold numeric ids; the bodies compare
      against the grid's string keys. Normalising here accepts either. */
@@ -62,6 +70,7 @@ export function GridBodySection<TRow extends object, TForm extends object>({
       table={state.table}
       label={props.title ?? "Data"}
       isLoading={!!props.isLoading}
+      loadingShown={loadingShown}
       error={props.error ?? null}
       emptyLabel={props.emptyLabel}
       card={card}

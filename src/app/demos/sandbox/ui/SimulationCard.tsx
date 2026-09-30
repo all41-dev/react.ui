@@ -1,6 +1,9 @@
 import { AlertTriangle } from "lucide-react";
 import type { SandboxSettings } from "../useSandboxSettings";
-import { CheckRow, ConfigCard } from "./controls";
+import { CheckRow, ConfigCard, Segmented } from "./controls";
+
+/* Under, around and well past the grid's 250 ms loading delay. */
+const LATENCIES = [100, 400, 3000] as const;
 
 export function SimulationCard({ settings }: { settings: SandboxSettings }) {
   const { simulation, setSim } = settings;
@@ -27,6 +30,15 @@ export function SimulationCard({ settings }: { settings: SandboxSettings }) {
         label="Delete Error (403)"
         checked={simulation.deleteError}
         onChange={(v) => setSim("deleteError", v)}
+      />
+      <Segmented
+        label="Latency — under, around and past the grid's 250 ms loading delay"
+        options={LATENCIES}
+        value={
+          LATENCIES.find((ms) => ms === simulation.delay) ?? LATENCIES[1]
+        }
+        onChange={(ms) => setSim("delay", ms)}
+        render={(ms) => (ms >= 1000 ? `${ms / 1000} s` : `${ms} ms`)}
       />
     </ConfigCard>
   );

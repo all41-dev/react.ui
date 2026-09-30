@@ -81,6 +81,8 @@ Defined in `types/grid.ts`, re-exported from `DataGrid.tsx`.
 | `onPersist` | `(mode: "create" \| "edit" \| "cell", values: TForm, prev?: TRow) => Promise<TRow> \| TRow` | — |
 | `onDelete` | `(row: TRow) => Promise<void> \| void` | — |
 | `isLoading` | `boolean` | — |
+| `loadingDelayMs` | `number` | 250 — the wait before the skeleton bars or the refresh scrim paint; their space is reserved at once |
+| `loadingMinVisibleMs` | `number` | 400 — how long a shown placeholder stays once loading ends |
 | `error` | `string \| Error \| null` | — |
 | `onRetry` | `() => void \| Promise<void>` | — |
 
@@ -330,12 +332,13 @@ field react-hook-form does.
 ## 6. Public exports (`src/index.ts`)
 
 Values: `DataGrid`, `useCrudAdapter`, `useTanstackQueryAdapter`, `useColumnPrefs`,
-`useConfirm`, `EmptyState`, `DataGridContext`, `Tooltip`, `LoadingScreen`, `toast`.
+`useConfirm`, `EmptyState`, `DataGridContext`, `Tooltip`, `LoadingScreen`, `Skeleton`,
+`useLoadingIndicator`, `toast`.
 
 Types: `DataGridProps`, `DataGridHandle`, `WithMeta`, `ColumnMeta`, `EditorKind`, `Option`,
 `SelectOption`, `ColumnFilterMeta`, `ActionColumnOpts`, `EditContainerKind`,
 `FormLayoutConfig`, `FormFieldGroup`, `FormColSpan`, `CrudAdapter`, `IdLike`,
-`UseTQAdapterParams`, `LoadingScreenProps`.
+`UseTQAdapterParams`, `LoadingScreenProps`, `LoadingScreenVariant`, `LoadingIndicatorOptions`.
 
 Styles: `@all41-dev/react.ui/styles` → `dist/react.ui.css`. Nothing injects it at runtime;
 consumers must import it.

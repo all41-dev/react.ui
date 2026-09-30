@@ -9,6 +9,8 @@ type CardsViewProps<TRow extends object> = {
   table: Table<TRow>;
   card: (row: TRow) => ReactNode;
   isLoading: boolean;
+  /** `isLoading` past the loading delay — see `GridBody`. */
+  loadingShown: boolean;
   error: string | Error | null;
   emptyLabel?: string;
   /* Row keys are TanStack `row.id`s, i.e. the grid's own `getRowId` value. */
@@ -40,6 +42,7 @@ export function CardsView<TRow extends object>({
   table,
   card,
   isLoading,
+  loadingShown,
   error,
   emptyLabel,
   selectedRowIds,
@@ -76,7 +79,7 @@ export function CardsView<TRow extends object>({
   const gridStyle = { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
 
   if (isLoading && rows.length === 0) {
-    return <CardsSkeleton gridStyle={gridStyle} />;
+    return <CardsSkeleton gridStyle={gridStyle} hidden={!loadingShown} />;
   }
 
   if (!isLoading && rows.length === 0 && !error) {

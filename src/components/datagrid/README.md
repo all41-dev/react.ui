@@ -438,8 +438,12 @@ Available: `startCreate()`, `startEdit(row)`, `cancelEdit()`, `isEditing()`,
 
 ## Loading and error states
 
-Pass `isLoading` and the grid shows skeleton rows on first load, or a spinner overlay when
-refreshing. Pass `error` (a string or an `Error`) and a banner appears under the toolbar
+Pass `isLoading` and the grid shows skeleton rows on first load, or a spinner overlay
+over rows it already has when refreshing. Neither paints at once: the skeleton's space is
+reserved immediately, but its bars and the overlay wait `loadingDelayMs` (250 ms) and
+then stay at least `loadingMinVisibleMs` (400 ms), so a fast response shows nothing and
+a near miss does not flash. The skeleton stands in a page's worth of rows, between three
+and eight. Pass `error` (a string or an `Error`) and a banner appears under the toolbar
 with a Retry button wired to `onRetry`, and the Add button is disabled while it's up.
 
 Empty is handled for you, and it distinguishes two cases: genuinely no data (your

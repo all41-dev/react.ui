@@ -10,6 +10,8 @@ import type { GroupBucket } from "../types/grouping";
 type TableViewProps<TRow extends object> = {
   table: Table<TRow>;
   isLoading: boolean;
+  /** `isLoading` past the loading delay — see `GridBody`. */
+  loadingShown: boolean;
   error: string | Error | null;
   /** Accessible name for the grid. */
   label?: string;
@@ -35,6 +37,7 @@ type TableViewProps<TRow extends object> = {
 export function TableView<TRow extends object>({
   table,
   isLoading,
+  loadingShown,
   error,
   label,
   showFilters,
@@ -106,6 +109,7 @@ export function TableView<TRow extends object>({
         <GridBodies
           table={table}
           isLoading={isLoading}
+          loadingShown={loadingShown}
           error={error}
           emptyLabel={emptyLabel}
           leafColCount={leafColCount}

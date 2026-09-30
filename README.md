@@ -17,6 +17,7 @@ A modern, feature-rich React UI component library built with TypeScript, Vite, a
 - **RecordForm** - The grid's edit form on its own, fed the same columns and schema
 - **Tabs** - A tab row with roving focus, disabled tabs that carry a reason, and its panel
 - **EmptyState / ErrorState** - Centred states for a box with nothing to show or a load that failed
+- **Skeleton / useLoadingIndicator / LoadingScreen** - A shimmer bar, the timing that decides when to show one, and a full-screen gate
 - **CountBadge / KeyValue** - A count in a pill, and a label beside the value it names
 - **Tooltip** - Accessible tooltip component
 - **Toast** - Beautiful toast notifications powered by Sonner
@@ -152,7 +153,9 @@ The DataGrid is a powerful and flexible table component with built-in CRUD funct
 | `onPersist` | `(mode, data, prev?) => Promise<T>` | No | Create/update handler |
 | `onDelete` | `(row: T) => Promise<void>` | No | Delete handler |
 | `editContainer` | `'modal' \| 'right' \| 'inline'` | No | Edit UI style (default: 'modal') |
-| `isLoading` | `boolean` | No | Show loading state |
+| `isLoading` | `boolean` | No | Show loading state: skeleton rows on a first load, a scrim over rows already there |
+| `loadingDelayMs` | `number` | No | Wait before the placeholder paints; its space is reserved at once (default 250) |
+| `loadingMinVisibleMs` | `number` | No | How long a shown placeholder stays once loading ends (default 400) |
 | `error` | `string \| null` | No | Error message to display |
 | `onRetry` | `() => void` | No | Retry callback for error state |
 | `onEditStateChange` | `(state: EditState<T>) => void` | No | Fires when an editor opens, swaps or closes |
@@ -332,6 +335,30 @@ import { EmptyState, ErrorState } from '@all41-dev/react.ui';
 
 `ErrorState` renders as an alert; `onRetry` adds the button, labelled `retryLabel`
 ("Try again" by default). `EmptyState` takes an `action` node for a recovery control.
+
+### Skeleton, useLoadingIndicator and LoadingScreen
+
+```tsx
+import { Skeleton, useLoadingIndicator, LoadingScreen } from '@all41-dev/react.ui';
+
+function Summary({ data, isLoading }) {
+  const showPlaceholder = useLoadingIndicator(isLoading);
+  if (isLoading) {
+    return showPlaceholder ? <Skeleton className="h-4 w-40" /> : <div className="h-4 w-40" />;
+  }
+  return <p>{data.title}</p>;
+}
+
+<LoadingScreen variant="quiet" message="Checking your session…" />
+```
+
+`Skeleton` is one shimmer bar, a text line high unless a utility says otherwise;
+`hidden` keeps its space without painting it. `useLoadingIndicator(loading, { delayMs,
+minVisibleMs })` returns `true` only once `loading` has lasted `delayMs` (250 by default)
+and keeps returning it for `minVisibleMs` (400) once shown, so a fast response shows no
+placeholder and a near miss does not flash one. The grid times its own skeleton and
+scrim the same way. `LoadingScreen` covers the viewport and announces its message as a
+status; `variant="quiet"` is one ring and the message, without the glow and the dots.
 
 ### CountBadge and KeyValue
 

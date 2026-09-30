@@ -5,6 +5,22 @@ ships. An item leaves this file when it is released and the CHANGELOG carries it
 
 ## Open
 
+From the ops app's loading-states audit (`react-front`,
+`claude_docs/loading-states-review.md`), in the Unreleased CHANGELOG:
+
+- **The grid's loading state is delayed and de-duplicated**: no placeholder inside
+  250 ms, a shown one held 400 ms, skeleton rows alone on an empty grid and the scrim
+  only over rows already there. The consumer removes nothing; a grid that wants the old
+  immediate skeleton passes `loadingDelayMs={0}`.
+- **`Skeleton`** exported, so the consumer's own placeholder bars share the grid's
+  shimmer instead of a second pulse treatment. The consumer's `Skeleton` becomes a thin
+  wrapper or goes.
+- **`useLoadingIndicator`** exported, so a consumer's delayed placeholders run on the
+  same timing as the grid's. A consumer that adds a navigation clock on top keeps its
+  own wrapper.
+- **`LoadingScreen` `variant="quiet"`** for the session gate, and reduced-motion guards
+  on every animation of the full variant.
+
 From the ops workbench's frame (`react-front`, `features/workbench/`), where each of
 these existed as a one-consumer component, in the Unreleased CHANGELOG:
 

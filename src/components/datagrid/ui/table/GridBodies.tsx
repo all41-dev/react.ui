@@ -14,6 +14,8 @@ import { VirtualRowList } from "./VirtualRowList";
 type GridBodiesProps<TRow extends object> = {
   table: Table<TRow>;
   isLoading: boolean;
+  /** `isLoading` past the loading delay: drives the skeleton's bars, not its space. */
+  loadingShown: boolean;
   error: string | Error | null;
   emptyLabel?: string;
   /** Column count for every colSpan in here — see the note in `TableView`. */
@@ -44,6 +46,7 @@ type GridBodiesProps<TRow extends object> = {
 export function GridBodies<TRow extends object>({
   table,
   isLoading,
+  loadingShown,
   error,
   emptyLabel,
   leafColCount,
@@ -69,7 +72,12 @@ export function GridBodies<TRow extends object>({
 }: GridBodiesProps<TRow>) {
   return (
     <>
-      <SkeletonBody table={table} isLoading={isLoading} cols={leafColCount} />
+      <SkeletonBody
+        table={table}
+        isLoading={isLoading}
+        loadingShown={loadingShown}
+        cols={leafColCount}
+      />
 
       {isCreating && inlineEditor && (
         <CreatingEditorBody

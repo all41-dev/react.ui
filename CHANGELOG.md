@@ -2,8 +2,52 @@
 
 ## Unreleased
 
-Next release is a minor bump: three breaking changes, two at the public surface and
-one in the edit form's layout.
+Next release is a minor bump: the grid's loading state changes what it shows and when,
+and three loading primitives join the public surface.
+
+### Changed
+
+- **The grid's loading state waits before it paints.** `isLoading` reserves the
+  skeleton's space at once, but the shimmer bars and the refresh scrim appear only once
+  the wait has lasted `loadingDelayMs` (default 250 ms), and a shown placeholder stays
+  `loadingMinVisibleMs` (default 400 ms) after `isLoading` drops. A response that lands
+  inside the delay shows no placeholder at all; one that lands just after it does not
+  flash. Pass `loadingDelayMs={0}` for the old immediate behaviour.
+
+- **An empty grid shows skeleton rows only; the spinner scrim covers rows that are
+  already there.** Both used to appear together on a first load. The skeleton now stands
+  in a page's worth of rows — the current page size, never fewer than three or more than
+  eight — so the rows landing do not move the footer.
+
+- **`.rui-skeleton` lives in the `components` cascade layer**, so a utility on the same
+  element wins: `<Skeleton className="h-4 rounded-md" />` overrides the bar's default
+  height and radius. A consumer that styled `.rui-skeleton` from an unlayered stylesheet
+  still wins over it, as before.
+
+- **`LoadingScreen` announces as a status** (`role="status"`, `aria-live="polite"`) and
+  every one of its animations stops under `prefers-reduced-motion`; only the shimmer did
+  before.
+
+### Added
+
+- **`Skeleton`** — the grid's shimmer bar on its own: `<Skeleton className="h-4 w-40" />`,
+  one text line high by default, `hidden` to keep its space without painting it. The
+  grid's own skeleton rows and cards are built from it.
+
+- **`useLoadingIndicator(loading, { delayMs, minVisibleMs })`** — the timing behind the
+  grid's loading state, for a host's own placeholders: `true` only once `loading` has
+  lasted `delayMs`, and for at least `minVisibleMs` once shown. `LoadingIndicatorOptions`
+  is exported.
+
+- **`LoadingScreen` `variant="quiet"`** — one ring and the message, no glow, no dots,
+  for a session check or a route gate where the branded screen has nothing to add.
+  `LoadingScreenVariant` is exported.
+
+- **`loadingDelayMs` and `loadingMinVisibleMs`** on `DataGrid`, described above.
+
+## 0.5.0
+
+Three breaking changes, two at the public surface and one in the edit form's layout.
 
 ### Breaking
 

@@ -1,10 +1,20 @@
 import type { CSSProperties } from "react";
 import type { Table } from "@tanstack/react-table";
 
+import { Skeleton } from "../../Skeleton";
 import { EmptyState, NoResultsState } from "./GridStates";
 
-/** Four cards' worth of skeleton, laid out on the same grid the real cards use. */
-export function CardsSkeleton({ gridStyle }: { gridStyle: CSSProperties }) {
+/**
+ * Four cards' worth of skeleton, laid out on the same grid the real cards use.
+ * `hidden` keeps the cards' space while showing no bars, for the loading delay.
+ */
+export function CardsSkeleton({
+  gridStyle,
+  hidden = false,
+}: {
+  gridStyle: CSSProperties;
+  hidden?: boolean;
+}) {
   return (
     <div className="grid gap-3 bg-surface-inset p-3.5" style={gridStyle}>
       {[0, 1, 2, 3].map((i) => (
@@ -12,8 +22,8 @@ export function CardsSkeleton({ gridStyle }: { gridStyle: CSSProperties }) {
           key={i}
           className="space-y-2 rounded-control border border-border-default bg-surface-card p-3"
         >
-          <div className="rui-skeleton w-3/4" />
-          <div className="rui-skeleton w-1/2" />
+          <Skeleton hidden={hidden} className="w-3/4" />
+          <Skeleton hidden={hidden} className="w-1/2" />
         </div>
       ))}
     </div>

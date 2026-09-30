@@ -3,22 +3,34 @@ import type { ReactNode } from "react";
 import { SkeletonRow, EmptyState, NoResultsState } from "../GridStates";
 import { InlineEditorPanel } from "./DataRowParts";
 
-/** First-load placeholder — three skeleton rows, only while loading with nothing kept. */
+/** Rows the skeleton stands in for: a page's worth, within these bounds. */
+const MIN_SKELETON_ROWS = 3;
+const MAX_SKELETON_ROWS = 8;
+
+/**
+ * First-load placeholder, only while loading with nothing kept. The rows are in place
+ * from the first frame so the grid keeps the height the data will take; their bars
+ * show only once `loadingShown` says the wait has outlasted the loading delay.
+ */
 export function SkeletonBody<TRow extends object>({
   table,
   isLoading,
+  loadingShown,
   cols,
 }: {
   table: Table<TRow>;
   isLoading: boolean;
+  loadingShown: boolean;
   cols: number;
 }) {
   if (!isLoading || table.getCoreRowModel().rows.length > 0) return null;
+  const pageSize = table.getState().pagination?.pageSize ?? MIN_SKELETON_ROWS;
+  const count = Math.min(MAX_SKELETON_ROWS, Math.max(MIN_SKELETON_ROWS, pageSize));
   return (
     <tbody className="bg-surface-card">
-      <SkeletonRow cols={cols} />
-      <SkeletonRow cols={cols} />
-      <SkeletonRow cols={cols} />
+      {Array.from({ length: count }, (_, i) => (
+        <SkeletonRow key={i} cols={cols} hidden={!loadingShown} />
+      ))}
     </tbody>
   );
 }

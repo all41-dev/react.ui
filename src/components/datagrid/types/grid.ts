@@ -44,6 +44,14 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   className?: string;
   toolbar?: ReactNode;
   isLoading?: boolean;
+  /**
+   * How long `isLoading` must last before the skeleton bars or the refresh scrim
+   * appear; the space they take is reserved at once. Default 250 ms, so a fast
+   * response shows no placeholder at all.
+   */
+  loadingDelayMs?: number;
+  /** How long a shown placeholder stays once `isLoading` drops. Default 400 ms. */
+  loadingMinVisibleMs?: number;
   error?: string | Error | null;
   onRetry?: () => void | Promise<void>;
   actionColumnOptions?: Partial<ActionColumnOpts<TRow>>;

@@ -7,7 +7,7 @@ import { tabId, tabPanelId } from "../components/tabIds";
 import { DataGridDemo } from "./demos/DataGridDemo";
 import { ToasterDemo } from "./demos/ToasterDemo";
 import { TooltipDemo } from "./demos/TooltipDemo";
-import { LoadingScreenDemo } from "./demos/LoadingScreenDemo";
+import { LoadingDemo } from "./demos/LoadingDemo";
 import { TabsDemo } from "./demos/TabsDemo";
 import { StatesDemo } from "./demos/StatesDemo";
 import { BadgesDemo } from "./demos/BadgesDemo";
@@ -29,7 +29,7 @@ const TABS: TabItem<DemoTab>[] = [
   { key: "badges", label: "Badge & key–value" },
   { key: "toaster", label: "Toaster" },
   { key: "tooltip", label: "Tooltip" },
-  { key: "loading", label: "Loading screen" },
+  { key: "loading", label: "Loading" },
 ];
 
 const DEMOS: Record<DemoTab, () => React.JSX.Element> = {
@@ -39,7 +39,7 @@ const DEMOS: Record<DemoTab, () => React.JSX.Element> = {
   badges: BadgesDemo,
   toaster: ToasterDemo,
   tooltip: TooltipDemo,
-  loading: LoadingScreenDemo,
+  loading: LoadingDemo,
 };
 
 function App() {

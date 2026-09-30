@@ -259,17 +259,24 @@
   }
 }
 
-.rui-skeleton {
-  height: 9px;
-  border-radius: 9999px;
-  background: linear-gradient(
-    90deg,
-    var(--rui-surface-raised),
-    color-mix(in srgb, var(--rui-surface-raised) 45%, transparent),
-    var(--rui-surface-raised)
-  );
-  background-size: 200% 100%;
-  animation: ruiShimmer 1.2s linear infinite;
+/*
+ * In the components layer so a utility on the same element wins: `<Skeleton
+ * className="h-4 rounded-md" />` overrides the bar's default height and radius.
+ * Unlayered, this rule would beat every utility regardless of order.
+ */
+@layer components {
+  .rui-skeleton {
+    height: 9px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      90deg,
+      var(--rui-surface-raised),
+      color-mix(in srgb, var(--rui-surface-raised) 45%, transparent),
+      var(--rui-surface-raised)
+    );
+    background-size: 200% 100%;
+    animation: ruiShimmer 1.2s linear infinite;
+  }
 }
 
 /*
