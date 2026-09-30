@@ -8,6 +8,7 @@ type Parts = {
   filters: ResettablePart;
   grouping: ResettablePart;
   pagination: ResettablePart;
+  tree: ResettablePart;
 };
 
 /**
@@ -21,6 +22,7 @@ export function useResetView({
   filters,
   grouping,
   pagination,
+  tree,
 }: Parts): { resetView: () => void; viewIsDefault: boolean } {
   /* Lifted out of their bundles: the bundles are new objects every render, the callbacks
      inside them are not. */
@@ -28,19 +30,22 @@ export function useResetView({
   const { reset: resetFilters } = filters;
   const { reset: resetGrouping } = grouping;
   const { reset: resetPagination } = pagination;
+  const { reset: resetTree } = tree;
 
   const resetView = useCallback(() => {
     resetPrefs();
     resetFilters();
     resetGrouping();
     resetPagination();
-  }, [resetPrefs, resetFilters, resetGrouping, resetPagination]);
+    resetTree();
+  }, [resetPrefs, resetFilters, resetGrouping, resetPagination, resetTree]);
 
   const viewIsDefault =
     columnPrefs.isDefault &&
     filters.isDefault &&
     grouping.isDefault &&
-    pagination.isDefault;
+    pagination.isDefault &&
+    tree.isDefault;
 
   return { resetView, viewIsDefault };
 }

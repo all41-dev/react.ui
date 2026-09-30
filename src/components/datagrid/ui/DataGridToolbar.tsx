@@ -38,6 +38,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
   groupOptions,
   groupBy = "",
   onGroupByChange,
+  onExpandAll,
+  onCollapseAll,
   facets = [],
 }: DataGridToolbarProps) {
   /*
@@ -65,6 +67,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
     onGroupByChange,
     onRetry,
     onResetView,
+    onExpandAll,
+    onCollapseAll,
   });
   const searchShown = !!(searchable && onSearchChange);
   const barShown = searchShown || facets.length > 0;
@@ -82,6 +86,8 @@ export const DataGridToolbar = memo(function DataGridToolbar({
       groupOptions={groupOptions}
       groupBy={groupBy}
       onGroupByChange={onGroupByChange}
+      onExpandAll={onExpandAll}
+      onCollapseAll={onCollapseAll}
       onRetry={onRetry}
       attached={barShown}
     />

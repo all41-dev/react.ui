@@ -57,10 +57,20 @@ export function useGridRows<TRow>({ initialData, getKey }: Params<TRow>) {
     [getKey, flash]
   );
 
+  /*
+   * By key, not a blind append: a parent that adds the row to `initialData` from inside
+   * `onPersist` may have re-synced the grid before this runs, and the row would then
+   * be listed twice.
+   */
   const addRow = useCallback(
     (created: TRow) => {
-      setRows((prev) => [...prev, created]);
-      flash(getKey(created));
+      const key = getKey(created);
+      setRows((prev) =>
+        prev.some((r) => getKey(r) === key)
+          ? prev.map((r) => (getKey(r) === key ? created : r))
+          : [...prev, created]
+      );
+      flash(key);
     },
     [getKey, flash]
   );
@@ -69,13 +79,12 @@ export function useGridRows<TRow>({ initialData, getKey }: Params<TRow>) {
    * Dropped locally so a plain `onDelete` consumer (no query adapter re-supplying
    * `initialData`) doesn't watch a successfully deleted row stay on screen.
    */
-  const removeRow = useCallback(
-    (row: TRow) => {
-      const deletedKey = getKey(row);
-      setRows((prev) => prev.filter((r) => getKey(r) !== deletedKey));
+  const removeRows = useCallback(
+    (keys: ReadonlySet<string>) => {
+      setRows((prev) => prev.filter((r) => !keys.has(getKey(r))));
     },
     [getKey]
   );
 
-  return { rows, replaceRow, addRow, removeRow, changedRowId };
+  return { rows, replaceRow, addRow, removeRows, changedRowId };
 }

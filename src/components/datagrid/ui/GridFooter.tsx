@@ -34,8 +34,14 @@ export function GridFooter<TRow extends object>({
   onClearSelection,
 }: GridFooterProps<TRow>) {
   /* The filtered count, not the total — otherwise page counts and the "X to Y of Z"
-     range ignore any active column filter. */
-  const filteredCount = table.getFilteredRowModel().rows.length;
+     range ignore any active column filter. `flatRows`, so a tree counts every node
+     rather than its roots; in a flat grid the two are the same list. */
+  const filteredCount = table.getFilteredRowModel().flatRows.length;
+  /* A tree's row model is its open nodes only, so fewer rows can be on screen than are
+     counted. Tree mode alone: under the cards view a flat grid's row model is one page. */
+  const onScreen = table.options.getSubRows
+    ? table.getRowModel().rows.length
+    : filteredCount;
 
   if (paginationEnabled && !showCards) {
     return (
@@ -60,7 +66,7 @@ export function GridFooter<TRow extends object>({
         onClear={onClearSelection}
       />
       <span aria-live="polite" className="text-[.75rem] text-muted">
-        {filteredCount} shown
+        {onScreen < filteredCount ? `${onScreen} of ${filteredCount}` : filteredCount} shown
       </span>
     </div>
   );

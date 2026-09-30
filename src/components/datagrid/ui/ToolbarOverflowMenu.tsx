@@ -38,6 +38,8 @@ export function ToolbarOverflowMenu({
   groupOptions,
   groupBy = "",
   onGroupByChange,
+  onExpandAll,
+  onCollapseAll,
   onRetry,
   attached,
 }: OverflowMenuProps) {
@@ -65,6 +67,8 @@ export function ToolbarOverflowMenu({
     onGroupByChange,
     onRetry,
     onResetView,
+    onExpandAll,
+    onCollapseAll,
   });
   if (!hasAnything) return null;
 
@@ -132,6 +136,8 @@ export function ToolbarOverflowMenu({
             columnsControl={columnsControl}
             onResetView={onResetView}
             viewIsDefault={viewIsDefault}
+            onExpandAll={onExpandAll}
+            onCollapseAll={onCollapseAll}
             onRetry={onRetry}
             onCommandRun={() => setOpen(false)}
             divided={!!showFilters || !!showGroups}

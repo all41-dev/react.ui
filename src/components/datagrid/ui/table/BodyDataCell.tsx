@@ -4,12 +4,16 @@ import { useContext } from "react";
 import { DataGridContext } from "../../DataGridContext";
 import { useIsTruncated } from "../../hooks/useIsTruncated";
 import { readAccessorKey, readColumnMeta } from "../../utils/readColumnDef";
-import { CellWithTooltip } from "./CellWithTooltip";
+import { CellWithTooltip, toLabelText } from "./CellWithTooltip";
+import { TreeCell, type TreeNodeState } from "./TreeCell";
 
 export function BodyDataCell<TRow extends object>({
   c,
+  node,
 }: {
   c: Cell<TRow, unknown>;
+  /** The row's place in the tree. Drawn by the tree column only. */
+  node?: TreeNodeState;
 }) {
   const ctx = useContext(DataGridContext);
   const { ref: contentRef, truncated, measure } = useIsTruncated<HTMLSpanElement>();
@@ -43,13 +47,58 @@ export function BodyDataCell<TRow extends object>({
     ctx?.canCellEdit
   );
 
+  const content = canCellEdit ? (
+    <button
+      type="button"
+      title="Click to edit"
+      onClick={(e) => {
+        // The row's own click (select/expand) must not fire alongside the editor.
+        e.stopPropagation();
+        ctx!.startCellEdit(c.row.original, c.column.id, e.currentTarget);
+      }}
+      /* A text cursor rather than a pointer: this edits in place, it doesn't
+         navigate. The negative margin lets the hover chrome bleed into the cell
+         padding so the target lines up with the text it replaces. */
+      className="group/ce -mx-1 flex w-full cursor-text items-center gap-1.5 rounded-[5px] border border-transparent px-1 py-0.5 text-left outline-none hover:border-border-translucent hover:bg-surface-inset focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
+    >
+      <span className="min-w-0 flex-1">
+        <CellWithTooltip
+          meta={m}
+          value={value}
+          row={c.row.original}
+          rendered={rendered}
+          contentRef={contentRef}
+          truncated={truncated}
+          className="block whitespace-nowrap overflow-hidden text-ellipsis"
+        />
+      </span>
+      <Pencil
+        className="h-3 w-3 shrink-0 text-faint opacity-0 transition-opacity group-hover/ce:opacity-100"
+        aria-hidden
+      />
+    </button>
+  ) : (
+    <CellWithTooltip
+      meta={m}
+      value={value}
+      row={c.row.original}
+      rendered={rendered}
+      contentRef={contentRef}
+      truncated={truncated}
+      className="block whitespace-nowrap overflow-hidden text-ellipsis"
+    />
+  );
+
+  const tree = ctx?.tree;
+  const isTreeCell = !!tree && !!node && tree.columnId === c.column.id;
+
   return (
     <td
       data-col-id={c.column.id}
       onMouseEnter={measure}
-      /* `focusin` bubbles, so this also fires when the cell-edit button below takes
-         focus — its accessible name is the clipped text, and a keyboard user has no
-         other way to read the rest of it. */
+      /* `focusin` bubbles, so this also fires when the cell-edit button takes focus —
+         its accessible name is the clipped text, and a keyboard user has no other way
+         to read the rest of it. */
       onFocus={measure}
       /*
        * A hairline at 65% opacity, so a dense grid doesn't read as a wireframe. Text size
@@ -66,46 +115,21 @@ export function BodyDataCell<TRow extends object>({
             : "",
       ].join(" ")}
     >
-      {canCellEdit ? (
-        <button
-          type="button"
-          title="Click to edit"
-          onClick={(e) => {
-            // The row's own click (select/expand) must not fire alongside the editor.
-            e.stopPropagation();
-            ctx!.startCellEdit(c.row.original, c.column.id, e.currentTarget);
-          }}
-          /* A text cursor rather than a pointer: this edits in place, it doesn't
-             navigate. The negative margin lets the hover chrome bleed into the cell
-             padding so the target lines up with the text it replaces. */
-          className="group/ce -mx-1 flex w-full cursor-text items-center gap-1.5 rounded-[5px] border border-transparent px-1 py-0.5 text-left outline-none hover:border-border-translucent hover:bg-surface-inset focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
-        >
-          <span className="min-w-0 flex-1">
-            <CellWithTooltip
-              meta={m}
-              value={value}
-              row={c.row.original}
-              rendered={rendered}
-              contentRef={contentRef}
-              truncated={truncated}
-              className="block whitespace-nowrap overflow-hidden text-ellipsis"
-            />
-          </span>
-          <Pencil
-            className="h-3 w-3 shrink-0 text-faint opacity-0 transition-opacity group-hover/ce:opacity-100"
-            aria-hidden
-          />
-        </button>
-      ) : (
-        <CellWithTooltip
-          meta={m}
-          value={value}
+      {/* The indent and the chevron wrap the content rather than replace it, so cell
+          editing and the tooltip work the same in the tree column. */}
+      {isTreeCell ? (
+        <TreeCell
+          rowId={c.row.id}
           row={c.row.original}
-          rendered={rendered}
-          contentRef={contentRef}
-          truncated={truncated}
-          className="block whitespace-nowrap overflow-hidden text-ellipsis"
-        />
+          node={node}
+          tree={tree}
+          /* A `format` returning an element leaves the raw value to name the node. */
+          label={toLabelText(value) || toLabelText(raw) || "row"}
+        >
+          {content}
+        </TreeCell>
+      ) : (
+        content
       )}
     </td>
   );

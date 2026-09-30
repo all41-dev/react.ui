@@ -12,6 +12,8 @@ import { getApiMessage } from "../../../api/errors";
 
 type Params<TRow extends object, TForm extends object> = {
   row?: TRow;
+  /** Create mode: values the form starts from, over the column defaults. */
+  seed?: object;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   /** `dirtyKeys` names the fields the user actually changed — the set built below. */
@@ -32,6 +34,7 @@ type Params<TRow extends object, TForm extends object> = {
  */
 export function useEditForm<TRow extends object, TForm extends object>({
   row,
+  seed,
   columns,
   zodSchema,
   onSubmit,
@@ -39,8 +42,8 @@ export function useEditForm<TRow extends object, TForm extends object>({
   onSubmittingChange,
 }: Params<TRow, TForm>) {
   const initialDefaults = useMemo(
-    () => computeDefaults(row, columns),
-    [row, columns]
+    () => computeDefaults(row, columns, seed),
+    [row, columns, seed]
   );
 
   /*

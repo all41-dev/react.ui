@@ -5,6 +5,7 @@ import { useDataGridState } from "./hooks/useDataGridState";
 import { useGridChrome } from "./hooks/useGridChrome";
 import { useEditStateChange } from "./hooks/useEditStateChange";
 import { useGridHandle } from "./hooks/useGridHandle";
+import { useTreePropWarnings } from "./hooks/useGridTree";
 import { useGridView } from "./hooks/useGridView";
 import type { DataGridProps } from "./types/grid";
 import { GridBodySection } from "./ui/GridBodySection";
@@ -26,7 +27,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
 ) {
   /* The ref is split off so the rest travels as one plain bag â€” the React Compiler
      refuses property reads on an object that also carries a ref. */
-  const { ref, idAccessor, card, onRowClick, ...gridProps } = props;
+  const { ref, idAccessor, card: cardProp, onRowClick, ...gridProps } = props;
 
   /*
    * Two layers of one rule. `getKey` is the grid's identity — the table's `getRowId`, so
@@ -40,7 +41,15 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
   );
 
   const state = useDataGridState<TRow, TForm>(gridProps, getKey);
-  const { edit, selection, grouping, pagination, mutations } = state;
+  const { edit, selection, grouping, pagination, mutations, tree } = state;
+
+  /* Tree mode renders the table only. */
+  const card = tree.enabled ? undefined : cardProp;
+  useTreePropWarnings(tree.enabled, {
+    card: !!cardProp,
+    groupOptions: !!gridProps.groupOptions,
+    pagination: !!gridProps.pagination && gridProps.pagination.enabled !== false,
+  });
 
   const view = useGridView<TRow>({
     hasCard: !!card,
@@ -59,7 +68,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
     getId,
   });
 
-  useGridHandle(ref, edit, selection.clear);
+  useGridHandle(ref, edit, selection.clear, tree);
   useEditStateChange(edit.session, gridProps.onEditStateChange);
 
   /* The containers key the form remount on this; `edit.editingRow` alone is not enough

@@ -86,6 +86,24 @@ describe("useEditSession", () => {
     expect(result.current.cell).toBeUndefined();
   });
 
+  it("a create session carries its seed", () => {
+    const { result } = renderHook(() => useEditSession<Row>());
+    const seed = { name: "preset" };
+    act(() => result.current.startCreate(seed));
+    expect(result.current.createSeed).toBe(seed);
+
+    act(() => result.current.startEdit(rowA));
+    expect(result.current.createSeed).toBeUndefined();
+  });
+
+  it("does not take a click event for a seed", () => {
+    // `onClick={startCreate}` calls it with the event, whose fields are not form values.
+    const { result } = renderHook(() => useEditSession<Row>());
+    act(() => result.current.startCreate(new MouseEvent("click")));
+    expect(result.current.session).toEqual({ kind: "create" });
+    expect(result.current.createSeed).toBeUndefined();
+  });
+
   it("closing twice is harmless, and closing while idle is a no-op", () => {
     const { result } = renderHook(() => useEditSession<Row>());
     act(() => result.current.close());

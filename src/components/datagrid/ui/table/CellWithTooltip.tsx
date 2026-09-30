@@ -23,6 +23,13 @@ export function toTooltipText(value: unknown): string {
   return String(value);
 }
 
+/** `toTooltipText` for an accessible name: an element has no text of its own, so "". */
+export function toLabelText(value: unknown): string {
+  const isElement =
+    value !== null && typeof value === "object" && !(value instanceof Date);
+  return isElement ? "" : toTooltipText(value);
+}
+
 /**
  * Cell content, with a tooltip attached ONLY when the text is actually clipped.
  *

@@ -8,19 +8,20 @@ import { useGridGrouping } from "./useGridGrouping";
 import { useGridMutations } from "./useGridMutations";
 import { useGridPagination } from "./useGridPagination";
 import { useGridRows } from "./useGridRows";
+import { useGridTree } from "./useGridTree";
 import { useResetView } from "./useResetView";
 import { useRowSelection } from "./useRowSelection";
 
 /**
  * The grid's whole data plane, composed in dependency order: rows → selection → edit
- * session → filters → pagination → column model → table → grouping → mutations. Pure
- * wiring — each concern keeps its own hook; `DataGrid` itself stays presentation.
+ * session → filters → tree → pagination → column model → table → grouping → mutations.
+ * Pure wiring — each concern keeps its own hook; `DataGrid` itself stays presentation.
  */
 export function useDataGridState<TRow extends object, TForm extends object>(
   props: DataGridProps<TRow, TForm>,
   getKey: (row: TRow) => string
 ) {
-  const { rows, replaceRow, addRow, removeRow, changedRowId } = useGridRows({
+  const { rows, replaceRow, addRow, removeRows, changedRowId } = useGridRows({
     initialData: props.initialData,
     getKey,
   });
@@ -40,11 +41,19 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     initialSorting: props.initialSorting,
   });
 
+  const tree = useGridTree<TRow>({
+    config: props.tree,
+    rows,
+    getKey,
+    filtering: filters.columnFilters.length > 0 || filters.globalFilter !== "",
+  });
+
   const pagination = useGridPagination({
     pagination: props.pagination,
     columnFilters: filters.columnFilters,
     globalFilter: filters.globalFilter,
     sorting: filters.sorting,
+    forcedOff: tree.enabled,
   });
 
   /*
@@ -70,7 +79,10 @@ export function useDataGridState<TRow extends object, TForm extends object>(
   });
 
   const table = useDataGridTable<TRow, TForm>({
-    data: rows,
+    data: tree.roots ?? rows,
+    tree: tree.getSubRows
+      ? { getSubRows: tree.getSubRows, expanded: tree.expanded }
+      : undefined,
     columns: gridColumns.orderedColumns,
     getRowId: getKey,
     prefs: gridColumns.prefs,
@@ -86,10 +98,11 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     onPaginationChange: pagination.onPaginationChange,
   });
 
+  /* Grouping partitions a flat list, so tree mode runs without it. */
   const grouping = useGridGrouping({
     table,
-    groupOptions: props.groupOptions,
-    defaultGroupBy: props.defaultGroupBy ?? "",
+    groupOptions: tree.enabled ? undefined : props.groupOptions,
+    defaultGroupBy: tree.enabled ? "" : (props.defaultGroupBy ?? ""),
   });
 
   const { resetView, viewIsDefault } = useResetView({
@@ -100,6 +113,7 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     filters,
     grouping,
     pagination,
+    tree,
   });
 
   const { confirm, ConfirmDialog } = useConfirm();
@@ -112,7 +126,9 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     edit,
     replaceRow,
     addRow,
-    removeRow,
+    removeRows,
+    descendantKeysOf: tree.descendantKeysOf,
+    reveal: tree.reveal,
     deselect: selection.deselect,
     getKey,
     confirm,
@@ -127,6 +143,7 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     pagination,
     gridColumns,
     table,
+    tree,
     grouping,
     mutations,
     resetView,

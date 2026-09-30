@@ -6,6 +6,7 @@ import { getApiMessage } from "../../../api/errors";
 import type {
   DataGridContextValue,
   DataGridSelectionValue,
+  TreeContextValue,
 } from "../DataGridContext";
 import type { ActionColumnOpts, ActionView } from "../ui/makeActionColumns";
 import type { DataGridProps } from "../types/grid";
@@ -30,8 +31,41 @@ export function useGridChrome<TRow extends object, TForm extends object>({
   activeView: ActionView;
   getId: (row: TRow) => string | number | undefined;
 }) {
-  const { edit, filters, grouping, mutations, selection } = state;
+  const { edit, filters, grouping, mutations, selection, tree } = state;
   const editContainer = props.editContainer ?? "right";
+
+  /*
+   * The tree column: the configured one while it is visible, else the first visible
+   * data column, so hiding or reordering columns never leaves the tree without its
+   * chevrons. Read field by field — `props.tree` is usually an inline object.
+   */
+  const { columnId: treeColumn, typeKey, levels, showTypeTag } = props.tree ?? {};
+  const { enabled: treeMode, locked: treeLocked, setNodeOpen } = tree;
+  const dataColumnIds = treeMode
+    ? state.table
+        .getVisibleLeafColumns()
+        .map((c) => c.id)
+        .filter((id) => id !== "__select__" && id !== "__actions__")
+    : [];
+  const treeColumnId =
+    treeColumn !== undefined && dataColumnIds.includes(treeColumn)
+      ? treeColumn
+      : dataColumnIds[0];
+
+  const treeContext = useMemo<TreeContextValue | undefined>(
+    () =>
+      treeMode
+        ? {
+            columnId: treeColumnId,
+            typeKey,
+            levels,
+            showTypeTag: !!showTypeTag,
+            locked: treeLocked,
+            setNodeOpen,
+          }
+        : undefined,
+    [treeMode, treeColumnId, typeKey, levels, showTypeTag, treeLocked, setNodeOpen]
+  );
 
   const tooltipId = useId().replace(/:/g, "_");
   const canCellEdit = !!props.onPersist;
@@ -102,6 +136,7 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       getId: getId as (row: unknown) => string | number | undefined,
       rowActions: rowActions as ActionColumnOpts<unknown>,
       view: activeView,
+      tree: treeContext,
     }),
     [
       tooltipId,
@@ -110,12 +145,13 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       getId,
       rowActions,
       activeView,
+      treeContext,
     ]
   );
 
-  /* Grouping renders the whole set instead of one page, which is what the header
-     checkbox has to scope itself to. */
-  const rendersAllRows = !!grouping.groups;
+  /* Grouping and tree mode render the whole set instead of one page, which is what the
+     header checkbox has to scope itself to. */
+  const rendersAllRows = !!grouping.groups || treeMode;
   const selectionContextValue = useMemo<DataGridSelectionValue>(
     () => ({ ...selection.contextValue, rendersAllRows }),
     [selection.contextValue, rendersAllRows]

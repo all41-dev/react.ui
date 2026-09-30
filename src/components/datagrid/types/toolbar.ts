@@ -35,6 +35,9 @@ export type DataGridToolbarProps = {
   groupOptions?: { key: string; label: string }[];
   groupBy?: string;
   onGroupByChange?: (key: string) => void;
+  /** Tree mode only: open or close every node. */
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
   /** Active filters and grouping, rendered as pills inside the search field. */
   facets?: FacetChip[];
 };

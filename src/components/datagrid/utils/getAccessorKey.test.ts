@@ -83,6 +83,39 @@ describe("computeDefaults", () => {
       const d = computeDefaults(undefined, [col("name")]) as Row;
       expect(d.name).toBeUndefined();
     });
+
+    it("lays a seed over the defaults, for declared columns only", () => {
+      const d = computeDefaults(
+        undefined,
+        [col("name", { editor: "text", default: "untitled" }), col("price")],
+        { name: "Seeded", price: 5, undeclared: true }
+      ) as Row & { undeclared?: boolean };
+      expect(d.name).toBe("Seeded");
+      // No editor, but the seed names it, so the value reaches the submit.
+      expect(d.price).toBe(5);
+      expect(d.undeclared).toBeUndefined();
+    });
+
+    it("hands a seed to the form as is, not through toForm", () => {
+      const d = computeDefaults(
+        undefined,
+        [col("price", { editor: "number", toForm: (v) => Number(v) / 100 })],
+        { price: 12 }
+      ) as Row;
+      expect(d.price).toBe(12);
+    });
+
+    it("reads a nested seed by the column's dotted key", () => {
+      const d = computeDefaults(undefined, [col("user.name", { editor: "text" })], {
+        user: { name: "Seeded" },
+      }) as unknown as { user: { name: string } };
+      expect(d.user.name).toBe("Seeded");
+    });
+  });
+
+  it("ignores a seed when editing a row", () => {
+    const d = computeDefaults(row, [col("name")], { name: "Seeded" }) as Row;
+    expect(d.name).toBe("Leanne");
   });
 
   it("survives a column with no accessorKey", () => {

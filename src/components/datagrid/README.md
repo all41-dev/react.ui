@@ -193,6 +193,71 @@ Grouped rows get collapsible headers. Any column with `meta.agg: "sum"` shows a 
 total. Omit `values` and buckets come from the data, sorted. Grouping plus the cards view
 gives you a kanban board, one column per bucket.
 
+**Tree mode** — pass `tree` and rows that name a parent render as a collapsible
+hierarchy, in the ordinary table view:
+
+```tsx
+type Unit = { id: string; parentId: string; name: string; kind: string };
+
+<DataGrid<Unit>
+  initialData={units}          // still a flat array
+  tree={{ parentKey: "parentId" }}
+  …
+/>
+```
+
+`parentKey` names the field holding the parent row's id, in the same vocabulary as
+`idAccessor`; a dotted path works. A row whose parent is empty, `null` or an id no row
+has is a root. The first visible data column carries the indent and the chevron — name
+another with `columnId`. `defaultOpen` is `"roots"` (the default), `"all"` or `"none"`.
+
+To mark what kind of node a row is, name the field and describe the kinds:
+
+```tsx
+const TREE: TreeConfig<Unit> = {
+  parentKey: "parentId",
+  typeKey: "kind",
+  showTypeTag: true,
+  levels: [
+    { type: "division", label: "Division", color: "#22c55e", icon: <Building2 size={14} /> },
+    { type: "team", icon: <Users size={14} /> },
+  ],
+};
+```
+
+Keep `levels` stable (module scope or `useMemo`): it reaches every cell of the tree
+column. Keep `idAccessor` stable as well when you pass one: the tree is rebuilt whenever
+its identity changes, so an inline arrow rebuilds it on every render.
+
+What changes in tree mode:
+
+- **Search and filters keep the ancestors of every match**, and show every kept node
+  open for as long as a criterion is active. The chevrons, Expand all and Collapse all
+  do nothing meanwhile; clearing the criteria brings back the open state from before. A
+  parent that matches does not pull in children that do not.
+- **Sorting applies among siblings**, at every level.
+- **Counts are of nodes**, not roots: the title pill and the footer. While some nodes
+  sit under a closed parent the footer reads "5 of 7 shown".
+- **No pagination, cards view or group-by.** `pagination`, `card` and `groupOptions`
+  are ignored, with a warning in development.
+- **Select-all covers the rows on screen.** Selecting a parent does not select its
+  children.
+- **Delete removes the row and everything under it** from the grid, and the
+  confirmation says how many nested rows go with it. `onDelete` is still called once,
+  with the row — removing the subtree on the server is yours.
+- **A saved row appears under its parent**, whose ancestors are opened so the row is on
+  screen. Changing the parent field in the form moves the row.
+- **Expand all / Collapse all** sit in the caret menu, and **Reset view** also restores
+  `defaultOpen`.
+- **Bad data does not break the tree**: a row naming a missing parent, or one closing a
+  parent cycle, is shown as a root, with one warning in development.
+
+"Add a child" is a create form with the parent preset — see `startCreate(seed)` under
+[Driving the grid from outside](#driving-the-grid-from-outside). The parent field needs a
+column to travel in; `meta.visibleInTable: false` keeps it out of the table.
+
+Rows nested in a `children` array are not supported: flatten them first.
+
 **Row expansion** is fully controlled — you own the state and the toggle:
 
 ```tsx
@@ -431,8 +496,21 @@ const grid = useRef<DataGridHandle<User>>(null);
 <DataGrid ref={grid} … />
 ```
 
-Available: `startCreate()`, `startEdit(row)`, `cancelEdit()`, `isEditing()`,
-`clearSelection()`.
+Available: `startCreate(seed?)`, `startEdit(row)`, `cancelEdit()`, `isEditing()`,
+`clearSelection()`, and in tree mode `expandAll()` / `collapseAll()` — both do nothing
+while a search or a filter holds the nodes open.
+
+`startCreate` takes an optional seed — form values laid over the column defaults:
+
+```tsx
+const grid = useRef<DataGridHandle<Unit, UnitForm>>(null);
+
+grid.current?.startCreate({ parentId: row.id });
+```
+
+The seed is form-shaped, so it does not pass through `toForm`, and only fields a column
+declares are read from it. The second type argument types the seed; leave it out and any
+object is accepted.
 
 ---
 
@@ -459,7 +537,9 @@ semantics and an accessible name from `title`; clickable rows are keyboard-opera
 non-interactive ones stay out of the tab order; the pager is a labelled region with arrow
 key navigation; overlay forms trap focus, close on Escape and restore focus on close; the
 confirm dialog is a named `alertdialog`. Form fields wire up `aria-invalid`,
-`aria-describedby` and `aria-required` from your column meta.
+`aria-describedby` and `aria-required` from your column meta. In tree mode the table is a
+`treegrid`: rows carry `aria-level`, parents carry `aria-expanded`, and each chevron is a
+button named "Expand …" / "Collapse …" that also answers to ArrowRight and ArrowLeft.
 
 ---
 
@@ -495,6 +575,8 @@ import type {
   CrudAdapter,
   IdLike,
   UseTQAdapterParams,
+  TreeConfig,      // the `tree` prop
+  TreeLevel,
 } from "@all41-dev/react.ui";
 ```
 
@@ -516,13 +598,14 @@ DataGrid.tsx          Composition only — reads as an outline of the whole comp
 types/grid.ts         Props and the ref handle (the public surface)
 types/column.ts       ColumnMeta — where most features are declared
 hooks/                One concern each: rows, selection, filters, pagination,
-                      columns, grouping, the edit session, and all writes
+                      columns, grouping, the tree, the edit session, and all writes
                       (useGridMutations)
 ui/                   Toolbar, GridBody, GridFooter, the three views
 ui/table/             Everything inside the <table>
 ui/editors/           The form editors and the registry that picks one
 ui/containers/        Drawer / modal / inline shells and the shared form body
-utils/                Filter functions, row keys, accessor keys, markdown
+utils/                Filter functions, row keys, accessor keys, the tree model,
+                      markdown
 ```
 
 Tests sit next to what they test. `npm test` runs them, `npm run test:coverage` for

@@ -1,5 +1,6 @@
 import type { Column, Table } from "@tanstack/react-table";
-import type { ReactNode, Ref } from "react";
+import { useContext, type ReactNode, type Ref } from "react";
+import { DataGridContext } from "../../DataGridContext";
 import { Colgroup } from "./Colgroup";
 import { TableHead } from "./TableHead";
 
@@ -31,6 +32,8 @@ export function GridTable<TRow extends object>({
   rowCount,
   children,
 }: GridTableProps<TRow>) {
+  const treeMode = !!useContext(DataGridContext)?.tree;
+
   return (
     <table
       /*
@@ -50,8 +53,10 @@ export function GridTable<TRow extends object>({
        * header rows plus the page's flat body list (group headers included), not the
        * mounted window and not the all-pages total. Mixing scopes announced
        * "row 1 of 500" for the first row of page 2.
+       *
+       * `treegrid` in tree mode: it is what makes `aria-level` on the rows valid.
        */
-      role="grid"
+      role={treeMode ? "treegrid" : "grid"}
       aria-label={label}
       aria-rowcount={rowCount}
       aria-colcount={leafColsAll.length}

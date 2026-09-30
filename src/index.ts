@@ -21,6 +21,7 @@ export type {
 
 export type { WithMeta, ColumnMeta, EditorKind, Option, SelectOption, ColumnFilterMeta } from "./components/datagrid/types/column";
 export type { CrudAdapter, IdLike } from "./components/datagrid/types/crud";
+export type { TreeConfig, TreeLevel } from "./components/datagrid/types/tree";
 export type { UseTQAdapterParams } from "./components/datagrid/hooks/useTanstackQueryAdapter";
 
 export { useColumnPrefs } from "./components/datagrid/hooks/useColumnPrefs";

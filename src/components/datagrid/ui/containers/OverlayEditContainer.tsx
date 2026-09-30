@@ -3,7 +3,7 @@ import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import type { WithMeta } from "../../types/column";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { EditFormBody, getRowId, type FormLayoutConfig } from "./EditFormBody";
+import { EditFormBody, formKeyOf, type FormLayoutConfig } from "./EditFormBody";
 
 export type OverlayPosition = "center" | "right" | "bottom";
 
@@ -17,6 +17,8 @@ export type OverlayEditContainerProps<TRow extends object, TForm extends object>
    * the `id`/`uuid` fallback in `getRowId` misses rows keyed by a custom accessor.
    */
   rowKey?: string | number;
+  /** Create mode: values the form starts from, over the column defaults. */
+  seed?: object;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   formLayout?: FormLayoutConfig;
@@ -50,6 +52,7 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
   mode,
   row,
   rowKey,
+  seed,
   columns,
   zodSchema,
   formLayout,
@@ -85,7 +88,7 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
 
   if (!open) return null;
 
-  const formKey = mode === "edit" ? `edit-${rowKey ?? getRowId(row)}` : "create";
+  const formKey = formKeyOf(mode, rowKey, row, seed);
 
   return createPortal(
     <div
@@ -111,6 +114,7 @@ export function OverlayEditContainer<TRow extends object, TForm extends object>(
           key={formKey}
           mode={mode}
           row={row}
+          seed={seed}
           columns={columns}
           zodSchema={zodSchema}
           formLayout={formLayout}

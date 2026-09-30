@@ -1,6 +1,6 @@
 import type { ZodType } from "zod";
 import type { WithMeta } from "../../types/column";
-import { EditFormBody, getRowId, type FormLayoutConfig } from "./EditFormBody";
+import { EditFormBody, formKeyOf, type FormLayoutConfig } from "./EditFormBody";
 
 type EditInlineProps<TRow extends object, TForm extends object> = {
   open: boolean;
@@ -8,6 +8,8 @@ type EditInlineProps<TRow extends object, TForm extends object> = {
   row?: TRow;
   /** The grid's resolved row identity — see `OverlayEditContainerProps.rowKey`. */
   rowKey?: string | number;
+  /** Create mode: values the form starts from, over the column defaults. */
+  seed?: object;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   formLayout?: FormLayoutConfig;
@@ -22,6 +24,7 @@ export function EditInline<TRow extends object, TForm extends object>({
   mode,
   row,
   rowKey,
+  seed,
   columns,
   zodSchema,
   formLayout,
@@ -30,13 +33,14 @@ export function EditInline<TRow extends object, TForm extends object>({
 }: EditInlineProps<TRow, TForm>) {
   if (!open) return null;
 
-  const formKey = mode === "edit" ? `edit-${rowKey ?? getRowId(row)}` : "create";
+  const formKey = formKeyOf(mode, rowKey, row, seed);
 
   return (
     <EditFormBody<TRow, TForm>
       key={formKey}
       mode={mode}
       row={row}
+      seed={seed}
       columns={columns}
       zodSchema={zodSchema}
       formLayout={formLayout}

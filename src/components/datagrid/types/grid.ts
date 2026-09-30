@@ -8,6 +8,7 @@ import type { ActionColumnOpts } from "../ui/makeActionColumns";
 import type { WithMeta } from "./column";
 import type { GroupOption } from "./grouping";
 import type { FormLayoutConfig } from "./formLayout";
+import type { TreeConfig } from "./tree";
 
 /* The grid's public surface. Also re-exported from DataGrid.tsx, so either import
    path works. */
@@ -73,8 +74,13 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
    * your own columns, or `onRowClick`.
    */
   expandedRowIds?: ReadonlySet<string | number>;
+  /**
+   * Renders rows that name a parent as a collapsible hierarchy. The rows stay a flat
+   * array. Pagination, `card` and `groupOptions` do not apply in tree mode.
+   */
+  tree?: TreeConfig<TRow>;
   /** Imperative control over the edit session and selection. See {@link DataGridHandle}. */
-  ref?: Ref<DataGridHandle<TRow>>;
+  ref?: Ref<DataGridHandle<TRow, TForm>>;
 };
 
 /**
@@ -95,10 +101,16 @@ export type EditState<TRow> =
  * grid.current?.startCreate();
  * grid.current?.cancelEdit();
  * ```
+ *
+ * `TForm` types the create seed and defaults to `any`, so `DataGridHandle<User>` fits a
+ * grid of any form shape.
  */
-export type DataGridHandle<TRow extends object> = {
-  /** Open the create form. */
-  startCreate: () => void;
+export type DataGridHandle<TRow extends object, TForm extends object = any> = {
+  /**
+   * Open the create form. `seed` presets fields over the column defaults: form-shaped
+   * values, read for the declared columns only.
+   */
+  startCreate: (seed?: Partial<TForm>) => void;
   /** Open the edit form for a row. */
   startEdit: (row: TRow) => void;
   /** Close whatever editor is open — form or cell popover. No-op when idle. */
@@ -107,4 +119,11 @@ export type DataGridHandle<TRow extends object> = {
   isEditing: () => boolean;
   /** Clear the checkbox selection. */
   clearSelection: () => void;
+  /**
+   * Tree mode: open every node. No-op in a flat grid, and while a search or a column
+   * filter holds the nodes open.
+   */
+  expandAll: () => void;
+  /** Tree mode: close every node. No-op under the same conditions as `expandAll`. */
+  collapseAll: () => void;
 };

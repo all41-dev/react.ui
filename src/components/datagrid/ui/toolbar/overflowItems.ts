@@ -13,6 +13,9 @@ export type OverflowMenuProps = {
   groupOptions?: { key: string; label: string }[];
   groupBy?: string;
   onGroupByChange?: (key: string) => void;
+  /** Tree mode only: open or close every node. */
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
   onRetry?: () => void | Promise<void>;
   /** Welded to the right edge of the search field: square left corners, shared border. */
   attached?: boolean;
@@ -32,12 +35,15 @@ export function hasOverflowItems({
   onGroupByChange,
   onRetry,
   onResetView,
+  onExpandAll,
+  onCollapseAll,
 }: OverflowMenuProps): boolean {
   return !!(
     (hasFilterableColumns && onToggleFilters) ||
     (groupOptions && groupOptions.length > 0 && onGroupByChange) ||
     columnsControl ||
     onRetry ||
-    onResetView
+    onResetView ||
+    (onExpandAll && onCollapseAll)
   );
 }

@@ -1,6 +1,6 @@
 import type { Row } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useMemo, type RefObject } from "react";
+import { useCallback, useMemo, type RefObject } from "react";
 import { useElementHeight } from "./useElementHeight";
 import type { GroupBucket } from "../types/grouping";
 
@@ -46,10 +46,24 @@ export function useVirtualRows<TRow extends object>({
   const { ref: headRef, height: headerHeight } =
     useElementHeight<HTMLTableSectionElement>();
 
+  /* Measured heights are cached per key. Keyed by index, a row taller than the estimate
+     (open detail panel, inline editor) leaves its height behind at that index when a
+     node or a group above it opens or closes. Stable identity: the virtualizer
+     recomputes every measurement when this function changes. */
+  const getItemKey = useCallback(
+    (i: number) => {
+      const item = items[i];
+      if (!item) return i;
+      return item.kind === "group" ? `g:${item.group.key}` : `r:${item.row.id}`;
+    },
+    [items]
+  );
+
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is compiler-incompatible by design; skipping memoization here is the intended behavior.
   const rowVirtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,
+    getItemKey,
     // Spec heights: 40px data rows, 36px group headers.
     estimateSize: (i) => (items[i]?.kind === "group" ? 36 : 40),
     overscan: 10,

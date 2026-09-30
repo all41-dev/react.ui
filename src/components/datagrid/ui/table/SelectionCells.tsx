@@ -71,16 +71,18 @@ function SelectAllHeader<TRow extends object>({
 
   /* Scoped to the rows actually on screen. Grouping renders the whole sorted set and
      hides the pager, so reading the page-sliced model there would select five rows out
-     of the thirty in front of the user — and say so in the label. */
+     of the thirty in front of the user — and say so in the label. A tree's sorted model
+     holds its roots only; its row model is already the unpaged list of open nodes. */
+  const isTree = !!table.options.getSubRows;
   const visibleIds = (
-    selection.rendersAllRows
+    selection.rendersAllRows && !isTree
       ? table.getSortedRowModel().rows
       : table.getRowModel().rows
   ).map((r) => r.id);
   const selectedVisible = visibleIds.filter((id) => selection.selectedIds.has(id)).length;
   const all = visibleIds.length > 0 && selectedVisible === visibleIds.length;
   const some = selectedVisible > 0 && !all;
-  const scope = selection.rendersAllRows ? "rows" : "rows on this page";
+  const scope = scopeLabel(isTree, selection.rendersAllRows);
 
   return (
     <Checkbox
@@ -90,6 +92,12 @@ function SelectAllHeader<TRow extends object>({
       label={`${all ? "Unselect" : "Select"} all ${scope}`}
     />
   );
+}
+
+/** Names what the header checkbox covers. A tree leaves out rows under a closed node. */
+function scopeLabel(isTree: boolean, rendersAllRows: boolean): string {
+  if (isTree) return "visible rows";
+  return rendersAllRows ? "rows" : "rows on this page";
 }
 
 function SelectRowCell<TRow extends object>({ row }: CellContext<TRow, unknown>) {

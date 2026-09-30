@@ -17,7 +17,11 @@ type Params<TRow extends object, TForm extends object> = {
   edit: ReturnType<typeof useEditSession<TRow>>;
   replaceRow: (prevRow: TRow, saved: TRow) => void;
   addRow: (created: TRow) => void;
-  removeRow: (row: TRow) => void;
+  removeRows: (keys: ReadonlySet<string>) => void;
+  /** Keys nested under a row. Empty outside tree mode. */
+  descendantKeysOf: (key: string) => string[];
+  /** Opens the ancestors of a row just written. No-op outside tree mode. */
+  reveal: (row: TRow) => void;
   deselect: (key: string) => void;
   /** The grid's row identity — the same function the table gets as `getRowId`. */
   getKey: (row: TRow) => string;
@@ -36,7 +40,9 @@ export function useGridMutations<TRow extends object, TForm extends object>({
   edit,
   replaceRow,
   addRow,
-  removeRow,
+  removeRows,
+  descendantKeysOf,
+  reveal,
   deselect,
   getKey,
   confirm,
@@ -48,8 +54,15 @@ export function useGridMutations<TRow extends object, TForm extends object>({
   const handleDelete = useCallback(
     async (row: TRow) => {
       if (!onDelete) return;
+      const key = getKey(row);
+      const nested = descendantKeysOf(key);
       const ok = await confirm({
-        title: "Delete this item?",
+        title:
+          nested.length === 0
+            ? "Delete this item?"
+            : `Delete this item and its ${nested.length} nested ${
+                nested.length === 1 ? "row" : "rows"
+              }?`,
         description: "This action cannot be undone.",
         confirmText: "Delete",
         cancelText: "Cancel",
@@ -59,10 +72,20 @@ export function useGridMutations<TRow extends object, TForm extends object>({
       await onDelete(row);
       // Errors deliberately propagate: the action button owns the catch, the toast and
       // its own spinner state.
-      removeRow(row);
-      deselect(getKey(row));
+      // `onDelete` runs once, for the row; its subtree leaves the grid with it.
+      const removed = [key, ...nested];
+      removeRows(new Set(removed));
+      for (const k of removed) deselect(k);
     },
-    [onDelete, confirm, removeRow, deselect, getKey]
+    [onDelete, confirm, removeRows, descendantKeysOf, deselect, getKey]
+  );
+
+  const replaceAndReveal = useCallback(
+    (prevRow: TRow, saved: TRow) => {
+      replaceRow(prevRow, saved);
+      reveal(saved);
+    },
+    [replaceRow, reveal]
   );
 
   const handleSubmit = useCallback(
@@ -74,10 +97,13 @@ export function useGridMutations<TRow extends object, TForm extends object>({
         // consumer would otherwise see nothing happen at all.
         if (editingRow) {
           const saved = await onPersist("edit", values, editingRow);
-          if (saved) replaceRow(editingRow, saved);
+          if (saved) replaceAndReveal(editingRow, saved);
         } else {
           const created = await onPersist("create", values);
-          if (created) addRow(created);
+          if (created) {
+            addRow(created);
+            reveal(created);
+          }
         }
         close();
       } catch (e) {
@@ -85,7 +111,7 @@ export function useGridMutations<TRow extends object, TForm extends object>({
         throw e;
       }
     },
-    [onPersist, editingRow, close, replaceRow, addRow]
+    [onPersist, editingRow, close, replaceAndReveal, addRow, reveal]
   );
 
   const { cellEditColumn, handleCellSave, startCellEditFromCell } =
@@ -94,7 +120,7 @@ export function useGridMutations<TRow extends object, TForm extends object>({
       zodSchema,
       onPersist,
       edit,
-      replaceRow,
+      replaceRow: replaceAndReveal,
     });
 
   return {

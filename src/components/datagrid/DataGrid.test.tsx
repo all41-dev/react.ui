@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -592,6 +592,26 @@ describe("DataGrid", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
       );
       expect(ref.current?.isEditing()).toBe(false);
+    });
+
+    it("startCreate presets the form from a seed, and a new seed replaces it", async () => {
+      const ref = createRef<DataGridHandle<User>>();
+      const onEditStateChange = vi.fn();
+      renderGrid({
+        ref,
+        onPersist: vi.fn(),
+        editContainer: "inline",
+        onEditStateChange,
+      });
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      act(() => ref.current?.startCreate({ name: "First" }));
+      expect(await screen.findByLabelText("Name")).toHaveValue("First");
+      // The seed stays the grid's own: the reported state is the bare session kind.
+      expect(onEditStateChange).toHaveBeenLastCalledWith({ kind: "create" });
+
+      act(() => ref.current?.startCreate({ name: "Second" }));
+      await waitFor(() => expect(screen.getByLabelText("Name")).toHaveValue("Second"));
     });
 
     it("cancelling never leaves the drawer open as a blank Create form", async () => {

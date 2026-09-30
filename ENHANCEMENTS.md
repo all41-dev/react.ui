@@ -55,6 +55,24 @@ From the ops workbench's record band (`react-front`,
 - **`onSubmit(values, { dirtyKeys })`** — the changed keys, so a record that PATCHes
   only what moved does not diff the values itself.
 
+From the ops workbench's grid handoff (`react-front`,
+`docs/handoff/workbench/DATAGRID_HANDOFF.md` §4.5), in the Unreleased CHANGELOG:
+
+- **DataGrid tree mode** — `tree={{ parentKey }}` over a flat, parent-linked array. The
+  consumer flattens nested data before passing it in, gives the parent field a column
+  (form-only is enough) and removes the subtree server-side when `onDelete` fires for a
+  parent.
+- **`startCreate(seed)`** for the workbench's "add child" action.
+
+Asked for by the same handoff and not built yet:
+
+- Subtree roll-ups for `agg: "sum"` on parent rows. What a parent shows when it has a
+  value of its own is undecided.
+- Group-by over root nodes.
+- A nested `children` input shape.
+- Selecting a parent selects its subtree.
+- Dragging a row onto another to reparent it.
+
 ## Shipped
 
 Four requests from the ops subscription form (`react-front`,

@@ -2,12 +2,16 @@ import { flexRender, type Cell } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import { ActionsOverlayCell } from "./ActionsOverlayCell";
 import { BodyDataCell } from "./BodyDataCell";
+import type { TreeNodeState } from "./TreeCell";
 
 /** One `<td>` per visible cell, routed by column kind. */
 export function RowCells<TRow extends object>({
   cells,
+  node,
 }: {
   cells: Cell<TRow, unknown>[];
+  /** Tree mode: the row's place in the tree, for the tree column's cell. */
+  node?: TreeNodeState;
 }) {
   return (
     <>
@@ -27,7 +31,7 @@ export function RowCells<TRow extends object>({
             </td>
           );
         }
-        return <BodyDataCell key={c.id} c={c} />;
+        return <BodyDataCell key={c.id} c={c} node={node} />;
       })}
     </>
   );

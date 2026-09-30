@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 
+import type { TreeLevel } from "./types/tree";
 import type { ActionColumnOpts, ActionView } from "./ui/makeActionColumns";
 
 /**
@@ -32,6 +33,22 @@ export type DataGridContextValue = {
   rowActions: ActionColumnOpts<unknown>;
   /** The body currently on screen, forwarded into consumer `renderActions`. */
   view: ActionView;
+  /**
+   * Present in tree mode. Which nodes are open is deliberately not here: it reaches
+   * each row as props, so a toggle re-renders the rows it moves and not every cell.
+   */
+  tree?: TreeContextValue;
+};
+
+export type TreeContextValue = {
+  /** The column drawing the indent and the chevron; `undefined` when none is visible. */
+  columnId: string | undefined;
+  typeKey?: string;
+  levels?: TreeLevel[];
+  showTypeTag: boolean;
+  /** A search or a filter holds every node open, so the chevrons are disabled. */
+  locked: boolean;
+  setNodeOpen: (rowId: string, open: boolean) => void;
 };
 
 export const DataGridContext = createContext<DataGridContextValue | null>(null);
@@ -52,8 +69,8 @@ export type DataGridSelectionValue = {
   setPage: (pageIds: string[], selected: boolean) => void;
   /**
    * True when the body renders the whole filtered set rather than one page — grouping
-   * replaces paging. The header checkbox scopes itself to what is on screen, so it must
-   * follow this rather than always reading the paginated row model.
+   * and tree mode replace paging. The header checkbox scopes itself to what is on
+   * screen, so it must follow this rather than always reading the paginated row model.
    */
   rendersAllRows: boolean;
 };

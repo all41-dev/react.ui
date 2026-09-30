@@ -15,10 +15,14 @@ export function getAccessorKey<TRow extends object, TForm extends object = TRow>
  * Only the declared columns are read. Copying the whole row instead would make every
  * field it carries — audit stamps, server-side timestamps, nested relations — a form
  * value that comes back out of `handleSubmit` and gets posted.
+ *
+ * `seed` presets a create form. It is form-shaped already, so it bypasses `toForm`, and
+ * like the row it is read for the declared columns only.
  */
 export function computeDefaults<TRow extends object, TForm extends object = TRow>(
   row?: TRow,
-  columns?: WithMeta<TRow, TForm>[]
+  columns?: WithMeta<TRow, TForm>[],
+  seed?: object
 ): DefaultValues<TForm> {
   const d: Record<string, unknown> = {};
   for (const c of columns ?? []) {
@@ -36,6 +40,10 @@ export function computeDefaults<TRow extends object, TForm extends object = TRow
     } else if (!row && c.meta?.editor) {
       // Creating: the editor's own default, else false for switches, else "".
       setPath(d, key, c.meta.default ?? (c.meta.editor === "switch" ? false : ""));
+    }
+    if (!row && seed) {
+      const seeded = getPath(seed, key);
+      if (seeded !== undefined) setPath(d, key, seeded);
     }
   }
   return d as DefaultValues<TForm>;

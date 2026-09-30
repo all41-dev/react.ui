@@ -21,6 +21,7 @@ export function EditContainer<
   mode,
   row,
   rowKey,
+  seed,
   columns,
   zodSchema,
   formLayout,
@@ -33,6 +34,8 @@ export function EditContainer<
   row?: TRow;
   /** The grid's resolved row identity — see `OverlayEditContainerProps.rowKey`. */
   rowKey?: string | number;
+  /** Create mode: values the form starts from, over the column defaults. */
+  seed?: object;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   formLayout?: FormLayoutConfig;
@@ -46,6 +49,7 @@ export function EditContainer<
     mode,
     row,
     rowKey,
+    seed,
     columns,
     zodSchema,
     formLayout,

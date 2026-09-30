@@ -6,8 +6,8 @@ worked examples: `./README.md`.
 **What it is:** a declarative data table. The caller supplies a TanStack Table column array
 carrying a `meta` block plus a zod schema; the grid derives the table, the toolbar, the
 filter row, the edit form and its validation from those two inputs. Sorting, filtering,
-search, pagination, grouping, cards/kanban views, row virtualization, column persistence
-and create/edit/delete flows are built in.
+search, pagination, grouping, tree mode, cards/kanban views, row virtualization, column
+persistence and create/edit/delete flows are built in.
 
 **Published as:** `@all41-dev/react.ui` (version in `package.json`). Consumers import from the package root.
 In-repo code imports relative paths. Entry: `src/index.ts`.
@@ -58,6 +58,22 @@ In-repo code imports relative paths. Entry: `src/index.ts`.
    the column list, not from the row, so anything the row holds without a column — audit
    stamps, server timestamps, nested relations — never reaches `onPersist`. A field the
    backend requires needs a column, even a form-only one (`meta.visibleInTable: false`).
+12. **"Open" is tree state; "expanded" is the detail panel.** `expandedRowIds`,
+   `renderExpandedRow` and `isExpanded` belong to the panel under a row. A tree node is
+   open or closed (`isOpen`, `setNodeOpen`, `openAll`). TanStack's own `expanded` state
+   is the one place the word means tree state, and only `useGridTree` writes it. The
+   public `expandAll` / `collapseAll` and the chevron's label are the user-facing names.
+13. **In tree mode a row count is `flatRows.length`.** `getFilteredRowModel().rows` holds
+   the roots only, and `getRowModel().rows` the nodes currently open. A flat grid's
+   `flatRows` is the same list as its `rows`, so counting `flatRows` is right in both.
+14. **A sorted `Row` is a copy.** `getSortedRowModel` spreads each row and gives the copy
+   the sorted `subRows`; the methods on it still close over the original. Read
+   `subRows` off the row in hand, never through `row.getCanExpand()` or a cell's
+   `cell.row`.
+15. **In tree mode `idAccessor` must be referentially stable too.** The tree model is
+   memoized on the key function built from it, so an inline arrow rebuilds the tree and
+   hands TanStack a new `data` array on every render. A flat grid passes its rows
+   through and does not care.
 
 ---
 
@@ -108,6 +124,21 @@ Defined in `types/grid.ts`, re-exported from `DataGrid.tsx`.
 | `onRowClick` | `(row: TRow) => void` | — |
 | `expandedRowIds` | `ReadonlySet<string \| number>` | — (fully controlled) |
 | `renderExpandedRow` | `(row: TRow) => ReactNode` | — |
+| `tree` | `TreeConfig<TRow>` | — (presence turns tree mode on; see §5) |
+
+```ts
+type TreeConfig<TRow> = {
+  parentKey: string;          // field holding the parent's id; dotted path allowed
+  columnId?: string;          // default: the first visible data column
+  defaultOpen?: "roots" | "all" | "none";   // default "roots"
+  typeKey?: string;           // field naming the row's level type
+  levels?: TreeLevel[];       // { type, label?, color?, icon? }
+  showTypeTag?: boolean;      // the level's label as a tag after the value
+};
+```
+
+`levels` reaches the grid context: keep it stable, like the members of
+`actionColumnOptions`.
 
 ### Selection
 
@@ -168,7 +199,7 @@ cell on every keystroke. Hoist them to module scope or wrap them in
 | `initialSorting` | `SortingState` | `[]` |
 | `pagination` | `PaginationProp` | enabled, pageSize 10 |
 | `storageKey` | `string` | `` `dg:${slug(title)}` `` |
-| `ref` | `Ref<DataGridHandle<TRow>>` | — |
+| `ref` | `Ref<DataGridHandle<TRow, TForm>>` | — |
 
 ```ts
 type PaginationProp = {
@@ -180,17 +211,25 @@ type PaginationProp = {
 };
 ```
 
-### `DataGridHandle<TRow>`
+### `DataGridHandle<TRow, TForm = any>`
 
 ```ts
 {
-  startCreate(): void;
+  startCreate(seed?: Partial<TForm>): void;
   startEdit(row: TRow): void;
   cancelEdit(): void;      // closes form or cell popover; no-op when idle
   isEditing(): boolean;
   clearSelection(): void;
+  expandAll(): void;       // tree mode; no-op in a flat grid and while criteria hold
+  collapseAll(): void;     // the nodes open
 }
 ```
+
+`seed` presets a create form over the column defaults. It is form-shaped (no `toForm`),
+read for declared columns only, and ignored unless it is a plain object — so
+`onClick={handle.startCreate}` does not seed the form with the click event. A different
+seed object remounts the form (`formKeyOf`). `onEditStateChange` reports
+`{ kind: "create" }` without it.
 
 ---
 
@@ -298,30 +337,60 @@ field react-hook-form does.
   Never rely on TanStack's inference — it reads the first row's value type and knows
   nothing about what the filter UI writes.
 - **Virtualization**: `@tanstack/react-virtual` in `TableView`; `estimateSize` 40px rows /
-  36px group headers, `overscan: 10`.
+  36px group headers, `overscan: 10`. Items are keyed by row id or group key
+  (`getItemKey`), so a measured height follows its row when the list above it shifts.
 - **Column prefs**: size / order / visibility persisted to `localStorage` under
   `storageKey`; Columns popover + Reset. Refuses to hide the last visible column. Nothing
   is written until the user changes something — persisting an untouched grid would pin a
   later-added column to the end of the table permanently.
 - **Selection scope**: the header checkbox covers the rows actually on screen — the page
-  normally, the whole sorted set while grouping is active (grouping hides the pager) — and
-  its label names the same scope.
+  normally, the whole sorted set while grouping is active (grouping hides the pager), the
+  open nodes in tree mode — and its label names the same scope.
+- **Tree mode** (`tree` prop; `hooks/useGridTree.ts`, `utils/treeModel.ts`): the flat
+  rows are nested once by `buildTree` and TanStack gets the roots plus `getSubRows`.
+  - `filterFromLeafRows` keeps the ancestors of a match. While a search or a column
+    filter is active the table's `expanded` is `true` and everything that writes the
+    open state is inert — the chevrons (`aria-disabled`, still focusable), the menu's
+    Expand all / Collapse all and the handle's `expandAll` / `collapseAll`; the stored
+    open state is untouched and returns when the criteria clear.
+  - The footer counts every kept node and reads "5 of 7 shown" while some sit under a
+    closed parent.
+  - Open state is a rule (`"roots" | "all" | "none"`) plus per-node overrides, not a
+    list of keys, so rows arriving later follow the rule.
+  - Sorting is per sibling set. Pagination is forced off, the cards toggle is not
+    rendered and group-by is skipped; `pagination`, `card` and `groupOptions` passed
+    alongside `tree` warn once in development.
+  - The tree column is `tree.columnId` while that column is visible, else the first
+    visible data column.
+  - Delete removes the row and its descendants locally and says how many in the
+    confirm; `onDelete` runs once, with the row.
+  - After a create or an edit the written row's ancestors are opened (`reveal`).
+  - A row naming a missing parent, or closing a cycle, becomes a root, with one
+    development warning.
+  - `renderExpandedRow` still works: the panel sits under its row, above the row's
+    children. `aria-expanded` on a row is its node state and nothing else: a parent
+    carries it, a leaf does not, with or without a panel. In a flat grid it is the panel.
+  - Not supported: nested `children` input, subtree roll-ups for `agg`, group-by over
+    roots, selecting a subtree through its parent.
 - **Reset view** (`hooks/useDataGridState.ts`): one command putting the grid back to how it
   first renders — column prefs, search, column filters, sorting, grouping and page. Each
   hook owns its own `reset` and `isDefault` (`useColumnPrefs`, `useGridFilters`,
   `useGridGrouping`, `useGridPagination`); the state hook only composes them, so new view
-  state either joins the list or stays out on purpose. Rendered disabled while every part
-  reports default. A default-hidden column (`meta.visibleInTable`) is the shipped layout,
+  state either joins the list or stays out on purpose. The tree's open state is one of
+  the parts (`useGridTree`). Rendered disabled while every part reports default. A default-hidden column (`meta.visibleInTable`) is the shipped layout,
   not a change, so it does not make the view dirty.
 - **Page reset**: a filter or sort change returns to page 1 (real changes only — never on
   mount, which would overwrite a controlled parent's initial `pageIndex`).
 - **Delete confirmation**: `useConfirm` dialog, destructive styling.
 - **Local reflection**: create/edit/delete update local rows immediately; a query adapter
-  re-supplying `initialData` overwrites with server truth.
+  re-supplying `initialData` overwrites with server truth. The local add is by key, so a
+  parent that already put the created row into `initialData` does not get it twice.
 - **Empty states**: distinguishes no-data from no-results, the latter offering
   Clear filters.
 - **Error banner**: under the toolbar, with Retry; disables Add while shown.
-- **a11y**: grid semantics and accessible name from `title`; keyboard-operable rows;
+- **a11y**: grid semantics (`treegrid` with `aria-level` in tree mode, chevrons named
+  "Expand …" / "Collapse …", ArrowRight / ArrowLeft on a focused chevron) and accessible
+  name from `title`; keyboard-operable rows;
   labelled pager region with arrow keys; focus trap (seeded on the first control, not the
   first focusable node) + Escape + focus restore on overlays;
   `alertdialog` for confirms; `aria-invalid` / `aria-describedby` / `aria-required` wired
@@ -338,7 +407,7 @@ Values: `DataGrid`, `useCrudAdapter`, `useTanstackQueryAdapter`, `useColumnPrefs
 Types: `DataGridProps`, `DataGridHandle`, `WithMeta`, `ColumnMeta`, `EditorKind`, `Option`,
 `SelectOption`, `ColumnFilterMeta`, `ActionColumnOpts`, `EditContainerKind`,
 `FormLayoutConfig`, `FormFieldGroup`, `FormColSpan`, `CrudAdapter`, `IdLike`,
-`UseTQAdapterParams`, `LoadingScreenProps`, `LoadingScreenVariant`, `LoadingIndicatorOptions`.
+`TreeConfig`, `TreeLevel`, `UseTQAdapterParams`, `LoadingScreenProps`, `LoadingScreenVariant`, `LoadingIndicatorOptions`.
 
 Styles: `@all41-dev/react.ui/styles` → `dist/react.ui.css`. Nothing injects it at runtime;
 consumers must import it.
@@ -370,8 +439,9 @@ Peers: `react` 19, `react-dom`, `zod` 4, `react-hook-form`, `@hookform/resolvers
 
 ```
 DataGrid.tsx            Composition only. Add no logic here
-DataGridContext.ts      tooltipId, canCellEdit, startCellEdit, getId, rowActions
+DataGridContext.ts      tooltipId, canCellEdit, startCellEdit, getId, rowActions, tree
 types/grid.ts           DataGridProps, DataGridHandle
+types/tree.ts           TreeConfig, TreeLevel
 types/column.ts         ColumnMeta, WithMeta, EditorKind, ColumnFilterMeta
 types/grouping.ts       GroupOption, GroupBucket
 types/facets.ts         FacetChip — one active criterion, rendered as a pill
@@ -379,7 +449,7 @@ types/crud.ts           CrudAdapter, IdLike
 types/toolbar.ts        GridView, DataGridToolbarProps
 
 hooks/
-  useGridRows           Local rows + replaceRow / addRow / removeRow
+  useGridRows           Local rows + replaceRow / addRow / removeRows
   useRowSelection       Checkbox selection, scoped to the rendered rows
   useEditSession        Discriminated union: idle | create | edit | cell
   useGridMutations      All writes: submit, delete, cell commit
@@ -388,6 +458,8 @@ hooks/
   useGridPagination     Controlled/uncontrolled paging
   useGridColumns        Assembles columns, attaches filterFns, injects select/action cols
   useGridGrouping       Group-by, collapse state, buckets
+  useGridTree           Tree mode: the nested model, which nodes are open, reveal;
+                        also the dev warnings for props tree mode ignores
   useDataGridTable      The TanStack table instance
   useColumnPrefs        localStorage persistence
   useColumnPrefsHandlers  TanStack's onXChange contract → one prefs slice each
@@ -422,7 +494,7 @@ ui/
                         gets a mouseover with no mouseout and strands the tooltip
   makeActionColumns     Row action buttons + column factory
   table/                Colgroup, HeaderCell, HeaderFilter, GroupHeaderRow,
-                        DataRowFragment, BodyDataCell, SelectionCells,
+                        DataRowFragment, BodyDataCell, TreeCell, SelectionCells,
                         CellEditPopover, CellWithTooltip, ActionsOverlayCell,
                         Resizer
   table/filters/        One component per `ColumnFilterMeta` kind, plus the shared
@@ -444,6 +516,8 @@ utils/
   getRowKey.ts          Row identity: `rowKeyOf` (the grid's key) and `getRowKey` (the
                         consumer's declared id)
   getAccessorKey.ts     getAccessorKey, computeDefaults, applyFromForm
+  treeModel.ts          buildTree — flat parent-linked rows → roots, children,
+                        ancestors, descendants (pure)
   objectPath.ts         getPath / setPath / flattenPaths — dotted accessor keys, and
                         react-hook-form's nested `errors` / `dirtyFields` flattened onto
                         the same axis the grid keys by

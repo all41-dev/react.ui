@@ -40,7 +40,9 @@ export function DataGridPagination<TRow extends object>({
   };
 
   const filteredTotal =
-    typeof totalCount === "number" ? totalCount : table.getFilteredRowModel().rows.length;
+    typeof totalCount === "number"
+      ? totalCount
+      : table.getFilteredRowModel().flatRows.length;
 
   const rawCount = table.getPageCount();
   const pageCount = Number.isFinite(rawCount)

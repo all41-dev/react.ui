@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import {
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnFiltersState,
+  type ExpandedState,
   type OnChangeFn,
   type PaginationState,
   type SortingState,
@@ -42,6 +44,11 @@ type Params<TRow extends object, TForm extends object> = {
   paginationEnabled: boolean;
   pagination: PaginationState;
   onPaginationChange: OnChangeFn<PaginationState>;
+  /** Tree mode. `data` is then the root rows and the rest hang off `getSubRows`. */
+  tree?: {
+    getSubRows: (row: TRow) => TRow[] | undefined;
+    expanded: ExpandedState;
+  };
 };
 
 const DEFAULT_COLUMN = {
@@ -67,11 +74,13 @@ export function useDataGridTable<TRow extends object, TForm extends object>({
   paginationEnabled,
   pagination,
   onPaginationChange,
+  tree,
 }: Params<TRow, TForm>) {
   const coreRowModel = useMemo(() => getCoreRowModel(), []);
   const sortedRowModel = useMemo(() => getSortedRowModel(), []);
   const filteredRowModel = useMemo(() => getFilteredRowModel(), []);
   const paginationRowModel = useMemo(() => getPaginationRowModel(), []);
+  const expandedRowModel = useMemo(() => getExpandedRowModel(), []);
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table is compiler-incompatible by design; skipping memoization here is the intended behavior.
   return useReactTable({
@@ -82,6 +91,15 @@ export function useDataGridTable<TRow extends object, TForm extends object>({
     getSortedRowModel: sortedRowModel,
     getFilteredRowModel: filteredRowModel,
     ...(paginationEnabled ? { getPaginationRowModel: paginationRowModel } : {}),
+    /* `filterFromLeafRows` keeps a row when it matches or any descendant is kept, so a
+       match never loses its ancestors. `expanded` is written by `useGridTree` alone. */
+    ...(tree
+      ? {
+          getSubRows: tree.getSubRows,
+          getExpandedRowModel: expandedRowModel,
+          filterFromLeafRows: true,
+        }
+      : {}),
     defaultColumn: DEFAULT_COLUMN,
     columnResizeMode: "onChange",
     columnResizeDirection: "ltr",
@@ -97,6 +115,7 @@ export function useDataGridTable<TRow extends object, TForm extends object>({
       globalFilter,
       sorting,
       ...(paginationEnabled ? { pagination } : {}),
+      ...(tree ? { expanded: tree.expanded } : {}),
     },
     onColumnSizingChange: prefHandlers.onColumnSizingChange,
     onColumnVisibilityChange: prefHandlers.onColumnVisibilityChange,

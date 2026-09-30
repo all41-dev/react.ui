@@ -21,12 +21,13 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
   view?: "list" | "cards";
   onViewChange?: (v: "list" | "cards") => void;
 }) {
-  const { edit, filters, grouping, table, gridColumns } = state;
+  const { edit, filters, grouping, table, gridColumns, tree } = state;
   const { resetView, viewIsDefault } = state;
 
   /* The filtered count, matching what the pager below reports. The unfiltered total
-     would read as the same number and contradict it — "50" next to "1–3 of 3". */
-  const count = table.getFilteredRowModel().rows.length;
+     would read as the same number and contradict it — "50" next to "1–3 of 3".
+     `flatRows`, so a tree counts every node rather than its roots. */
+  const count = table.getFilteredRowModel().flatRows.length;
 
   return (
     <DataGridToolbar
@@ -57,9 +58,11 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
       viewIsDefault={viewIsDefault}
       view={view}
       onViewChange={onViewChange}
-      groupOptions={props.groupOptions}
+      groupOptions={tree.enabled ? undefined : props.groupOptions}
       groupBy={grouping.groupBy}
       onGroupByChange={grouping.setGroupBy}
+      onExpandAll={tree.enabled ? tree.openAll : undefined}
+      onCollapseAll={tree.enabled ? tree.closeAll : undefined}
       facets={facets}
     />
   );

@@ -1,6 +1,7 @@
 import type { Column } from "@tanstack/react-table";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+import { DataGridContext } from "../../DataGridContext";
 import type { BodyItem } from "../../hooks/useVirtualRows";
 import { DataRowFragment } from "./DataRowFragment";
 import { GroupHeaderRow } from "./GroupHeaderRow";
@@ -46,6 +47,8 @@ export function VirtualRowList<TRow extends object>({
   renderExpandedRow,
   changedRowId,
 }: VirtualRowListProps<TRow>) {
+  const treeMode = !!useContext(DataGridContext)?.tree;
+
   return (
     <>
       {virtualItems.map((virtualRow) => {
@@ -77,6 +80,9 @@ export function VirtualRowList<TRow extends object>({
           selectedRowId === key || (selectedRowIds?.has(key) ?? false);
         const isExpanded = expandedRowIds?.has(key) ?? false;
         const isChanged = changedRowId === key;
+        /* Read off the row in hand: sorting hands out copies whose `subRows` are the
+           sorted children, and a filter drops the children that are not kept. */
+        const hasChildren = treeMode && r.subRows.length > 0;
 
         return (
           /* No zebra striping — rows sit on the card surface, separated by the
@@ -101,6 +107,9 @@ export function VirtualRowList<TRow extends object>({
               isSelected={isSelected}
               isExpanded={isExpanded}
               isChanged={isChanged}
+              treeDepth={treeMode ? r.depth : undefined}
+              hasChildren={hasChildren}
+              isOpen={hasChildren && r.getIsExpanded()}
               inlineEditor={isEditing ? inlineEditor : undefined}
               viewportWidth={viewportWidth}
               renderExpandedRow={renderExpandedRow}

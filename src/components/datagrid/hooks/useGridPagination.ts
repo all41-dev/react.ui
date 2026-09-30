@@ -22,6 +22,8 @@ type Params = {
   columnFilters: ColumnFiltersState;
   globalFilter: string;
   sorting: SortingState;
+  /** Tree mode shows the whole hierarchy; paging is off whatever the prop says. */
+  forcedOff?: boolean;
 };
 
 export function useGridPagination({
@@ -29,8 +31,9 @@ export function useGridPagination({
   columnFilters,
   globalFilter,
   sorting,
+  forcedOff = false,
 }: Params) {
-  const enabled = paginationProp?.enabled ?? true;
+  const enabled = !forcedOff && (paginationProp?.enabled ?? true);
 
   const [uncontrolled, setUncontrolled] = useState<PaginationState>({
     pageIndex: paginationProp?.initialState?.pageIndex ?? 0,

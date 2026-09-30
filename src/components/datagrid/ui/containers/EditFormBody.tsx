@@ -18,9 +18,34 @@ export function getRowId<T>(row?: T) {
   return r?.id ?? r?.uuid ?? "";
 }
 
+const seedIds = new WeakMap<object, number>();
+let seedCount = 0;
+
+/**
+ * The form's remount key. A create session with another seed is another form: under
+ * one shared key the fields would keep the previous seed's values.
+ */
+export function formKeyOf<T>(
+  mode: "create" | "edit",
+  rowKey: string | number | undefined,
+  row: T | undefined,
+  seed: object | undefined
+) {
+  if (mode === "edit") return `edit-${rowKey ?? getRowId(row)}`;
+  if (!seed) return "create";
+  let id = seedIds.get(seed);
+  if (id === undefined) {
+    id = ++seedCount;
+    seedIds.set(seed, id);
+  }
+  return `create-${id}`;
+}
+
 type EditFormBodyProps<TRow extends object, TForm extends object> = {
   mode: "create" | "edit";
   row?: TRow;
+  /** Create mode: values the form starts from, over the column defaults. */
+  seed?: object;
   columns: WithMeta<TRow, TForm>[];
   zodSchema: ZodType<TForm>;
   formLayout?: FormLayoutConfig;
@@ -39,6 +64,7 @@ type EditFormBodyProps<TRow extends object, TForm extends object> = {
 export function EditFormBody<TRow extends object, TForm extends object>({
   mode,
   row,
+  seed,
   columns,
   zodSchema,
   formLayout,
@@ -53,6 +79,7 @@ export function EditFormBody<TRow extends object, TForm extends object>({
     TForm
   >({
     row,
+    seed,
     columns,
     zodSchema,
     onSubmit,

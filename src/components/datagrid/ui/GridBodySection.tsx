@@ -57,6 +57,7 @@ export function GridBodySection<TRow extends object, TForm extends object>({
         mode={edit.formMode}
         row={edit.editingRow}
         rowKey={editingRowKey}
+        seed={edit.createSeed}
         columns={props.columns}
         zodSchema={props.zodSchema}
         formLayout={props.formLayout}

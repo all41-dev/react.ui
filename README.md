@@ -159,6 +159,21 @@ The DataGrid is a powerful and flexible table component with built-in CRUD funct
 | `error` | `string \| null` | No | Error message to display |
 | `onRetry` | `() => void` | No | Retry callback for error state |
 | `onEditStateChange` | `(state: EditState<T>) => void` | No | Fires when an editor opens, swaps or closes |
+| `tree` | `TreeConfig<T>` | No | Renders rows that name a parent as a collapsible hierarchy |
+
+Tree mode takes the same flat array and one field naming each row's parent:
+
+```tsx
+<DataGrid
+  initialData={units}
+  tree={{ parentKey: "parentId", defaultOpen: "roots" }}
+  …
+/>
+```
+
+Search and filters keep the ancestors of a match, sorting applies among siblings, and
+deleting a row removes its subtree. Pagination, the cards view and group-by do not apply.
+The full rules are in `src/components/datagrid/README.md`.
 
 #### Column Configuration
 
@@ -617,6 +632,9 @@ The demo app showcases all components with interactive examples:
   - Form validation
   - Pagination and filtering
   - Custom cell renderers
+- **DataGrid tree** - Tree mode on a department hierarchy
+  - Search and filters that keep ancestors
+  - Create under a parent, delete a subtree
 
 Access at `http://localhost:3333` when running `npm run dev`
 

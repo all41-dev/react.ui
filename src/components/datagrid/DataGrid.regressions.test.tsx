@@ -1,5 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { flushSync } from "react-dom";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -86,5 +88,43 @@ describe("filter row", () => {
 
     expect(await screen.findByRole("textbox", { name: /filter by name/i })).toBeVisible();
     expect(within(pager).getByRole("button", { current: "page" })).toHaveTextContent("2");
+  });
+});
+
+/**
+ * A parent that owns the rows adds the created one to `initialData` from inside
+ * `onPersist` and returns it as well. The grid may re-sync before its own local add
+ * runs, and the row must still be listed once.
+ */
+describe("create with a parent that owns the rows", () => {
+  function OwnedGrid() {
+    const [rows, setRows] = useState(USERS);
+    return (
+      <DataGrid<User, any>
+        title="Users"
+        columns={COLUMNS}
+        zodSchema={schema as never}
+        initialData={rows}
+        editContainer="inline"
+        onPersist={(_mode, values) => {
+          const created: User = { id: 6, name: values.name };
+          // Flushed, so the grid has the new `initialData` before this returns.
+          flushSync(() => setRows((all) => [...all, created]));
+          return created;
+        }}
+      />
+    );
+  }
+
+  it("lists the created row once", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<OwnedGrid />);
+
+    await user.click(screen.getByRole("button", { name: /add/i }));
+    await user.type(await screen.findByLabelText("Name"), "Glenna");
+    await user.click(screen.getByRole("button", { name: /^save$/i }));
+
+    await waitFor(() => expect(screen.getAllByText("Glenna")).toHaveLength(1));
+    expect(screen.getByText("1–6 of 6")).toBeInTheDocument();
   });
 });

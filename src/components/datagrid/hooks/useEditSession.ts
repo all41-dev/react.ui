@@ -15,11 +15,17 @@ export type CellAnchor = {
  */
 export type EditSession<TRow> =
   | { kind: "idle" }
-  | { kind: "create" }
+  | { kind: "create"; seed?: object }
   | { kind: "edit"; row: TRow }
   | { kind: "cell"; row: TRow; columnId: string; anchor: CellAnchor };
 
 const IDLE = { kind: "idle" } as const;
+
+const isPlainObject = (v: unknown): v is object => {
+  if (v === null || typeof v !== "object") return false;
+  const proto: unknown = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
+};
 
 export function useEditSession<TRow>() {
   const [session, setSession] = useState<EditSession<TRow>>(IDLE);
@@ -37,7 +43,13 @@ export function useEditSession<TRow>() {
     setSession(next);
   }, []);
 
-  const startCreate = useCallback(() => enter({ kind: "create" }), [enter]);
+  /* Only a plain object counts as a seed: handed straight to `onClick`, this is called
+     with the click event, whose fields must not reach the form. */
+  const startCreate = useCallback(
+    (seed?: object) =>
+      enter(isPlainObject(seed) ? { kind: "create", seed } : { kind: "create" }),
+    [enter]
+  );
 
   const startEdit = useCallback(
     (row: TRow) => enter({ kind: "edit", row }),
@@ -72,6 +84,8 @@ export function useEditSession<TRow>() {
     close,
     /** The row being edited in a form, if any — not the one behind a cell popover. */
     editingRow: session.kind === "edit" ? session.row : undefined,
+    /** Values a create form starts from, over the column defaults. */
+    createSeed: session.kind === "create" ? session.seed : undefined,
     cell: session.kind === "cell" ? session : undefined,
     /** Drives the overlay containers: a form session is open. */
     isFormOpen: session.kind === "create" || session.kind === "edit",

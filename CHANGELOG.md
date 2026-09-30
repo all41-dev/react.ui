@@ -45,6 +45,35 @@ and three loading primitives join the public surface.
 
 - **`loadingDelayMs` and `loadingMinVisibleMs`** on `DataGrid`, described above.
 
+- **DataGrid tree mode.** `tree={{ parentKey: "parentId" }}` renders a flat array of
+  rows that name their parent as a collapsible hierarchy in the table view: indent,
+  guide lines and a chevron in one column (`columnId`, default the first visible data
+  column), `defaultOpen` of `"roots"`, `"all"` or `"none"`, and optional per-level icon
+  and type tag (`typeKey`, `levels`, `showTypeTag`). Search and column filters keep the
+  ancestors of every match and show them open while active; sorting applies among
+  siblings; the count pill and the footer count nodes. Deleting a row removes its
+  subtree from the grid and the confirmation names how many nested rows go with it,
+  while `onDelete` is still called once. A saved row appears under its parent with its
+  ancestors opened. The caret menu gains **Expand all** and **Collapse all**, and
+  **Reset view** restores `defaultOpen`. The table is a `treegrid` with `aria-level`
+  and `aria-expanded` on its rows. Pagination, the cards view and group-by do not apply
+  in tree mode; passing `pagination`, `card` or `groupOptions` with `tree` warns in
+  development. A grid without `tree` is unchanged. `TreeConfig` and `TreeLevel` are
+  exported.
+
+- **`expandAll()` and `collapseAll()`** on `DataGridHandle`, for tree mode.
+
+- **`startCreate(seed)`** on `DataGridHandle` — opens the create form with fields
+  preset over the column defaults, which is how an "add child" action presets the
+  parent. The seed is form-shaped and read for declared columns only.
+  `DataGridHandle` takes an optional second type argument for the form type; it
+  defaults to `any`, so existing `DataGridHandle<Row>` refs compile unchanged.
+
+### Fixed
+
+- **A created row no longer appears twice** when the parent adds it to `initialData`
+  from inside `onPersist` and also returns it. The grid's local add is by row key.
+
 ## 0.5.0
 
 Three breaking changes, two at the public surface and one in the edit form's layout.

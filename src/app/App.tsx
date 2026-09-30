@@ -5,6 +5,7 @@ import { useTheme } from "./providers/theme-context";
 import { Tabs, type TabItem } from "../components/Tabs";
 import { tabId, tabPanelId } from "../components/tabIds";
 import { DataGridDemo } from "./demos/DataGridDemo";
+import { TreeDemo } from "./demos/TreeDemo";
 import { ToasterDemo } from "./demos/ToasterDemo";
 import { TooltipDemo } from "./demos/TooltipDemo";
 import { LoadingDemo } from "./demos/LoadingDemo";
@@ -14,6 +15,7 @@ import { BadgesDemo } from "./demos/BadgesDemo";
 
 type DemoTab =
   | "datagrid"
+  | "tree"
   | "tabs"
   | "states"
   | "badges"
@@ -24,6 +26,7 @@ type DemoTab =
 /* The sandbox's own navigation is the library's Tabs — the first thing on the page is a component under test. */
 const TABS: TabItem<DemoTab>[] = [
   { key: "datagrid", label: "DataGrid" },
+  { key: "tree", label: "DataGrid tree" },
   { key: "tabs", label: "Tabs" },
   { key: "states", label: "Empty & error states" },
   { key: "badges", label: "Badge & key–value" },
@@ -34,6 +37,7 @@ const TABS: TabItem<DemoTab>[] = [
 
 const DEMOS: Record<DemoTab, () => React.JSX.Element> = {
   datagrid: DataGridDemo,
+  tree: TreeDemo,
   tabs: TabsDemo,
   states: StatesDemo,
   badges: BadgesDemo,

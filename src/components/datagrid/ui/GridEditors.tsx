@@ -45,6 +45,7 @@ export function GridEditors<TRow extends object, TForm extends object>({
           mode={edit.formMode}
           row={edit.editingRow}
           rowKey={editingRowKey}
+          seed={edit.createSeed}
           columns={columns}
           zodSchema={zodSchema}
           formLayout={formLayout}

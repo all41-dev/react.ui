@@ -4,12 +4,17 @@ import type { EditState } from "../types/grid";
 import type { EditSession } from "./useEditSession";
 
 const IDLE = { kind: "idle" } as const;
+const CREATE = { kind: "create" } as const;
 
-/** The session without its DOM geometry — the anchor is the popover's, not the parent's. */
+/**
+ * The session without what is private to the grid: the popover's DOM geometry and the
+ * create form's seed.
+ */
 function publicState<TRow>(session: EditSession<TRow>): EditState<TRow> {
-  return session.kind === "cell"
-    ? { kind: "cell", row: session.row, columnId: session.columnId }
-    : session;
+  if (session.kind === "cell") {
+    return { kind: "cell", row: session.row, columnId: session.columnId };
+  }
+  return session.kind === "create" ? CREATE : session;
 }
 
 const same = <TRow,>(a: EditState<TRow>, b: EditState<TRow>) =>
