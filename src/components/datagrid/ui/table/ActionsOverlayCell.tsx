@@ -32,7 +32,7 @@ export function ActionsOverlayCell({ c }: { c: Cell<any, unknown> }) {
           "bg-surface-card shadow-[-10px_0_18px_-12px_rgba(0,0,0,.7),0_2px_6px_-3px_rgba(0,0,0,.5)]",
           "pointer-events-none opacity-0 transition-opacity duration-100",
           "group-hover:pointer-events-auto group-hover:opacity-100",
-          "group-has-[:focus-visible]:pointer-events-auto group-has-[:focus-visible]:opacity-100",
+          "group-has-focus-visible:pointer-events-auto group-has-[:focus-visible]:opacity-100",
         ].join(" ")}
       >
         {flexRender(c.column.columnDef.cell, c.getContext())}
