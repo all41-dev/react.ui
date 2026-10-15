@@ -76,7 +76,7 @@ export function CardItem<TRow extends object>({
             "absolute right-2.5 top-2.5 z-10 transition-opacity",
             selected
               ? "opacity-100"
-              : "opacity-0 group-hover/card:opacity-100 focus-within:opacity-100",
+              : "opacity-0 group-hover/card:opacity-100 has-[:focus-visible]:opacity-100",
           ].join(" ")}
           onClick={(e) => e.stopPropagation()}
         >

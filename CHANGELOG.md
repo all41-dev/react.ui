@@ -71,6 +71,12 @@ and three loading primitives join the public surface.
 
 ### Fixed
 
+- **The row action pill no longer sticks to a clicked row.** It is revealed on hover
+  and on keyboard focus inside it (`:focus-visible`), where it used to reveal on any
+  focus: a button clicked with the mouse kept the pill shown after the click, and after
+  the form it opened closed, until the next click anywhere on the page. A card's footer
+  actions follow the same rule.
+
 - **A created row no longer appears twice** when the parent adds it to `initialData`
   from inside `onPersist` and also returns it. The grid's local add is by row key.
 

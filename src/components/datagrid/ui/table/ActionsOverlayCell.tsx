@@ -6,8 +6,11 @@ import React from "react";
  *
  * It sits 8px off the right edge, vertically centred, on its own card surface with a
  * shadow cast leftward so it reads as hovering above the row rather than being part of
- * it. Revealed on row hover *or* `focus-within`: without the latter, tabbing into the
- * actions leaves them invisible while focused.
+ * it. Revealed on row hover, or while a button inside has keyboard focus: without the
+ * latter, tabbing into the actions leaves them invisible while focused. Keyboard focus
+ * only (`:focus-visible`), because a clicked button keeps plain focus after the click
+ * and after the form it opened closes, which would pin the pill to that row until the
+ * next click anywhere.
  *
  * The cell itself is a zero-width sticky anchor; the pill is positioned against the row.
  */
@@ -29,7 +32,7 @@ export function ActionsOverlayCell({ c }: { c: Cell<any, unknown> }) {
           "bg-surface-card shadow-[-10px_0_18px_-12px_rgba(0,0,0,.7),0_2px_6px_-3px_rgba(0,0,0,.5)]",
           "pointer-events-none opacity-0 transition-opacity duration-100",
           "group-hover:pointer-events-auto group-hover:opacity-100",
-          "group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+          "group-has-[:focus-visible]:pointer-events-auto group-has-[:focus-visible]:opacity-100",
         ].join(" ")}
       >
         {flexRender(c.column.columnDef.cell, c.getContext())}
