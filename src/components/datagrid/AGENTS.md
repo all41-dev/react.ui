@@ -74,6 +74,13 @@ In-repo code imports relative paths. Entry: `src/index.ts`.
    memoized on the key function built from it, so an inline arrow rebuilds the tree and
    hands TanStack a new `data` array on every render. A flat grid passes its rows
    through and does not care.
+16. **Row mode edits the visible editable columns and carries the rest.** The row form
+   (`useRowEditForm`) holds every column with `meta.editor` and an accessor key; the
+   ones among the visible leaf columns get an editor in their cell, the others are
+   submitted with the row's value, or the default then the seed on create. There is no
+   per-column opt-in: hiding a column (`visibleInTable: false`, the Columns popover,
+   `hideOnMobile`) is what takes it out of the row. A required carried column that is
+   blank on create cannot be saved and warns once in development.
 
 ---
 
@@ -151,7 +158,7 @@ type TreeConfig<TRow> = {
 
 | Prop | Type | Default |
 |---|---|---|
-| `editContainer` | `"right" \| "bottom" \| "modal" \| "inline" \| "none"` | `"right"` |
+| `editContainer` | `"right" \| "bottom" \| "modal" \| "inline" \| "row" \| "none"` | `"right"` — `"inline"` and `"row"` render inside the table body and open as a modal while cards view is active |
 | `formLayout` | `FormLayoutConfig` | `{ columns: 2 }` |
 | `actionColumnOptions` | `Partial<ActionColumnOpts<TRow>>` | — |
 
@@ -217,6 +224,7 @@ type PaginationProp = {
 {
   startCreate(seed?: Partial<TForm>): void;
   startEdit(row: TRow): void;
+  startCellEdit(row: TRow, columnId: string, anchor: HTMLElement): void;
   cancelEdit(): void;      // closes form or cell popover; no-op when idle
   isEditing(): boolean;
   clearSelection(): void;
@@ -227,9 +235,16 @@ type PaginationProp = {
 
 `seed` presets a create form over the column defaults. It is form-shaped (no `toForm`),
 read for declared columns only, and ignored unless it is a plain object — so
-`onClick={handle.startCreate}` does not seed the form with the click event. A different
-seed object remounts the form (`formKeyOf`). `onEditStateChange` reports
+`onClick={handle.startCreate}` does not seed the form with the click event. The form is
+keyed by the session's serial (`useEditSession`), so every session mounts clean even
+when a chained draft reuses the seed object. `onEditStateChange` reports
 `{ kind: "create" }` without it.
+
+`startCellEdit` opens the cell popover on `columnId` (a table id, not an accessor key)
+anchored to `anchor`; the column needs `meta.editor`, not `cellEdit`, so a hidden column
+is reachable from a row action. In row mode the three `start*` entries are refused while
+the open row is dirty: `useEditSession.enter` returns `false` and bumps `refusals`, which
+the row reads to take focus back; the handle keeps its `void` shape.
 
 ---
 
@@ -249,7 +264,7 @@ behave as standard TanStack.
 | `visibleInTable` | `boolean` | `false` starts the column hidden — a form-only field. The Columns popover still reveals it, and a stored preference wins over the seed |
 | `editorProps` | `Record<string, unknown>` | Forwarded to the editor (`language`, `rows` understood) |
 | `options` | `Option[]` | Choices for `editor: "select"` |
-| `cellEdit` | `boolean` | Click-to-edit popover. Requires `editor` and `accessorKey` |
+| `cellEdit` | `boolean` | Click-to-edit popover. Requires `editor` and `accessorKey`. A `switch` toggles in the cell and persists at once through `onPersist("cell")` instead (`ui/table/SwitchCell.tsx`). In row mode the popover wins over the row session for that cell |
 | `agg` | `"sum"` | Per-group total on group header rows |
 | `mono` | `boolean` | Mono font in the cell |
 | `align` | `"left" \| "center" \| "right"` | Cell + header alignment |
@@ -372,6 +387,35 @@ field react-hook-form does.
     carries it, a leaf does not, with or without a panel. In a flat grid it is the panel.
   - Not supported: nested `children` input, subtree roll-ups for `agg`, group-by over
     roots, selecting a subtree through its parent.
+- **Row editing** (`editContainer="row"`; `ui/table/EditingRow.tsx`,
+  `hooks/useRowEditForm.ts`): the row in session renders as `EditingRow` in place of
+  `DataRowFragment` — a sibling in `VirtualRowList`, never inside the fragment's memo,
+  since the editors re-render on every keystroke. A create session is a `draft` body
+  item (`placeDraft` in `hooks/useVirtualRows.ts`): first in a flat grid, after the
+  parent's visible subtree in a tree, after the last root with no parent, as a root when
+  the parent is filtered out; `useDataGridState` reveals the parent when the session
+  starts. Sorting and filters never move the draft.
+  - The cell variant of the editors (`renderEditor({ variant: "cell" })`) drops
+    `FieldChrome`: the label is `aria-label`, the error rings the control and is read
+    through `CellFieldError` (sr-only `role="alert"`) and the grid tooltip. Textarea,
+    markdown and code edit through `RichEditorCell` → `CellEditPopover` with `seed`,
+    writing into the row form (`setValue`, dirty), not persisting.
+  - Keys: Enter on the `<tr>` submits unless the target is a textarea, a button or a
+    CodeMirror editor; Esc cancels. A draft saved from Enter passes `{ next: true }` to
+    `useGridMutations.handleSubmit`, which closes and re-enters `create` with the same
+    seed; the serial-keyed form mounts clean.
+  - Focus: `focusColumnId` on the edit session names the editor to open on; after a
+    close, `useDataGridState.rowFocus` → `useRowFocus` focuses the row's first
+    `[data-row-editable]` cell (`tabIndex=-1`, Enter reopens). A click on a row-editable
+    cell goes through `DataGridContext.startRowEdit`, present only when the grid has no
+    `onRowClick`.
+  - One session: `useEditSession.dirtyRef` is written by the row form alone, so the
+    refusal never applies to the overlay containers.
+  - A submit that fails validation focuses the row's first `[aria-invalid]` control
+    (`EditingRow`, on `submitCount`). The editors do not forward `field.ref`, so
+    react-hook-form's own `shouldFocusError` has nothing to focus; do not rely on it.
+  - The actions cell shows Save then Cancel in the DOM (Tab from the last editor lands on
+    Save); selection and the detail panel are not rendered for the row in session.
 - **Reset view** (`hooks/useDataGridState.ts`): one command putting the grid back to how it
   first renders — column prefs, search, column filters, sorting, grouping and page. Each
   hook owns its own `reset` and `isDefault` (`useColumnPrefs`, `useGridFilters`,
@@ -439,7 +483,8 @@ Peers: `react` 19, `react-dom`, `zod` 4, `react-hook-form`, `@hookform/resolvers
 
 ```
 DataGrid.tsx            Composition only. Add no logic here
-DataGridContext.ts      tooltipId, canCellEdit, startCellEdit, getId, rowActions, tree
+DataGridContext.ts      tooltipId, canCellEdit, startCellEdit, saveCell, startRowEdit,
+                        getId, rowActions, tree
 types/grid.ts           DataGridProps, DataGridHandle
 types/tree.ts           TreeConfig, TreeLevel
 types/column.ts         ColumnMeta, WithMeta, EditorKind, ColumnFilterMeta
@@ -451,8 +496,14 @@ types/toolbar.ts        GridView, DataGridToolbarProps
 hooks/
   useGridRows           Local rows + replaceRow / addRow / removeRows
   useRowSelection       Checkbox selection, scoped to the rendered rows
-  useEditSession        Discriminated union: idle | create | edit | cell
-  useGridMutations      All writes: submit, delete, cell commit
+  useEditSession        Discriminated union: idle | create | edit | cell; the serial
+                        the forms are keyed on; the dirty flag and the refusal
+  useEditForm           react-hook-form over the columns and schema, submit, dirty keys
+  useRowEditForm        useEditForm split by where a field renders: editable | carried
+  useRowFocus           Focuses a row's first editable cell after a session closes
+  useGridMutations      All writes: submit (with `next` for a chained draft), delete
+  useCellEditMutations  The one-field commit: popover save and `saveCell` (no session)
+  useVirtualRows        The body's flat item list (group | row | draft) and the window
   useGridFilters        columnFilters, globalFilter, sorting, clearAllFilters,
                         facet chips
   useGridPagination     Controlled/uncontrolled paging
@@ -496,12 +547,15 @@ ui/
   table/                Colgroup, HeaderCell, HeaderFilter, GroupHeaderRow,
                         DataRowFragment, BodyDataCell, TreeCell, SelectionCells,
                         CellEditPopover, CellWithTooltip, ActionsOverlayCell,
-                        Resizer
+                        Resizer, EditingRow (the row in session, Save/Cancel cell),
+                        RichEditorCell (pencil → popover, bound to the row form),
+                        SwitchCell (a `cellEdit` switch, persisted on click)
   table/filters/        One component per `ColumnFilterMeta` kind, plus the shared
                         control classes; `HeaderFilter` only dispatches
   pagination/           PagerControls (page size + windowed page strip), pageWindow (pure)
-  editors/              EditorRegistry (dispatch), editorComponents (kind → control),
-                        SwitchController, FieldChrome, FieldDescriptionIcon,
+  editors/              EditorRegistry (dispatch; `variant: "cell"` for a row),
+                        editorComponents (kind → control), SwitchController,
+                        SwitchTrack, FieldChrome, CellFieldError, FieldDescriptionIcon,
                         editorChrome, CodeEditor,
                         MarkdownEditor + MarkdownToolbar + markdownTools (pure
                         selection transforms)

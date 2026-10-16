@@ -1,4 +1,4 @@
-﻿import { useCallback } from "react";
+﻿import { useCallback, useRef } from "react";
 
 import { DataGridContext, DataGridSelectionContext } from "./DataGridContext";
 import { useDataGridState } from "./hooks/useDataGridState";
@@ -7,6 +7,7 @@ import { useEditStateChange } from "./hooks/useEditStateChange";
 import { useGridHandle } from "./hooks/useGridHandle";
 import { useTreePropWarnings } from "./hooks/useGridTree";
 import { useGridView } from "./hooks/useGridView";
+import { useRowFocus } from "./hooks/useRowFocus";
 import type { DataGridProps } from "./types/grid";
 import { GridBodySection } from "./ui/GridBodySection";
 import { GridEditors } from "./ui/GridEditors";
@@ -66,10 +67,15 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
     state,
     activeView: view.activeView,
     getId,
+    /* With `onRowClick` the row click wins and the pill's Edit starts the session. */
+    cellStartsRowEdit: view.rowEditing && !onRowClick,
   });
 
-  useGridHandle(ref, edit, selection.clear, tree);
+  useGridHandle(ref, edit, selection.clear, tree, mutations.startCellEditFromCell);
   useEditStateChange(edit.session, gridProps.onEditStateChange);
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  useRowFocus(rootRef, state.rowFocus);
 
   /* The containers key the form remount on this; `edit.editingRow` alone is not enough
      for rows keyed by a custom `idAccessor` (no `id`/`uuid` for the fallback to find). */
@@ -79,6 +85,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
     <DataGridContext.Provider value={chrome.contextValue}>
       <DataGridSelectionContext.Provider value={chrome.selectionContextValue}>
         <div
+          ref={rootRef}
           /*
            * Keep `overflow-hidden`: without it the sticky header and footer paint over
            * the rounded corners. The font and colour are set here so the grid uses its

@@ -24,6 +24,11 @@ type Props<TRow extends object, TForm extends object> = {
   onCancel: () => void;
   /** Persists the single changed value; throw to surface an error in the popover. */
   onSave: (value: unknown) => Promise<void>;
+  /**
+   * The value the field starts from, already in form shape, in place of the row's value
+   * through `toForm`. A popover bound to a row form hands it the form's current value.
+   */
+  seed?: { value: unknown };
 };
 
 const EST_HEIGHT = 220;
@@ -39,6 +44,7 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
   column,
   onCancel,
   onSave,
+  seed,
 }: Props<TRow, TForm>) {
   const key = getAccessorKey(column) ?? "";
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +59,11 @@ export function CellEditPopover<TRow extends object, TForm extends object>({
    * stores in cents opened on "1250" instead of "12.50".
    */
   const raw = getPath(state.row, key);
-  const seeded = column.meta?.toForm ? column.meta.toForm(raw, state.row) : raw;
+  const seeded = seed
+    ? seed.value
+    : column.meta?.toForm
+      ? column.meta.toForm(raw, state.row)
+      : raw;
   const defaultValues: CellForm = {};
   // Through `setPath`, so a nested accessor key seeds the field react-hook-form actually
   // reads rather than a flat `"user.name"` key it never looks at.

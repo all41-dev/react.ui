@@ -1,4 +1,4 @@
-import { Suspense, type ComponentType, type ReactNode } from "react";
+import { Suspense, type ComponentType } from "react";
 import {
   Controller,
   type Control,
@@ -7,9 +7,16 @@ import {
 } from "react-hook-form";
 
 import type { ColumnMeta, EditorKind } from "../../types/column";
+import { useTooltipId } from "../tooltipContext";
+import { CellFieldError } from "./CellFieldError";
 import { FieldChrome } from "./FieldChrome";
 import { FieldHint } from "./FieldHint";
-import { buildDescribedBy, buildEditorClassName } from "./editorChrome";
+import {
+  buildDescribedBy,
+  buildEditorClassName,
+  cellErrorTooltipProps,
+  type EditorVariant,
+} from "./editorChrome";
 
 /** Placeholder at the rich editors' min height, so the form keeps its layout. */
 function EditorSkeleton() {
@@ -24,6 +31,10 @@ function EditorSkeleton() {
 /**
  * Every editor except the switch: the control inside `FieldChrome`, bound to the form and
  * wired to its label, description, hint and error.
+ *
+ * The `"cell"` variant drops the chrome: the label becomes the control's `aria-label`,
+ * description and hint are not rendered, and the error is a ring on the control plus a
+ * tooltip over it, described through an sr-only span.
  */
 export function PlainEditorField<TRow extends object, TForm extends FieldValues>({
   control,
@@ -36,19 +47,25 @@ export function PlainEditorField<TRow extends object, TForm extends FieldValues>
   Field,
   editorClassName,
   inputProps,
+  variant,
 }: {
   control: Control<TForm>;
   name: Path<TForm>;
   fieldId: string;
-  label: ReactNode;
+  label: string;
   meta: ColumnMeta<TRow, TForm>;
   editor: EditorKind | undefined;
   isRich: boolean;
   Field: ComponentType<Record<string, unknown>>;
   editorClassName: string | undefined;
   inputProps: Record<string, unknown> | undefined;
+  variant?: EditorVariant;
 }) {
-  const { description, hint, required } = meta;
+  const inCell = variant === "cell";
+  const { required } = meta;
+  const description = inCell ? undefined : meta.description;
+  const hint = inCell ? undefined : meta.hint;
+  const tooltipId = useTooltipId();
 
   return (
     <Controller
@@ -56,6 +73,7 @@ export function PlainEditorField<TRow extends object, TForm extends FieldValues>
       name={name}
       render={({ field, fieldState }) => {
         const hasError = !!fieldState.error;
+        const errorMsg = fieldState.error?.message;
 
         /* `inputProps` goes first: the accessibility wiring below is derived from the
            column meta and the live field state, so a consumer's `editorProps` must not
@@ -76,16 +94,38 @@ export function PlainEditorField<TRow extends object, TForm extends FieldValues>
             isRich,
             hasError,
             editorClassName,
+            variant,
           }),
         };
+
+        if (inCell) {
+          forwarded["aria-label"] = label;
+          Object.assign(forwarded, cellErrorTooltipProps(tooltipId, errorMsg));
+        }
 
         if (editor === "select") {
           forwarded.options = meta.options ?? [];
         }
 
-        const input = (
+        const rendered = (
           <Field {...forwarded} value={field.value ?? ""} onChange={field.onChange} />
         );
+        /* The rich editors are code-split, so they need a boundary; the fallback holds
+           the field's height so the form doesn't jump as one arrives. */
+        const input = isRich ? (
+          <Suspense fallback={<EditorSkeleton />}>{rendered}</Suspense>
+        ) : (
+          rendered
+        );
+
+        if (inCell) {
+          return (
+            <>
+              {input}
+              <CellFieldError id={`${fieldId}-error`} message={errorMsg} />
+            </>
+          );
+        }
 
         return (
           <FieldChrome
@@ -94,7 +134,7 @@ export function PlainEditorField<TRow extends object, TForm extends FieldValues>
             required={required}
             description={description}
             hasError={hasError}
-            errorMsg={fieldState.error?.message}
+            errorMsg={errorMsg}
             hint={
               hint && (
                 <FieldHint
@@ -106,13 +146,7 @@ export function PlainEditorField<TRow extends object, TForm extends FieldValues>
               )
             }
           >
-            {/* The rich editors are code-split, so they need a boundary; the fallback
-                holds the field's height so the form doesn't jump as one arrives. */}
-            {isRich ? (
-              <Suspense fallback={<EditorSkeleton />}>{input}</Suspense>
-            ) : (
-              input
-            )}
+            {input}
           </FieldChrome>
         );
       }}

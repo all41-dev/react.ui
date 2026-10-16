@@ -2,7 +2,8 @@ import { type Row, type Table } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import { useContainerWidth } from "../hooks/useContainerWidth";
 import { useColumnLayout } from "../hooks/useColumnLayout";
-import { useVirtualRows } from "../hooks/useVirtualRows";
+import { useVirtualRows, type DraftPlacement } from "../hooks/useVirtualRows";
+import type { RenderEditingRow } from "./table/EditingRow";
 import { GridBodies } from "./table/GridBodies";
 import { GridTable } from "./table/GridTable";
 import type { GroupBucket } from "../types/grouping";
@@ -26,6 +27,10 @@ type TableViewProps<TRow extends object> = {
   onToggleGroup?: (key: string) => void;
   editingRowId?: string;
   inlineEditor?: ReactNode;
+  /** Row mode: the row in session, or the draft, drawn in table cells. */
+  renderEditingRow?: RenderEditingRow<TRow>;
+  /** Row mode, create session: where the draft row sits in the body. */
+  draft?: DraftPlacement;
   isCreating?: boolean;
   selectedRowId?: string;
   onRowClick?: (row: TRow) => void;
@@ -48,6 +53,8 @@ export function TableView<TRow extends object>({
   onToggleGroup,
   editingRowId,
   inlineEditor,
+  renderEditingRow,
+  draft,
   isCreating,
   selectedRowId,
   onRowClick,
@@ -82,6 +89,7 @@ export function TableView<TRow extends object>({
       allRows: table.getRowModel().rows,
       groups,
       collapsedGroups,
+      draft,
       scrollRef: wrapperRef,
     });
 
@@ -124,6 +132,7 @@ export function TableView<TRow extends object>({
           onToggleGroup={onToggleGroup}
           editingRowId={editingRowId}
           inlineEditor={inlineEditor}
+          renderEditingRow={renderEditingRow}
           viewportWidth={containerW}
           isCreating={isCreating}
           selectedRowId={selectedRowId}

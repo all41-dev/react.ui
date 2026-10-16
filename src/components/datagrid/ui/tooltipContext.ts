@@ -1,4 +1,6 @@
-import { createContext } from "react";
+import { createContext, useContext } from "react";
+
+import { DataGridContext } from "../DataGridContext";
 
 /**
  * The react-tooltip anchor id a field description renders against. A `DataGrid`
@@ -6,3 +8,10 @@ import { createContext } from "react";
  * provides one here, so `FieldDescriptionIcon` needs no grid around it.
  */
 export const TooltipIdContext = createContext<string | null>(null);
+
+/** The tooltip id in reach of a field: a standalone form's first, else the grid's. */
+export function useTooltipId(): string | null {
+  const standaloneId = useContext(TooltipIdContext);
+  const grid = useContext(DataGridContext);
+  return standaloneId ?? grid?.tooltipId ?? null;
+}

@@ -188,6 +188,23 @@ describe("scrolling while the popover is open", () => {
   const scrollFrom = (el: Element) =>
     el.dispatchEvent(new Event("scroll", { bubbles: false }));
 
+  it("starts from `seed.value` when given, and leaves toForm aside", async () => {
+    render(
+      <CellEditPopover
+        state={{ ...state, row: { id: 1, filter: "from the row" } }}
+        column={{
+          ...textColumn,
+          meta: { ...textColumn.meta, toForm: (raw) => `form(${String(raw)})` },
+        }}
+        seed={{ value: "from the form" }}
+        onCancel={() => {}}
+        onSave={async () => {}}
+      />
+    );
+    await screen.findByRole("dialog", { name: "Edit Filter" });
+    expect(screen.getByLabelText("Filter")).toHaveValue("from the form");
+  });
+
   it("keeps the edit when the scroll came from inside", async () => {
     const onCancel = vi.fn();
     setupText(onCancel);

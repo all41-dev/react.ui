@@ -27,6 +27,8 @@ type TreeCellProps = {
   tree: TreeContextValue;
   /** The cell's value as text, for the chevron's accessible name. */
   label: string;
+  /** The content takes the width left after the indent and the chevron: an editor. */
+  fill?: boolean;
   children: ReactNode;
 };
 
@@ -35,7 +37,15 @@ type TreeCellProps = {
  * parent and a spacer of the same width on a leaf, the level's icon and type tag, and
  * the column's own content between them.
  */
-export function TreeCell({ rowId, row, node, tree, label, children }: TreeCellProps) {
+export function TreeCell({
+  rowId,
+  row,
+  node,
+  tree,
+  label,
+  fill = false,
+  children,
+}: TreeCellProps) {
   const { depth, hasChildren, isOpen } = node;
   const type = tree.typeKey ? getPath(row, tree.typeKey) : undefined;
   const level =
@@ -108,7 +118,7 @@ export function TreeCell({ rowId, row, node, tree, label, children }: TreeCellPr
           </span>
         )}
 
-        <span className="min-w-0">{children}</span>
+        <span className={fill ? "min-w-0 flex-1" : "min-w-0"}>{children}</span>
 
         {tree.showTypeTag && level && (
           <span

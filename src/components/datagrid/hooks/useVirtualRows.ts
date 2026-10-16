@@ -7,34 +7,89 @@ import type { GroupBucket } from "../types/grouping";
 /**
  * One flat list so a single virtualizer covers both grouped and ungrouped bodies.
  * Grouped: a header item per bucket, followed by that bucket's rows unless collapsed.
+ * Row mode adds the draft row of a create session, placed by `placeDraft`.
  */
 export type BodyItem<TRow extends object> =
   | { kind: "group"; group: GroupBucket<Row<TRow>> }
-  | { kind: "row"; row: Row<TRow> };
+  | { kind: "row"; row: Row<TRow> }
+  | { kind: "draft"; parentKey?: string; depth: number };
+
+/** Where a create session's draft row sits while the row is typed. */
+export type DraftPlacement = {
+  /** Tree mode: the key of the row the draft is a child of; absent for a root. */
+  parentKey?: string;
+  /** Tree mode places under the parent or after the last root; a flat grid puts it first. */
+  tree: boolean;
+};
+
+/**
+ * Inserts the draft item. In a tree it follows the parent's visible subtree, so a new
+ * child reads as the last sibling, or follows the last root when no parent is named. A
+ * parent not on screen (filtered out) places the draft as a root. Sorting and filters
+ * are ignored on purpose: the draft must not move while its values are typed.
+ */
+export function placeDraft<TRow extends object>(
+  items: BodyItem<TRow>[],
+  draft: DraftPlacement
+): BodyItem<TRow>[] {
+  if (!draft.tree) {
+    return [{ kind: "draft", parentKey: draft.parentKey, depth: 0 }, ...items];
+  }
+  const { parentKey } = draft;
+  let at = items.length;
+  let depth = 0;
+  if (parentKey !== undefined) {
+    const parentAt = items.findIndex(
+      (it) => it.kind === "row" && it.row.id === parentKey
+    );
+    if (parentAt !== -1) {
+      const parent = (items[parentAt] as { row: Row<TRow> }).row;
+      depth = parent.depth + 1;
+      at = parentAt + 1;
+      while (at < items.length) {
+        const it = items[at];
+        if (it.kind !== "row" || it.row.depth <= parent.depth) break;
+        at += 1;
+      }
+    }
+  }
+  return [
+    ...items.slice(0, at),
+    { kind: "draft", parentKey, depth },
+    ...items.slice(at),
+  ];
+}
 
 /** The table body's virtualization: the flat item list, the window, the paddings. */
 export function useVirtualRows<TRow extends object>({
   allRows,
   groups,
   collapsedGroups,
+  draft,
   scrollRef,
 }: {
   allRows: Row<TRow>[];
   groups?: GroupBucket<Row<TRow>>[];
   collapsedGroups?: ReadonlySet<string>;
+  /** Present while a row-mode create session is open. */
+  draft?: DraftPlacement;
   scrollRef: RefObject<HTMLDivElement | null>;
 }) {
   const items = useMemo<BodyItem<TRow>[]>(() => {
-    if (!groups) return allRows.map((row) => ({ kind: "row" as const, row }));
-    const out: BodyItem<TRow>[] = [];
-    for (const group of groups) {
-      out.push({ kind: "group", group });
-      if (!collapsedGroups?.has(group.key)) {
-        for (const row of group.rows) out.push({ kind: "row", row });
+    let out: BodyItem<TRow>[];
+    if (!groups) {
+      out = allRows.map((row) => ({ kind: "row" as const, row }));
+    } else {
+      out = [];
+      for (const group of groups) {
+        out.push({ kind: "group", group });
+        if (!collapsedGroups?.has(group.key)) {
+          for (const row of group.rows) out.push({ kind: "row", row });
+        }
       }
     }
-    return out;
-  }, [groups, collapsedGroups, allRows]);
+    return draft ? placeDraft(out, draft) : out;
+  }, [groups, collapsedGroups, allRows, draft]);
 
   /*
    * The scroll element is the wrapper div, but the virtualized rows start AFTER the sticky
@@ -54,6 +109,7 @@ export function useVirtualRows<TRow extends object>({
     (i: number) => {
       const item = items[i];
       if (!item) return i;
+      if (item.kind === "draft") return "draft";
       return item.kind === "group" ? `g:${item.group.key}` : `r:${item.row.id}`;
     },
     [items]

@@ -130,3 +130,109 @@ describe("useEditSession", () => {
     expect(result.current.close).toBe(first.close);
   });
 });
+
+describe("a dirty form", () => {
+  it("refuses a new session and counts the refusal", () => {
+    const { result } = renderHook(() => useEditSession<Row>());
+    act(() => result.current.startEdit(rowA));
+    act(() => result.current.setDirty(true));
+
+    let entered: boolean | undefined;
+    act(() => {
+      entered = result.current.startCreate();
+    });
+    expect(entered).toBe(false);
+    expect(result.current.session).toEqual({ kind: "edit", row: rowA });
+    expect(result.current.refusals).toBe(1);
+
+    act(() => {
+      entered = result.current.startCellEdit(rowB, "name", anchor);
+    });
+    expect(entered).toBe(false);
+    expect(result.current.editingRow).toBe(rowA);
+    expect(result.current.refusals).toBe(2);
+  });
+
+  it("gives way once it is clean again", () => {
+    const { result } = renderHook(() => useEditSession<Row>());
+    act(() => result.current.startCreate());
+    act(() => result.current.setDirty(true));
+    act(() => result.current.setDirty(false));
+
+    let entered: boolean | undefined;
+    act(() => {
+      entered = result.current.startEdit(rowA);
+    });
+    expect(entered).toBe(true);
+    expect(result.current.editingRow).toBe(rowA);
+  });
+
+  it("is forgotten by close, so the next session is not refused", () => {
+    const { result } = renderHook(() => useEditSession<Row>());
+    act(() => result.current.startEdit(rowA));
+    act(() => result.current.setDirty(true));
+    act(() => result.current.close());
+
+    let entered: boolean | undefined;
+    act(() => {
+      entered = result.current.startCreate();
+    });
+    expect(entered).toBe(true);
+    expect(result.current.session.kind).toBe("create");
+  });
+
+  it("does not guard a cell popover", () => {
+    // Only the row form writes the flag; a stale one must not outlive the session kinds
+    // it applies to.
+    const { result } = renderHook(() => useEditSession<Row>());
+    act(() => result.current.startCellEdit(rowA, "name", anchor));
+    act(() => result.current.setDirty(true));
+    act(() => result.current.startEdit(rowB));
+    expect(result.current.editingRow).toBe(rowB);
+  });
+});
+
+describe("the session serial", () => {
+  it("counts entered sessions, not refusals or closes", () => {
+    const { result } = renderHook(() => useEditSession<Row>());
+    expect(result.current.serial).toBe(0);
+    act(() => result.current.startCreate());
+    expect(result.current.serial).toBe(1);
+    act(() => result.current.startEdit(rowA));
+    expect(result.current.serial).toBe(2);
+
+    act(() => result.current.setDirty(true));
+    act(() => result.current.startCreate());
+    expect(result.current.serial).toBe(2);
+
+    act(() => result.current.close());
+    expect(result.current.serial).toBe(2);
+  });
+
+  it("changes when a create session is re-entered with the same seed", () => {
+    // A chained draft reuses the seed; the serial is what remounts its form clean.
+    const { result } = renderHook(() => useEditSession<Row>());
+    const seed = { name: "preset" };
+    act(() => result.current.startCreate(seed));
+    const before = result.current.serial;
+    act(() => {
+      result.current.close();
+      result.current.startCreate(seed);
+    });
+    expect(result.current.createSeed).toBe(seed);
+    expect(result.current.serial).toBe(before + 1);
+  });
+});
+
+describe("the edit session's focus column", () => {
+  it("is carried when given and absent otherwise", () => {
+    const { result } = renderHook(() => useEditSession<Row>());
+    act(() => result.current.startEdit(rowA, "name"));
+    expect(result.current.focusColumnId).toBe("name");
+    expect(result.current.editingRow).toBe(rowA);
+
+    act(() => result.current.startEdit(rowB));
+    expect(result.current.focusColumnId).toBeUndefined();
+    expect(result.current.session).toEqual({ kind: "edit", row: rowB });
+  });
+});

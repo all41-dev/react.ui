@@ -10,6 +10,7 @@ export type EditContainerKind =
   | "bottom"
   | "modal"
   | "inline"
+  | "row"
   | "none";
 
 export function EditContainer<
@@ -42,7 +43,8 @@ export function EditContainer<
   onCancel: () => void;
   onSubmit: (values: TForm) => void | Promise<void>;
 }) {
-  if (kind === "none" || kind === "inline") return null;
+  /* "inline" and "row" render inside the table body, not in an overlay. */
+  if (kind === "none" || kind === "inline" || kind === "row") return null;
 
   const props = {
     open,

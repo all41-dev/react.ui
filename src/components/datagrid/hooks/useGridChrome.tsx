@@ -25,11 +25,14 @@ export function useGridChrome<TRow extends object, TForm extends object>({
   state,
   activeView,
   getId,
+  cellStartsRowEdit,
 }: {
   props: DataGridProps<TRow, TForm>;
   state: ReturnType<typeof useDataGridState<TRow, TForm>>;
   activeView: ActionView;
   getId: (row: TRow) => string | number | undefined;
+  /** Row mode without `onRowClick`: a click on a row-editable cell opens the session. */
+  cellStartsRowEdit: boolean;
 }) {
   const { edit, filters, grouping, mutations, selection, tree } = state;
   const editContainer = props.editContainer ?? "right";
@@ -128,11 +131,24 @@ export function useGridChrome<TRow extends object, TForm extends object>({
    * keeps `orderedColumns` stable so TanStack reuses its column model instead of
    * rebuilding it on every render and every checkbox click.
    */
+  const { startEdit } = edit;
+  const startRowEdit = useMemo(
+    () =>
+      cellStartsRowEdit && canCellEdit
+        ? (row: unknown, columnId: string) => {
+            startEdit(row as TRow, columnId);
+          }
+        : undefined,
+    [cellStartsRowEdit, canCellEdit, startEdit]
+  );
+
   const contextValue = useMemo<DataGridContextValue>(
     () => ({
       tooltipId,
       canCellEdit,
       startCellEdit: mutations.startCellEditFromCell,
+      saveCell: mutations.saveCell,
+      startRowEdit,
       getId: getId as (row: unknown) => string | number | undefined,
       rowActions: rowActions as ActionColumnOpts<unknown>,
       view: activeView,
@@ -142,6 +158,8 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       tooltipId,
       canCellEdit,
       mutations.startCellEditFromCell,
+      mutations.saveCell,
+      startRowEdit,
       getId,
       rowActions,
       activeView,

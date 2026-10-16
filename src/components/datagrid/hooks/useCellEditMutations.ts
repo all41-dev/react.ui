@@ -20,7 +20,11 @@ type Params<TRow extends object, TForm extends object> = {
   replaceRow: (prevRow: TRow, saved: TRow) => void;
 };
 
-/** The single-cell commit: open the popover, round-trip one field, persist. */
+/**
+ * The single-cell commit: round-trip one field through the form's hooks, validate that
+ * field alone, persist. Reached from the popover (`handleCellSave`) and from a switch
+ * cell toggled in place (`saveCell`), which has no session.
+ */
 export function useCellEditMutations<TRow extends object, TForm extends object>({
   columns,
   zodSchema,
@@ -41,18 +45,18 @@ export function useCellEditMutations<TRow extends object, TForm extends object>(
     [cell, columns]
   );
 
-  const handleCellSave = useCallback(
-    async (value: unknown) => {
-      if (!onPersist || !cell || !cellEditColumn) return;
+  /** Persists `value` under `column` for `row`. `false` when there is nothing to write to. */
+  const persistCell = useCallback(
+    async (prevRow: TRow, column: WithMeta<TRow, TForm>, value: unknown) => {
+      if (!onPersist) return false;
       /* The write key is the column's accessor key, not its id: those differ whenever a
          column declares both, and the popover's own form is keyed by the accessor key. */
-      const key = getAccessorKey(cellEditColumn);
-      if (!key) return;
-      const prevRow = cell.row;
+      const key = getAccessorKey(column);
+      if (!key) return false;
 
       /*
        * The full form's round-trip, on one field: run the row through `toForm` to get
-       * form-shaped values, swap in what the popover produced, then run every column's
+       * form-shaped values, swap in what the editor produced, then run every column's
        * `fromForm` back the other way. `toForm` and `fromForm` have to be separate hooks
        * for this — with one shared hook the other fields would get converted twice.
        */
@@ -88,9 +92,27 @@ export function useCellEditMutations<TRow extends object, TForm extends object>(
 
       const saved = await onPersist("cell", payload, prevRow);
       if (saved) replaceRow(prevRow, saved);
-      close();
+      return true;
     },
-    [onPersist, cell, close, cellEditColumn, columns, zodSchema, replaceRow]
+    [onPersist, columns, zodSchema, replaceRow]
+  );
+
+  const handleCellSave = useCallback(
+    async (value: unknown) => {
+      if (!cell || !cellEditColumn) return;
+      if (await persistCell(cell.row, cellEditColumn, value)) close();
+    },
+    [cell, cellEditColumn, persistCell, close]
+  );
+
+  /** A cell written without a session: the column by its table id, the value as the editor holds it. */
+  const saveCell = useCallback(
+    async (row: unknown, columnId: string, value: unknown) => {
+      const column = columns.find((c) => getColId(c) === columnId);
+      if (!column) return;
+      await persistCell(row as TRow, column, value);
+    },
+    [columns, persistCell]
   );
 
   const startCellEditFromCell = useCallback(
@@ -107,5 +129,5 @@ export function useCellEditMutations<TRow extends object, TForm extends object>(
     [onPersist, startCellEdit]
   );
 
-  return { cellEditColumn, handleCellSave, startCellEditFromCell };
+  return { cellEditColumn, handleCellSave, saveCell, startCellEditFromCell };
 }

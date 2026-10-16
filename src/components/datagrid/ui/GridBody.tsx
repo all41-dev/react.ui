@@ -2,9 +2,11 @@ import type { Table } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
 import type { useGridGrouping } from "../hooks/useGridGrouping";
+import type { DraftPlacement } from "../hooks/useVirtualRows";
 import { CardsView } from "./CardsView";
 import { Spinner } from "./GridStates";
 import { KanbanView } from "./KanbanView";
+import type { RenderEditingRow } from "./table/EditingRow";
 import { TableView } from "./TableView";
 
 type GridBodyProps<TRow extends object> = {
@@ -31,6 +33,10 @@ type GridBodyProps<TRow extends object> = {
   selectedRowId?: string;
   editingRowId?: string;
   inlineEditor?: ReactNode;
+  /** Row mode: the row in session, or the draft, drawn in table cells. */
+  renderEditingRow?: RenderEditingRow<TRow>;
+  /** Row mode, create session: where the draft row sits. */
+  draft?: DraftPlacement;
   isCreating: boolean;
   expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
@@ -64,6 +70,8 @@ export function GridBody<TRow extends object>({
   selectedRowId,
   editingRowId,
   inlineEditor,
+  renderEditingRow,
+  draft,
   isCreating,
   expandedRowIds,
   renderExpandedRow,
@@ -120,6 +128,8 @@ export function GridBody<TRow extends object>({
           onToggleGroup={grouping.toggleGroup}
           editingRowId={editingRowId}
           inlineEditor={inlineEditor}
+          renderEditingRow={renderEditingRow}
+          draft={draft}
           isCreating={isCreating}
           selectedRowId={selectedRowId}
           onRowClick={onRowClick}

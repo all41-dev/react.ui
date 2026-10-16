@@ -136,7 +136,10 @@ describe("RecordForm — submit and cancel", () => {
     await user.click(save());
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-    const meta = onSubmit.mock.calls[0][1] as { dirtyKeys: ReadonlySet<string> };
+    const [, meta] = onSubmit.mock.calls[0] as unknown as [
+      Form,
+      { dirtyKeys: ReadonlySet<string> },
+    ];
     expect(meta.dirtyKeys.size).toBe(0);
   });
 

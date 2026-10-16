@@ -14,7 +14,11 @@ type Params<TRow extends object> = {
   onRowClick?: (row: TRow) => void;
 };
 
-/** The list/cards toggle, the single-row click selection, and the container fallback. */
+/**
+ * The list/cards toggle, the single-row click selection, and the container fallback.
+ * `inlineEditing` and `rowEditing` name the two containers that render inside the table
+ * body: a form under the row, and editors in the row's own cells.
+ */
 export function useGridView<TRow extends object>({
   hasCard,
   defaultView,
@@ -45,14 +49,16 @@ export function useGridView<TRow extends object>({
     : "list";
 
   /*
-   * "Inline" names a table-row placement that has no cards equivalent. Left as-is, an
-   * inline session started from cards had nowhere to render: the click looked dead and
+   * "Inline" and "row" name table-row placements that have no cards equivalent. Left
+   * as-is, a session started from cards had nowhere to render: the click looked dead and
    * the live session re-opened the editor on the next switch to list. In cards the same
    * session opens as a modal instead.
    */
+  const inBody = editContainer === "inline" || editContainer === "row";
   const effectiveContainer: EditContainerKind =
-    showCards && editContainer === "inline" ? "modal" : editContainer;
+    showCards && inBody ? "modal" : editContainer;
   const inlineEditing = effectiveContainer === "inline";
+  const rowEditing = effectiveContainer === "row";
 
   const handleViewChange = useCallback(
     (v: "list" | "cards") => {
@@ -79,6 +85,7 @@ export function useGridView<TRow extends object>({
     activeView,
     effectiveContainer,
     inlineEditing,
+    rowEditing,
     selectedRowId,
     handleViewChange,
     handleRowClick,

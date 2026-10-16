@@ -11,7 +11,7 @@ export type ResourceType =
 
 export type DataSource = "mock-data" | "mock-api";
 export type FormGrouping = "off" | "stacked" | "split";
-export type ContainerType = "right" | "bottom" | "modal" | "inline";
+export type ContainerType = "right" | "bottom" | "modal" | "inline" | "row";
 
 /** The sandbox swaps datasets at runtime; every one of them is keyed by `id`. */
 export type DemoRow = User | Post | Comment | Album | Photo | Todo;

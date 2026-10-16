@@ -16,7 +16,12 @@ export type CellAnchor = {
 export type EditSession<TRow> =
   | { kind: "idle" }
   | { kind: "create"; seed?: object }
-  | { kind: "edit"; row: TRow }
+  | {
+      kind: "edit";
+      row: TRow;
+      /** Row mode: the column whose editor takes focus when the session opens. */
+      focusColumnId?: string;
+    }
   | { kind: "cell"; row: TRow; columnId: string; anchor: CellAnchor };
 
 const IDLE = { kind: "idle" } as const;
@@ -27,8 +32,15 @@ const isPlainObject = (v: unknown): v is object => {
   return proto === Object.prototype || proto === null;
 };
 
+type SessionState<TRow> = {
+  session: EditSession<TRow>;
+  /** Counts the sessions entered. A form keyed on it remounts clean per session. */
+  serial: number;
+};
+
 export function useEditSession<TRow>() {
-  const [session, setSession] = useState<EditSession<TRow>>(IDLE);
+  const [state, setState] = useState<SessionState<TRow>>({ session: IDLE, serial: 0 });
+  const { session, serial } = state;
 
   /*
    * The session is mirrored into a ref, written BEFORE setState, so two dismissals in the
@@ -38,9 +50,30 @@ export function useEditSession<TRow>() {
    */
   const sessionRef = useRef<EditSession<TRow>>(session);
 
+  /*
+   * Whether the open form holds unsaved changes. Written by the row form only, so the
+   * refusal in `enter` never applies to the overlay containers. A ref rather than state:
+   * nothing renders from it, and a keystroke must not re-render the grid.
+   */
+  const dirtyRef = useRef(false);
+
+  /* Bumped on every refused session, so the open row can take focus back. */
+  const [refusals, setRefusals] = useState(0);
+
+  /** Returns `false` when the open form is dirty; the session is then left as it is. */
   const enter = useCallback((next: EditSession<TRow>) => {
+    const current = sessionRef.current;
+    if (
+      dirtyRef.current &&
+      (current.kind === "create" || current.kind === "edit")
+    ) {
+      setRefusals((n) => n + 1);
+      return false;
+    }
+    dirtyRef.current = false;
     sessionRef.current = next;
-    setSession(next);
+    setState((s) => ({ session: next, serial: s.serial + 1 }));
+    return true;
   }, []);
 
   /* Only a plain object counts as a seed: handed straight to `onClick`, this is called
@@ -52,7 +85,12 @@ export function useEditSession<TRow>() {
   );
 
   const startEdit = useCallback(
-    (row: TRow) => enter({ kind: "edit", row }),
+    (row: TRow, focusColumnId?: string) =>
+      enter(
+        focusColumnId === undefined
+          ? { kind: "edit", row }
+          : { kind: "edit", row, focusColumnId }
+      ),
     [enter]
   );
 
@@ -64,9 +102,14 @@ export function useEditSession<TRow>() {
 
   /** The single teardown. Every dismissal and every successful save routes through it. */
   const close = useCallback(() => {
+    dirtyRef.current = false;
     if (sessionRef.current.kind === "idle") return;
     sessionRef.current = IDLE;
-    setSession(IDLE);
+    setState((s) => ({ session: IDLE, serial: s.serial }));
+  }, []);
+
+  const setDirty = useCallback((dirty: boolean) => {
+    dirtyRef.current = dirty;
   }, []);
 
   /*
@@ -78,12 +121,18 @@ export function useEditSession<TRow>() {
    */
   return {
     session,
+    serial,
+    refusals,
     startCreate,
     startEdit,
     startCellEdit,
     close,
+    /** Marks the open form as holding unsaved changes; a dirty form refuses a new session. */
+    setDirty,
     /** The row being edited in a form, if any — not the one behind a cell popover. */
     editingRow: session.kind === "edit" ? session.row : undefined,
+    /** Row mode: the column the edit session opened from. */
+    focusColumnId: session.kind === "edit" ? session.focusColumnId : undefined,
     /** Values a create form starts from, over the column defaults. */
     createSeed: session.kind === "create" ? session.seed : undefined,
     cell: session.kind === "cell" ? session : undefined,

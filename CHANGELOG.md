@@ -2,8 +2,111 @@
 
 ## Unreleased
 
-Next release is a minor bump: the grid's loading state changes what it shows and when,
-and three loading primitives join the public surface.
+Next release is a minor bump: a fourth edit container puts the editors in the row.
+
+### Added
+
+- **Row editing.** `editContainer="row"` renders the row being created or edited in its
+  own cells. A draft row appears where the row will land: first in a flat grid, as the
+  last child of its parent in a tree (the parent is opened, the draft drawn one level
+  below it with the seed's level icon). An existing row turns its cells into inputs in
+  place and keeps its position, indent and chevron; a column with no editor shows its
+  value read-only, or blank on a draft. Save and Cancel sit where the action pill does,
+  for the whole session. Enter saves and Esc cancels from any cell; Tab walks the editors
+  and reaches Save after the last one. Enter on a draft that saves opens the next draft
+  under the same parent, so a list of siblings is typed in one run; Enter on an edited row
+  returns it to display. In a grid without `onRowClick`, a click on an editable cell
+  starts the session with that cell's editor focused; with `onRowClick` the row click
+  wins and the pill's Edit starts it. After a save or a cancel, focus lands on the row's
+  first editable cell, and Enter there reopens it.
+
+  Which cells get an editor follows from the columns: one with `meta.editor` and an
+  accessor key that is visible in the table is edited in its cell; one that is not
+  visible is **carried** — its value rides along in the row form (the row's value on
+  edit, the default then the seed on create) and is submitted untouched, which is how a
+  tree's parent key travels on create. A required carried column with no value on create
+  warns in development, since the row could not be saved and nothing on screen says why.
+
+  A dirty row refuses another session — Edit on another row, a cell click, `startCreate`,
+  `startEdit` and `startCellEdit` on the handle — and takes focus back; an untouched draft
+  gives way. A click outside the row does nothing; Esc and Cancel are the exits. A
+  textarea, markdown or code column shows its value with a pencil that opens the cell
+  popover bound to the row form, not persisted on its own. A field error rings its cell,
+  with the message as `aria-describedby` and a tooltip, and the first invalid field takes
+  focus; a server error is a strip under the row, cleared on the next change. The draft
+  ignores sorting and filters, and a parent hidden by a filter places it as a root. In
+  the cards view a row session opens as a modal, as an inline one does. `onPersist` and
+  `onEditStateChange` are unchanged; `EditContainerKind` gains `"row"`.
+
+- **`startCellEdit(row, columnId, anchor)`** on `DataGridHandle` — opens the single-cell
+  popover on a row, anchored to `anchor`. The column needs `meta.editor`; `cellEdit` is
+  not required, so a column hidden from the table can be edited from a row action — a
+  "Move to…" action on the parent column of a tree, where row editing has removed the
+  parent from the form. Reported to `onEditStateChange` as `{ kind: "cell" }` with that
+  column id; a consumer that rebuilds its schema per session must not read it as an
+  edit.
+
+### Changed
+
+- **A switch column with `cellEdit: true` toggles on click** and persists at once through
+  `onPersist("cell")`, where it used to open the popover. The track shows the row's stored
+  value, so a refused write leaves it where it was once the toast has said why. Inside a
+  row session it is a plain switch.
+
+### Fixed
+
+- **A form closed with the pointer releases the focus it hands back to the opener.** A
+  text field inside the form always counts as keyboard focus, and the opener inherited
+  that state, which kept the row action pill drawn after a mouse Cancel or Save. The
+  second half of the 0.5.3 pill fix.
+
+## 0.5.3
+
+### Fixed
+
+- **The row action pill no longer sticks to a clicked row.** It is revealed on hover
+  and on keyboard focus inside it (`:focus-visible`), where it used to reveal on any
+  focus: a button clicked with the mouse kept the pill shown after the click, and after
+  the form it opened closed, until the next click anywhere on the page. A card's footer
+  actions follow the same rule.
+
+## 0.5.2
+
+### Added
+
+- **DataGrid tree mode.** `tree={{ parentKey: "parentId" }}` renders a flat array of
+  rows that name their parent as a collapsible hierarchy in the table view: indent,
+  guide lines and a chevron in one column (`columnId`, default the first visible data
+  column), `defaultOpen` of `"roots"`, `"all"` or `"none"`, and optional per-level icon
+  and type tag (`typeKey`, `levels`, `showTypeTag`). Search and column filters keep the
+  ancestors of every match and show them open while active; sorting applies among
+  siblings; the count pill and the footer count nodes. Deleting a row removes its
+  subtree from the grid and the confirmation names how many nested rows go with it,
+  while `onDelete` is still called once. A saved row appears under its parent with its
+  ancestors opened. The caret menu gains **Expand all** and **Collapse all**, and
+  **Reset view** restores `defaultOpen`. The table is a `treegrid` with `aria-level`
+  and `aria-expanded` on its rows. Pagination, the cards view and group-by do not apply
+  in tree mode; passing `pagination`, `card` or `groupOptions` with `tree` warns in
+  development. A grid without `tree` is unchanged. `TreeConfig` and `TreeLevel` are
+  exported.
+
+- **`expandAll()` and `collapseAll()`** on `DataGridHandle`, for tree mode.
+
+- **`startCreate(seed)`** on `DataGridHandle` — opens the create form with fields
+  preset over the column defaults, which is how an "add child" action presets the
+  parent. The seed is form-shaped and read for declared columns only.
+  `DataGridHandle` takes an optional second type argument for the form type; it
+  defaults to `any`, so existing `DataGridHandle<Row>` refs compile unchanged.
+
+### Fixed
+
+- **A created row no longer appears twice** when the parent adds it to `initialData`
+  from inside `onPersist` and also returns it. The grid's local add is by row key.
+
+## 0.5.1
+
+The grid's loading state changes what it shows and when, and three loading primitives
+join the public surface.
 
 ### Changed
 
@@ -44,41 +147,6 @@ and three loading primitives join the public surface.
   `LoadingScreenVariant` is exported.
 
 - **`loadingDelayMs` and `loadingMinVisibleMs`** on `DataGrid`, described above.
-
-- **DataGrid tree mode.** `tree={{ parentKey: "parentId" }}` renders a flat array of
-  rows that name their parent as a collapsible hierarchy in the table view: indent,
-  guide lines and a chevron in one column (`columnId`, default the first visible data
-  column), `defaultOpen` of `"roots"`, `"all"` or `"none"`, and optional per-level icon
-  and type tag (`typeKey`, `levels`, `showTypeTag`). Search and column filters keep the
-  ancestors of every match and show them open while active; sorting applies among
-  siblings; the count pill and the footer count nodes. Deleting a row removes its
-  subtree from the grid and the confirmation names how many nested rows go with it,
-  while `onDelete` is still called once. A saved row appears under its parent with its
-  ancestors opened. The caret menu gains **Expand all** and **Collapse all**, and
-  **Reset view** restores `defaultOpen`. The table is a `treegrid` with `aria-level`
-  and `aria-expanded` on its rows. Pagination, the cards view and group-by do not apply
-  in tree mode; passing `pagination`, `card` or `groupOptions` with `tree` warns in
-  development. A grid without `tree` is unchanged. `TreeConfig` and `TreeLevel` are
-  exported.
-
-- **`expandAll()` and `collapseAll()`** on `DataGridHandle`, for tree mode.
-
-- **`startCreate(seed)`** on `DataGridHandle` — opens the create form with fields
-  preset over the column defaults, which is how an "add child" action presets the
-  parent. The seed is form-shaped and read for declared columns only.
-  `DataGridHandle` takes an optional second type argument for the form type; it
-  defaults to `any`, so existing `DataGridHandle<Row>` refs compile unchanged.
-
-### Fixed
-
-- **The row action pill no longer sticks to a clicked row.** It is revealed on hover
-  and on keyboard focus inside it (`:focus-visible`), where it used to reveal on any
-  focus: a button clicked with the mouse kept the pill shown after the click, and after
-  the form it opened closed, until the next click anywhere on the page. A card's footer
-  actions follow the same rule.
-
-- **A created row no longer appears twice** when the parent adds it to `initialData`
-  from inside `onPersist` and also returns it. The grid's local add is by row key.
 
 ## 0.5.0
 

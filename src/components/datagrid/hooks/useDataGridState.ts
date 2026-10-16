@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+
 import type { DataGridProps } from "../types/grid";
 import { useConfirm } from "./useConfirm";
 import { useDataGridTable } from "./useDataGridTable";
@@ -47,6 +49,31 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     getKey,
     filtering: filters.columnFilters.length > 0 || filters.globalFilter !== "",
   });
+
+  /*
+   * Row mode draws a create session as a draft row under the parent its seed names. The
+   * parent is opened the moment the session starts, so the draft lands on screen; the
+   * body places it by this key. Tree mode renders the table only, so `editContainer`
+   * alone says whether the session is a row.
+   */
+  const rowMode = props.editContainer === "row";
+  const draftParentKey =
+    rowMode && edit.session.kind === "create"
+      ? tree.parentKeyOf(edit.createSeed)
+      : undefined;
+  const { revealParent } = tree;
+  useEffect(() => {
+    if (draftParentKey !== undefined) revealParent(draftParentKey);
+  }, [draftParentKey, revealParent]);
+
+  /*
+   * Row mode: the row whose first editable cell takes focus once a session closes, so a
+   * save or a cancel does not drop focus to the body. A new object per request, so the
+   * same row saved twice is focused twice.
+   */
+  const [rowFocus, setRowFocus] = useState<{ key: string }>();
+  const focusRow = useCallback((key: string) => setRowFocus({ key }), []);
+  const focusSavedRow = useCallback((row: TRow) => focusRow(getKey(row)), [focusRow, getKey]);
 
   const pagination = useGridPagination({
     pagination: props.pagination,
@@ -132,6 +159,7 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     deselect: selection.deselect,
     getKey,
     confirm,
+    onSaved: rowMode ? focusSavedRow : undefined,
   });
 
   return {
@@ -139,6 +167,11 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     changedRowId,
     selection,
     edit,
+    /** Row mode, create session: the parent the draft sits under; `undefined` for a root. */
+    draftParentKey,
+    /** Row mode: the row to hand focus to after a session closes. */
+    rowFocus,
+    focusRow,
     filters,
     pagination,
     gridColumns,

@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Building2, ListTree, Network, Plus, Users } from "lucide-react";
+import { Building2, FolderInput, ListTree, Network, Plus, Users } from "lucide-react";
 import { z } from "zod";
 
 import { DataGrid, type DataGridHandle } from "../../components/datagrid/DataGrid";
 import type { WithMeta } from "../../components/datagrid/types/column";
+import type { EditState } from "../../components/datagrid/types/grid";
 import type { TreeConfig } from "../../components/datagrid/types/tree";
 import type { ActionColumnOpts } from "../../components/datagrid/ui/makeActionColumns";
 
@@ -92,11 +93,50 @@ const TREE: TreeConfig<Unit> = {
   ],
 };
 
-/** A department hierarchy exercising tree mode: nesting, filters, sorting and writes. */
+/** The ids of `rootId` and everything under it. */
+function subtreeIds(all: Unit[], rootId: string): Set<string> {
+  const ids = new Set([rootId]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const u of all) {
+      if (ids.has(u.parentId) && !ids.has(u.id)) {
+        ids.add(u.id);
+        grew = true;
+      }
+    }
+  }
+  return ids;
+}
+
+const ACTION_BTN =
+  "inline-flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-control border border-transparent text-faint outline-none transition-colors hover:border-border-default hover:bg-surface-raised hover:text-body focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]";
+
+/**
+ * A department hierarchy exercising tree mode on row editing: a draft row under its
+ * parent, Enter chaining siblings, and a Move to… action editing the hidden parent
+ * column through the cell popover.
+ */
 export function TreeDemo() {
   const [units, setUnits] = useState(SEED);
   const grid = useRef<DataGridHandle<Unit, UnitForm>>(null);
   const nextId = useRef(1);
+
+  /* The row whose parent the Move to… popover is editing: it and its subtree are left
+     out of the Parent options, since a unit cannot sit under itself. */
+  const [moving, setMoving] = useState<Unit>();
+  const onEditStateChange = useCallback((state: EditState<Unit>) => {
+    setMoving(
+      state.kind === "cell" && state.columnId === "parentId" ? state.row : undefined
+    );
+  }, []);
+
+  const parentOptions = useMemo(() => {
+    const excluded = moving ? subtreeIds(units, moving.id) : new Set<string>();
+    return units
+      .filter((u) => !excluded.has(u.id))
+      .map((u) => ({ value: u.id, label: u.name }));
+  }, [units, moving]);
 
   const columns = useMemo<WithMeta<Unit, UnitForm>[]>(
     () => [
@@ -124,6 +164,8 @@ export function TreeDemo() {
         size: 110,
         meta: { editor: "number", default: 0, align: "right", mono: true },
       },
+      /* Hidden from the table, so the row session carries it: a draft keeps the parent
+         its seed named. The Move to… action is the only way to edit it. */
       {
         accessorKey: "parentId",
         header: "Parent",
@@ -131,12 +173,12 @@ export function TreeDemo() {
           label: "Parent",
           description: "Leave empty for a top-level unit.",
           editor: "select",
-          options: units.map((u) => ({ value: u.id, label: u.name })),
+          options: parentOptions,
           visibleInTable: false,
         },
       },
     ],
-    [units]
+    [parentOptions]
   );
 
   const onPersist = useCallback(
@@ -157,17 +199,7 @@ export function TreeDemo() {
      owner's job, as it would be a back end's. */
   const onDelete = useCallback((row: Unit) => {
     setUnits((all) => {
-      const gone = new Set([row.id]);
-      let grew = true;
-      while (grew) {
-        grew = false;
-        for (const u of all) {
-          if (gone.has(u.parentId) && !gone.has(u.id)) {
-            gone.add(u.id);
-            grew = true;
-          }
-        }
-      }
+      const gone = subtreeIds(all, row.id);
       return all.filter((u) => !gone.has(u.id));
     });
   }, []);
@@ -187,9 +219,21 @@ export function TreeDemo() {
                 kind: CHILD_KIND[row.kind],
               });
             }}
-            className="inline-flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-control border border-transparent text-faint outline-none transition-colors hover:border-border-default hover:bg-surface-raised hover:text-body focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]"
+            className={ACTION_BTN}
           >
             <Plus className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label={`Move ${row.name} under another unit`}
+            title="Move to…"
+            onClick={(e) => {
+              e.stopPropagation();
+              grid.current?.startCellEdit(row, "parentId", e.currentTarget);
+            }}
+            className={ACTION_BTN}
+          >
+            <FolderInput className="h-3.5 w-3.5" aria-hidden />
           </button>
           <EditButton row={row} />
           <DeleteButton row={row} />
@@ -204,27 +248,33 @@ export function TreeDemo() {
       <div className="border-b border-border-default pb-4">
         <div className="flex items-center gap-2">
           <ListTree className="h-6 w-6 text-accent" />
-          <h2 className="text-2xl font-bold text-body">DataGrid tree mode</h2>
+          <h2 className="text-2xl font-bold text-body">
+            DataGrid tree mode, edited in the row
+          </h2>
         </div>
         <p className="mt-1 text-sm text-muted">
-          Flat rows linked by <code>parentId</code>, rendered as a hierarchy. Search
-          and the Kind filter keep the ancestors of every match, sorting applies among
-          siblings, the + action creates a unit under a row, and deleting a row takes
-          its subtree with it.
+          Flat rows linked by <code>parentId</code>, rendered as a hierarchy. Click a cell
+          to edit the row in place; the + action opens a draft under a row, and Enter saves
+          it and opens the next sibling. The parent is set by position, so it has no column:
+          the Move to… action edits it through the cell popover. Search and the Kind filter
+          keep the ancestors of every match, sorting applies among siblings, and deleting a
+          row takes its subtree with it.
         </p>
       </div>
 
       <DataGrid<Unit, UnitForm>
         ref={grid}
         title="Organisation"
-        subtitle="tree mode"
+        subtitle="tree mode · row editing"
         columns={columns}
         zodSchema={schema}
         initialData={units}
         tree={TREE}
+        editContainer="row"
         selectable
         onPersist={onPersist}
         onDelete={onDelete}
+        onEditStateChange={onEditStateChange}
         actionColumnOptions={actionColumnOptions}
       />
     </div>

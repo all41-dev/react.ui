@@ -152,7 +152,7 @@ The DataGrid is a powerful and flexible table component with built-in CRUD funct
 | `idAccessor` | `(row: T) => IdLike` | Yes | Function to extract row ID |
 | `onPersist` | `(mode, data, prev?) => Promise<T>` | No | Create/update handler |
 | `onDelete` | `(row: T) => Promise<void>` | No | Delete handler |
-| `editContainer` | `'modal' \| 'right' \| 'inline'` | No | Edit UI style (default: 'modal') |
+| `editContainer` | `'right' \| 'bottom' \| 'modal' \| 'inline' \| 'row' \| 'none'` | No | Where the form opens (default: 'right') |
 | `isLoading` | `boolean` | No | Show loading state: skeleton rows on a first load, a scrim over rows already there |
 | `loadingDelayMs` | `number` | No | Wait before the placeholder paints; its space is reserved at once (default 250) |
 | `loadingMinVisibleMs` | `number` | No | How long a shown placeholder stays once loading ends (default 400) |
@@ -248,6 +248,23 @@ narrow for two panes.
 3. **Inline** (`editContainer="inline"`)
    - Expands below the row
    - Quick edits without navigation
+
+4. **Row** (`editContainer="row"`)
+   - Editors in the row's own cells; a draft row where the new row will land
+   - Enter saves, Esc cancels, Enter on a draft opens the next one
+   - For short editable columns: a name, a type, a flag
+
+```tsx
+<DataGrid
+  editContainer="row"
+  tree={{ parentKey: "parentId" }}
+  …
+/>
+```
+
+A column with `meta.editor` that is not visible in the table is still submitted, with the
+row's value or the create seed — a tree's parent key travels that way, so no Parent field
+is needed to build a hierarchy. The full rules are in `src/components/datagrid/README.md`.
 
 #### Custom Cell Renderers
 
@@ -632,9 +649,11 @@ The demo app showcases all components with interactive examples:
   - Form validation
   - Pagination and filtering
   - Custom cell renderers
-- **DataGrid tree** - Tree mode on a department hierarchy
+- **DataGrid tree** - Tree mode on a department hierarchy, edited in the row
   - Search and filters that keep ancestors
-  - Create under a parent, delete a subtree
+  - A draft row under its parent, Enter chaining the next sibling
+  - Move to… editing the hidden parent column through `startCellEdit`
+  - Delete a subtree
 
 Access at `http://localhost:3333` when running `npm run dev`
 

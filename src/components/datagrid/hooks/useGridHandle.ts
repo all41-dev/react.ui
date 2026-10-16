@@ -10,16 +10,24 @@ export function useGridHandle<TRow extends object, TForm extends object>(
   ref: Ref<DataGridHandle<TRow, TForm>> | undefined,
   edit: ReturnType<typeof useEditSession<TRow>>,
   clearSelection: () => void,
-  tree: { openAll: () => void; closeAll: () => void; locked: boolean }
+  tree: { openAll: () => void; closeAll: () => void; locked: boolean },
+  startCellEdit: (row: unknown, columnId: string, anchor: HTMLElement) => void
 ) {
   const { openAll, closeAll, locked } = tree;
+  const { startCreate, startEdit, close, session } = edit;
   useImperativeHandle(
     ref,
     () => ({
-      startCreate: edit.startCreate,
-      startEdit: edit.startEdit,
-      cancelEdit: edit.close,
-      isEditing: () => edit.session.kind !== "idle",
+      /* The session's own entries report a refusal; the handle keeps its `void` shape. */
+      startCreate: (seed) => {
+        startCreate(seed);
+      },
+      startEdit: (row) => {
+        startEdit(row);
+      },
+      startCellEdit,
+      cancelEdit: close,
+      isEditing: () => session.kind !== "idle",
       clearSelection,
       /* Inert while a search or a filter holds every node open, like the chevrons: the
          change would not show until the criteria clear. */
@@ -31,10 +39,11 @@ export function useGridHandle<TRow extends object, TForm extends object>(
       },
     }),
     [
-      edit.startCreate,
-      edit.startEdit,
-      edit.close,
-      edit.session.kind,
+      startCreate,
+      startEdit,
+      close,
+      session.kind,
+      startCellEdit,
       clearSelection,
       openAll,
       closeAll,

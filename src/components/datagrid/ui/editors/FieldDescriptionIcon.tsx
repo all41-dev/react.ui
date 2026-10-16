@@ -1,8 +1,6 @@
-import { useContext } from "react";
 import { Info } from "lucide-react";
 
-import { DataGridContext } from "../../DataGridContext";
-import { TooltipIdContext } from "../tooltipContext";
+import { useTooltipId } from "../tooltipContext";
 
 /**
  * Info icon next to a field label carrying the column's `description` in the shared
@@ -18,10 +16,7 @@ export function FieldDescriptionIcon({
   descriptionId: string;
   description: string;
 }) {
-  /* A standalone form carries its own anchor; inside a grid, the grid's is used. */
-  const standaloneId = useContext(TooltipIdContext);
-  const grid = useContext(DataGridContext);
-  const tooltipId = standaloneId ?? grid?.tooltipId;
+  const tooltipId = useTooltipId();
   if (!tooltipId) {
     throw new Error(
       "FieldDescriptionIcon must render inside a DataGrid or a RecordForm"

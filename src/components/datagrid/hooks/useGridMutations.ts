@@ -26,7 +26,12 @@ type Params<TRow extends object, TForm extends object> = {
   /** The grid's row identity — the same function the table gets as `getRowId`. */
   getKey: (row: TRow) => string;
   confirm: ReturnType<typeof useConfirm>["confirm"];
+  /** Called with the row a save closed on, once the session is shut; absent outside row mode. */
+  onSaved?: (row: TRow) => void;
 };
+
+/** `next`: after a create, open another draft with the same seed instead of closing. */
+export type SubmitOptions = { next?: boolean };
 
 /**
  * Everything that writes: the form submit, the delete, and — via
@@ -46,10 +51,11 @@ export function useGridMutations<TRow extends object, TForm extends object>({
   deselect,
   getKey,
   confirm,
+  onSaved,
 }: Params<TRow, TForm>) {
   // See `useCellEditMutations` — `edit` is a fresh literal every render, its members are
   // not, so depend on the members.
-  const { editingRow, close } = edit;
+  const { editingRow, createSeed, close, startCreate } = edit;
 
   const handleDelete = useCallback(
     async (row: TRow) => {
@@ -89,7 +95,7 @@ export function useGridMutations<TRow extends object, TForm extends object>({
   );
 
   const handleSubmit = useCallback(
-    async (values: TForm) => {
+    async (values: TForm, opts?: SubmitOptions) => {
       if (!onPersist) return;
       try {
         // Reflect the result locally. A consumer using the query adapter will re-supply
@@ -98,23 +104,39 @@ export function useGridMutations<TRow extends object, TForm extends object>({
         if (editingRow) {
           const saved = await onPersist("edit", values, editingRow);
           if (saved) replaceAndReveal(editingRow, saved);
-        } else {
-          const created = await onPersist("create", values);
-          if (created) {
-            addRow(created);
-            reveal(created);
-          }
+          close();
+          onSaved?.(saved ?? editingRow);
+          return;
         }
+        const created = await onPersist("create", values);
+        if (created) {
+          addRow(created);
+          reveal(created);
+        }
+        /* The form that just saved is dirty, so the chained draft goes through `close`
+           first; the seed object is reused so the draft stays under the same parent. */
         close();
+        if (opts?.next === true) startCreate(createSeed);
+        else if (created) onSaved?.(created);
       } catch (e) {
         toast.error(getApiMessage(e, "Save failed"));
         throw e;
       }
     },
-    [onPersist, editingRow, close, replaceAndReveal, addRow, reveal]
+    [
+      onPersist,
+      editingRow,
+      createSeed,
+      close,
+      startCreate,
+      replaceAndReveal,
+      addRow,
+      reveal,
+      onSaved,
+    ]
   );
 
-  const { cellEditColumn, handleCellSave, startCellEditFromCell } =
+  const { cellEditColumn, handleCellSave, saveCell, startCellEditFromCell } =
     useCellEditMutations<TRow, TForm>({
       columns,
       zodSchema,
@@ -128,6 +150,7 @@ export function useGridMutations<TRow extends object, TForm extends object>({
     handleSubmit,
     cellEditColumn,
     handleCellSave,
+    saveCell,
     startCellEditFromCell,
   };
 }

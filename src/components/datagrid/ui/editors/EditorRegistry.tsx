@@ -1,8 +1,9 @@
+import { Fragment } from "react";
 import type { Control, FieldValues, Path } from "react-hook-form";
 
 import type { WithMeta } from "../../types/column";
-import type { FormGroupVariant } from "../../types/formLayout";
 import { getAccessorKey } from "../../utils/getAccessorKey";
+import type { EditorVariant } from "./editorChrome";
 import {
   editorComponentFor,
   isRichEditor,
@@ -20,8 +21,11 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
    * `<label htmlFor>` and `aria-describedby` would resolve to the first form on the page.
    */
   idPrefix: string;
-  /** Variant of the section the field sits in; only the switch lays itself out from it. */
-  variant?: FormGroupVariant;
+  /**
+   * Where the field renders. A section variant only decides how the switch lays itself
+   * out; `"cell"` renders every editor without its chrome, for a table cell.
+   */
+  variant?: EditorVariant;
 }) {
   const { column, control, idPrefix, variant } = opts;
   // Columns are keyed by the row type while the form is keyed by the form type; this is
@@ -33,42 +37,57 @@ export function renderEditor<TRow extends object, TForm extends FieldValues>(opt
   const meta = column.meta ?? {};
   const label = meta.label ?? String(column.header ?? name);
   const { editorClassName, inputProps } = splitEditorProps(meta.editorProps);
+  const inCell = variant === "cell";
 
   if (meta.editor === "switch") {
-    return (
-      <div key={String(name)}>
-        <SwitchController
-          control={control}
-          name={name}
-          id={fieldId}
-          label={label}
-          required={meta.required}
-          description={meta.description}
-          hint={meta.hint}
-          inputProps={inputProps}
-          variant={variant}
-        />
-      </div>
+    const switchField = (
+      <SwitchController
+        control={control}
+        name={name}
+        id={fieldId}
+        label={label}
+        required={meta.required}
+        /* A cell shows neither. Dropped here rather than in the field so the hint's
+           form-wide subscription is never mounted for a row of switches. */
+        description={inCell ? undefined : meta.description}
+        hint={inCell ? undefined : meta.hint}
+        inputProps={inputProps}
+        variant={variant}
+      />
+    );
+    return inCell ? (
+      <Fragment key={String(name)}>{switchField}</Fragment>
+    ) : (
+      <div key={String(name)}>{switchField}</div>
     );
   }
 
   const Field = editorComponentFor(meta.editor);
   if (!Field) return null;
 
-  return (
+  const plainField = (
+    <PlainEditorField
+      control={control}
+      name={name}
+      fieldId={fieldId}
+      label={label}
+      meta={meta}
+      editor={meta.editor}
+      isRich={isRichEditor(meta.editor)}
+      Field={Field}
+      editorClassName={editorClassName}
+      inputProps={inputProps}
+      variant={variant}
+    />
+  );
+
+  /* A cell gets the control alone: a wrapper between the cell and the input would take
+     the cell's width and alignment rules away from it. */
+  return inCell ? (
+    <Fragment key={String(name)}>{plainField}</Fragment>
+  ) : (
     <div key={String(name)} className="space-y-1.5">
-      <PlainEditorField
-        control={control}
-        name={name}
-        fieldId={fieldId}
-        label={label}
-        meta={meta}
-        editor={meta.editor}
-        isRich={isRichEditor(meta.editor)}
-        Field={Field}
-        editorClassName={editorClassName}
-        inputProps={inputProps}
-      />
+      {plainField}
     </div>
   );
 }

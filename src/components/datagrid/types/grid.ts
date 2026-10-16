@@ -108,11 +108,17 @@ export type EditState<TRow> =
 export type DataGridHandle<TRow extends object, TForm extends object = any> = {
   /**
    * Open the create form. `seed` presets fields over the column defaults: form-shaped
-   * values, read for the declared columns only.
+   * values, read for the declared columns only. In row mode a dirty row refuses it.
    */
   startCreate: (seed?: Partial<TForm>) => void;
-  /** Open the edit form for a row. */
+  /** Open the edit form for a row. In row mode a dirty row refuses it. */
   startEdit: (row: TRow) => void;
+  /**
+   * Open the single-cell popover on a row, anchored to `anchor`. Needs `editor` on the
+   * column; `cellEdit` is not required, so a column hidden from the table can be edited
+   * this way — a "Move to…" row action editing the parent column is the use.
+   */
+  startCellEdit: (row: TRow, columnId: string, anchor: HTMLElement) => void;
   /** Close whatever editor is open — form or cell popover. No-op when idle. */
   cancelEdit: () => void;
   /** True while a create/edit form or a cell popover is open. */

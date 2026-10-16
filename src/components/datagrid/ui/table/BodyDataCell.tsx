@@ -1,10 +1,11 @@
 import { flexRender, type Cell } from "@tanstack/react-table";
 import { Pencil } from "lucide-react";
-import { useContext } from "react";
+import { useContext, type KeyboardEvent, type MouseEvent } from "react";
 import { DataGridContext } from "../../DataGridContext";
 import { useIsTruncated } from "../../hooks/useIsTruncated";
 import { readAccessorKey, readColumnMeta } from "../../utils/readColumnDef";
 import { CellWithTooltip, toLabelText } from "./CellWithTooltip";
+import { SwitchCell } from "./SwitchCell";
 import { TreeCell, type TreeNodeState } from "./TreeCell";
 
 export function BodyDataCell<TRow extends object>({
@@ -46,8 +47,33 @@ export function BodyDataCell<TRow extends object>({
     hasAccessorKey &&
     ctx?.canCellEdit
   );
+  /* A switch has nothing a popover adds: the click is the whole edit. */
+  const isSwitchCell = canCellEdit && m?.editor === "switch";
 
-  const content = canCellEdit ? (
+  /*
+   * Row mode: the cell would carry an editor in the row session, so a click opens that
+   * session on it. `cellEdit` keeps the popover instead; a form-only field (`visibleInForm:
+   * false`) has no editor in the row, so it opens nothing.
+   */
+  const startRowEdit = ctx?.startRowEdit;
+  const canRowEdit =
+    !!startRowEdit &&
+    !canCellEdit &&
+    !!m?.editor &&
+    hasAccessorKey &&
+    m?.visibleInForm !== false;
+
+  const openRowEdit = (e: MouseEvent | KeyboardEvent) => {
+    // A click on the chevron or a button in the cell is theirs.
+    if ((e.target as HTMLElement).closest("button, a, input")) return;
+    startRowEdit?.(c.row.original, c.column.id);
+  };
+
+  const label = String(m?.label ?? c.column.columnDef.header ?? c.column.id);
+
+  const content = isSwitchCell ? (
+    <SwitchCell c={c} toForm={m?.toForm} label={label} />
+  ) : canCellEdit ? (
     <button
       type="button"
       title="Click to edit"
@@ -95,6 +121,20 @@ export function BodyDataCell<TRow extends object>({
   return (
     <td
       data-col-id={c.column.id}
+      /* Focusable by script, not by Tab: focus lands here after a session closes on the
+         row, and Enter reopens it. Every cell in the tab order would be a wall. */
+      data-row-editable={canRowEdit || undefined}
+      tabIndex={canRowEdit ? -1 : undefined}
+      onClick={canRowEdit ? openRowEdit : undefined}
+      onKeyDown={
+        canRowEdit
+          ? (e) => {
+              if (e.key !== "Enter" || e.target !== e.currentTarget) return;
+              e.preventDefault();
+              openRowEdit(e);
+            }
+          : undefined
+      }
       onMouseEnter={measure}
       /* `focusin` bubbles, so this also fires when the cell-edit button takes focus —
          its accessible name is the clipped text, and a keyboard user has no other way
@@ -107,6 +147,9 @@ export function BodyDataCell<TRow extends object>({
       className={[
         "h-10 align-middle border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)]",
         paddingClass,
+        canRowEdit
+          ? "cursor-text outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--rui-focus-ring)]"
+          : "",
         m?.mono ? "font-mono text-[.75rem] text-muted" : "",
         m?.align === "right"
           ? "text-right"

@@ -2,7 +2,7 @@ import { Layout } from "lucide-react";
 import type { SandboxSettings } from "../useSandboxSettings";
 import { ConfigCard, Segmented } from "./controls";
 
-const CONTAINERS = ["right", "bottom", "modal", "inline"] as const;
+const CONTAINERS = ["right", "bottom", "modal", "inline", "row"] as const;
 const GROUPINGS = ["off", "stacked", "split"] as const;
 const COLUMN_COUNTS = [1, 2, 3] as const;
 

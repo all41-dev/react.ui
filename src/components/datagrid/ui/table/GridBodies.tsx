@@ -3,6 +3,7 @@ import type { Virtualizer, VirtualItem } from "@tanstack/react-virtual";
 import type { ReactNode } from "react";
 
 import type { BodyItem } from "../../hooks/useVirtualRows";
+import type { RenderEditingRow } from "./EditingRow";
 import {
   CreatingEditorBody,
   EmptyBody,
@@ -31,8 +32,11 @@ type GridBodiesProps<TRow extends object> = {
   onToggleGroup?: (key: string) => void;
   editingRowId?: string;
   inlineEditor?: ReactNode;
+  /** Row mode: the row in session, or the draft (a `draft` body item), in table cells. */
+  renderEditingRow?: RenderEditingRow<TRow>;
   /** Visible width of the scroll wrapper, for the inline form. */
   viewportWidth?: number;
+  /** Inline mode: the create form renders as the first body. */
   isCreating?: boolean;
   selectedRowId?: string;
   selectedRowIds?: ReadonlySet<string>;
@@ -61,6 +65,7 @@ export function GridBodies<TRow extends object>({
   onToggleGroup,
   editingRowId,
   inlineEditor,
+  renderEditingRow,
   viewportWidth,
   isCreating,
   selectedRowId,
@@ -104,6 +109,7 @@ export function GridBodies<TRow extends object>({
         onToggleGroup={onToggleGroup}
         editingRowId={editingRowId}
         inlineEditor={inlineEditor}
+        renderEditingRow={renderEditingRow}
         viewportWidth={viewportWidth}
         selectedRowId={selectedRowId}
         selectedRowIds={selectedRowIds}

@@ -12,6 +12,18 @@ const FOCUSABLE =
 const CONTROL =
   'textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [contenteditable="true"]';
 
+/** The keys that mean the user is driving by keyboard; typing in a field does not. */
+const NAVIGATION_KEYS = new Set([
+  "Tab",
+  "Escape",
+  "Enter",
+  " ",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+]);
+
 /**
  * Keyboard focus containment for modal surfaces (dialogs, drawers, sheets).
  *
@@ -19,6 +31,13 @@ const CONTROL =
  * Shift+Tab cycling inside it, and on deactivate/unmount returns focus to whatever
  * had it before — so a keyboard user closing the editor lands back on the button that
  * opened it instead of at the top of the page.
+ *
+ * A close driven by the pointer (a click on Cancel, Save or the scrim) returns focus
+ * to the opener and releases it at once. A text field inside the surface always
+ * matches `:focus-visible`, and a programmatic move inherits that state, so leaving
+ * focus on the opener after a mouse interaction would draw its focus ring and keep a
+ * row's action pill revealed. The opener stays the sequential focus start, so a Tab
+ * afterwards continues from it.
  *
  * Attach the returned ref to the container element and give it `tabIndex={-1}`
  * so it can take focus itself when it holds no focusable children.
@@ -42,6 +61,17 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
 
     const initial = focusables();
     (initial.find((el) => el.matches(CONTROL)) ?? initial[0] ?? container).focus();
+
+    /* Which input last drove the page; decides how focus is handed back on close. */
+    let viaKeyboard = false;
+    const onPointerDown = () => {
+      viaKeyboard = false;
+    };
+    const onNavKey = (e: KeyboardEvent) => {
+      if (NAVIGATION_KEYS.has(e.key)) viaKeyboard = true;
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onNavKey, true);
 
     const onKeyDown = (e: KeyboardEvent) => {
       // A field that consumed Tab keeps it — a code editor indents with it rather than
@@ -69,7 +99,10 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
     container.addEventListener("keydown", onKeyDown);
     return () => {
       container.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onNavKey, true);
       previous?.focus?.();
+      if (!viaKeyboard) previous?.blur?.();
     };
   }, [active]);
 

@@ -96,14 +96,24 @@ export function useGridTree<TRow extends object>({
     [defaultOpen]
   );
 
-  /** Opens every ancestor of `row`, so a row just written is on screen. */
-  const reveal = useCallback(
-    (row: TRow) => {
-      if (!model || parentKey === undefined) return;
+  /**
+   * The parent a row, or a create seed, names through `parentKey`; `undefined` for a
+   * root, an empty value, or outside tree mode. The key is text, as row keys are.
+   */
+  const parentKeyOf = useCallback(
+    (row: unknown): string | undefined => {
+      if (parentKey === undefined || row === undefined) return undefined;
       const raw = getPath(row, parentKey);
-      if (raw === null || raw === undefined || raw === "") return;
-      const parent = String(raw);
-      if (!model.has(parent)) return;
+      if (raw === null || raw === undefined || raw === "") return undefined;
+      return String(raw);
+    },
+    [parentKey]
+  );
+
+  /** Opens `parent` and every ancestor of it, so a row under it is on screen. */
+  const revealParent = useCallback(
+    (parent: string) => {
+      if (!model || !model.has(parent)) return;
       const chain = [parent, ...model.ancestorsOf(parent)];
       setOpen((prev) => {
         const overrides = { ...prev.overrides };
@@ -111,7 +121,16 @@ export function useGridTree<TRow extends object>({
         return { ...prev, overrides };
       });
     },
-    [model, parentKey]
+    [model]
+  );
+
+  /** Opens every ancestor of `row`, so a row just written is on screen. */
+  const reveal = useCallback(
+    (row: TRow) => {
+      const parent = parentKeyOf(row);
+      if (parent !== undefined) revealParent(parent);
+    },
+    [parentKeyOf, revealParent]
   );
 
   const descendantKeysOf = useCallback(
@@ -153,6 +172,8 @@ export function useGridTree<TRow extends object>({
     openAll,
     closeAll,
     reveal,
+    revealParent,
+    parentKeyOf,
     descendantKeysOf,
     reset,
     isDefault,

@@ -5,8 +5,49 @@ ships. An item leaves this file when it is released and the CHANGELOG carries it
 
 ## Open
 
+From the ops workbench's exchange model tab (`react-front`,
+`claude_docs/exchange-model-tab-spec.md`, "Revisit"), in the Unreleased CHANGELOG:
+
+- **Row editing** — `editContainer="row"`: the row in session edited in its own cells, a
+  draft row under its parent, Enter chaining the next sibling. The consumer switches the
+  container, makes the name the tree column, takes the Parent select out of the form
+  (the parent travels as a carried column, set by the draft's position) and keeps the
+  path in a hidden column for search.
+- **`startCellEdit(row, columnId, anchor)`** on the handle, for a "Move to…" row action
+  that edits the hidden parent column through the cell popover. `onEditStateChange`
+  reports it as a `cell` state on that column; a consumer rebuilding its schema per
+  session must not read it as an edit of the row.
+- **A switch with `cellEdit` toggles on click** — the consumer's Optional column gets
+  `cellEdit: true` and loses its popover.
+
+Noted on the same tab and not built yet:
+
+- The actions column stays last whatever a stored column order says, and a stored order
+  does not move the tree column off the first position (`hooks/columnPrefsDerive.ts`).
+
+From the ops workbench's grid handoff (`react-front`,
+`docs/handoff/workbench/DATAGRID_HANDOFF.md` §4.5), asked for and not built yet:
+
+- Subtree roll-ups for `agg: "sum"` on parent rows. What a parent shows when it has a
+  value of its own is undecided.
+- Group-by over root nodes.
+- A nested `children` input shape.
+- Selecting a parent selects its subtree.
+- Dragging a row onto another to reparent it.
+
+## Shipped
+
+From the ops workbench's grid handoff (`react-front`,
+`docs/handoff/workbench/DATAGRID_HANDOFF.md` §4.5), released in **0.5.2**:
+
+- **DataGrid tree mode** — `tree={{ parentKey }}` over a flat, parent-linked array. The
+  consumer flattens nested data before passing it in, gives the parent field a column
+  (form-only is enough) and removes the subtree server-side when `onDelete` fires for a
+  parent.
+- **`startCreate(seed)`** for the workbench's "add child" action.
+
 From the ops app's loading-states audit (`react-front`,
-`claude_docs/loading-states-review.md`), in the Unreleased CHANGELOG:
+`claude_docs/loading-states-review.md`), released in **0.5.1**:
 
 - **The grid's loading state is delayed and de-duplicated**: no placeholder inside
   250 ms, a shown one held 400 ms, skeleton rows alone on an empty grid and the scrim
@@ -21,8 +62,9 @@ From the ops app's loading-states audit (`react-front`,
 - **`LoadingScreen` `variant="quiet"`** for the session gate, and reduced-motion guards
   on every animation of the full variant.
 
-From the ops workbench's frame (`react-front`, `features/workbench/`), where each of
-these existed as a one-consumer component, in the Unreleased CHANGELOG:
+From the ops workbench's frame, raw-record inspector and record band (`react-front`,
+`features/workbench/`), where each of these existed as a one-consumer component,
+released in **0.5.0**:
 
 - **`Tabs` + `TabPanel`** replacing the workbench's `ObjectTabs`/`TabPanel`. The consumer
   keeps its tab lists, labels and icons and maps them onto `TabItem[]`; the ids follow
@@ -32,10 +74,6 @@ these existed as a one-consumer component, in the Unreleased CHANGELOG:
 - **`CountBadge`** replacing the rail's error pill; **`KeyValue`** replacing the bar's
   summary chip. The consumer's `danger` text token is no longer needed — the library
   mixes the danger colour toward the body text itself.
-
-From the ops workbench's raw-record inspector (`react-front`,
-`features/workbench/frame/JsonInspector.tsx`), in the Unreleased CHANGELOG:
-
 - **`CodeView`** at the `/code-editor` entry — the editor's engine and palette without
   its chrome, for showing a value rather than editing one. The consumer supplies the
   frame (border, background, header) and passes the serialised text; `fill` inside a
@@ -44,36 +82,12 @@ From the ops workbench's raw-record inspector (`react-front`,
   consumer does nothing unless it had overridden `--rui-info` or `--rui-warning` to
   recolour code, in which case the override moves to `--rui-syntax-key` /
   `--rui-syntax-number`.
-
-From the ops workbench's record band (`react-front`,
-`features/workbench/record/RecordEditor.tsx`), in the Unreleased CHANGELOG:
-
 - **`RecordForm`** — the edit form outside a grid, from the same columns and schema, so
   the workbench's module, exchange and subscription records stop carrying a second
   form implementation. The consumer wraps it in a height-capped flex column and
   reads `onDirtyChange` to guard navigation away from a draft.
 - **`onSubmit(values, { dirtyKeys })`** — the changed keys, so a record that PATCHes
   only what moved does not diff the values itself.
-
-From the ops workbench's grid handoff (`react-front`,
-`docs/handoff/workbench/DATAGRID_HANDOFF.md` §4.5), in the Unreleased CHANGELOG:
-
-- **DataGrid tree mode** — `tree={{ parentKey }}` over a flat, parent-linked array. The
-  consumer flattens nested data before passing it in, gives the parent field a column
-  (form-only is enough) and removes the subtree server-side when `onDelete` fires for a
-  parent.
-- **`startCreate(seed)`** for the workbench's "add child" action.
-
-Asked for by the same handoff and not built yet:
-
-- Subtree roll-ups for `agg: "sum"` on parent rows. What a parent shows when it has a
-  value of its own is undecided.
-- Group-by over root nodes.
-- A nested `children` input shape.
-- Selecting a parent selects its subtree.
-- Dragging a row onto another to reparent it.
-
-## Shipped
 
 Four requests from the ops subscription form (`react-front`,
 `components/grids/subscriptionColumns.tsx`) — the first form to put every editor kind into

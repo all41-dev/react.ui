@@ -27,6 +27,17 @@ export type DataGridContextValue = {
   canCellEdit: boolean;
   /** Cells with `cellEdit` meta call this. No-op when `canCellEdit` is false. */
   startCellEdit: (row: unknown, columnId: string, cellEl: HTMLElement) => void;
+  /**
+   * Writes one field of a row without a session, through `onPersist("cell")`. A switch
+   * cell with `cellEdit` toggles through it. Rejects with the field's own validation
+   * message; no-op when `canCellEdit` is false.
+   */
+  saveCell: (row: unknown, columnId: string, value: unknown) => Promise<void>;
+  /**
+   * Present in row mode when the grid has no `onRowClick`: a click on a row-editable cell
+   * starts the row session with that column's editor focused.
+   */
+  startRowEdit?: (row: unknown, columnId: string) => void;
   /** The grid's single row-identity rule (`idAccessor` → `id` → `uuid`). */
   getId: (row: unknown) => string | number | undefined;
   /** Row action handlers and labels, read at cell-render time rather than closed over. */

@@ -298,6 +298,7 @@ forces one even when it isn't.
 | `"bottom"` | Bottom sheet |
 | `"modal"` | Centred dialog |
 | `"inline"` | Panel that expands under the edited row (opens as a modal while cards view is active) |
+| `"row"` | Editors in the row's own cells, a draft row for a new one — see [Editing in the row](#editing-in-the-row) |
 | `"none"` | No form at all — read-only grid, no Add button |
 
 The form's contents come from your columns and schema. `formLayout` on the grid controls
@@ -401,6 +402,90 @@ throw. Prettier is imported only when the format command runs.
 
 ---
 
+### Editing in the row
+
+`editContainer="row"` is for a grid whose editable columns are all short — a name, a
+type, a flag. There is no form: the row being edited turns its cells into inputs in
+place, and a new row is typed into a draft row where it will land. The drawer stays the
+right choice for a long record.
+
+```tsx
+const columns: WithMeta<Unit, UnitForm>[] = [
+  { accessorKey: "name", header: "Name", meta: { editor: "text", required: true } },
+  { accessorKey: "kind", header: "Kind", meta: { editor: "select", options: KINDS } },
+  { accessorKey: "active", header: "Active", meta: { editor: "switch", cellEdit: true } },
+  // Not in the table, so not edited in the row — but still submitted.
+  { accessorKey: "parentId", header: "Parent", meta: { editor: "select", options, visibleInTable: false } },
+];
+
+<DataGrid
+  columns={columns}
+  zodSchema={schema}
+  initialData={units}
+  editContainer="row"
+  tree={{ parentKey: "parentId" }}
+  onPersist={onPersist}
+/>
+```
+
+What happens:
+
+- **Click a cell to edit the row.** In a grid without `onRowClick`, a click on any cell
+  that has an editor starts the session with that cell's input focused. With `onRowClick`
+  the row click wins and the pill's Edit starts the session. A `cellEdit: true` column
+  keeps its popover instead.
+- **Enter saves, Esc cancels, Tab walks the editors** and reaches Save after the last
+  one. Save and Cancel sit where the action pill was. A click outside the row does
+  nothing: a half-typed row stays until it is saved or cancelled.
+- **Add opens a draft row.** First in a flat grid; in a tree, as the last child of the
+  parent named in the create seed (`startCreate({ parentId: row.id })`), with the parent
+  opened — or after the last root when the seed names none. Enter on a draft that saves
+  opens the next draft under the same parent, so a list of siblings is typed in one run.
+- **A column that is not visible is carried, not dropped.** Every column with
+  `meta.editor` is in the row's form; the ones visible in the table get an input in their
+  cell, the others ride along with the row's value (or the default, then the seed, on
+  create) and are submitted untouched. That is how a tree's parent key travels: the
+  draft sits under its parent, the seed names it, and no Parent field is needed. A
+  required carried column with no value on create cannot be saved and warns in
+  development — give it a default, a seed, or a visible column.
+- **A switch with `cellEdit: true` toggles on click**, in or out of a session, and
+  persists through `onPersist("cell")`.
+- **Textarea, markdown and code columns** do not fit a row: the cell shows the value and
+  a pencil, and the pencil opens the cell popover on that field. Save there writes into
+  the row, which persists on its own Save.
+- **One row at a time.** While a row holds unsaved changes, Edit on another row, a cell
+  click, `startCreate`, `startEdit` and `startCellEdit` are refused and focus returns to
+  the open row. An untouched draft gives way.
+- **Errors.** A field error rings its cell, with the message readable on hover and
+  focus, and the first invalid field takes focus. A server error from `onPersist` is a
+  strip under the row, cleared on the next change.
+- **The draft ignores sorting and filters**: it stays where it was placed while its
+  values are typed. The saved row then lands where sorting puts it, with its ancestors
+  opened.
+- In the cards view a row session opens as a modal, as an inline one does.
+
+To edit the carried parent on an existing row, give the pill a "Move to…" action and open
+the popover on the hidden column:
+
+```tsx
+actionColumnOptions={{
+  renderActions: ({ row, defaults: { EditButton, DeleteButton } }) => (
+    <>
+      <button onClick={(e) => grid.current?.startCellEdit(row, "parentId", e.currentTarget)}>
+        Move to…
+      </button>
+      <EditButton row={row} />
+      <DeleteButton row={row} />
+    </>
+  ),
+}}
+```
+
+`onEditStateChange` reports it as `{ kind: "cell", columnId: "parentId" }`; a grid that
+rebuilds its schema per session must not read it as an edit of the row.
+
+---
+
 ## Saving
 
 One callback handles all three writes:
@@ -496,9 +581,15 @@ const grid = useRef<DataGridHandle<User>>(null);
 <DataGrid ref={grid} … />
 ```
 
-Available: `startCreate(seed?)`, `startEdit(row)`, `cancelEdit()`, `isEditing()`,
-`clearSelection()`, and in tree mode `expandAll()` / `collapseAll()` — both do nothing
-while a search or a filter holds the nodes open.
+Available: `startCreate(seed?)`, `startEdit(row)`, `startCellEdit(row, columnId, anchor)`,
+`cancelEdit()`, `isEditing()`, `clearSelection()`, and in tree mode `expandAll()` /
+`collapseAll()` — both do nothing while a search or a filter holds the nodes open.
+
+`startCellEdit` opens the single-cell popover on one column of a row, anchored to the
+element you pass — a button in the row's action pill, say. The column needs `meta.editor`
+but not `cellEdit`, so a column hidden from the table can be edited this way. In row mode,
+`startCreate`, `startEdit` and `startCellEdit` are refused while a row holds unsaved
+changes.
 
 `startCreate` takes an optional seed — form values laid over the column defaults:
 

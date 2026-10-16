@@ -7,13 +7,14 @@ const IDLE = { kind: "idle" } as const;
 const CREATE = { kind: "create" } as const;
 
 /**
- * The session without what is private to the grid: the popover's DOM geometry and the
- * create form's seed.
+ * The session without what is private to the grid: the popover's DOM geometry, the
+ * create form's seed and the row session's focus target.
  */
 function publicState<TRow>(session: EditSession<TRow>): EditState<TRow> {
   if (session.kind === "cell") {
     return { kind: "cell", row: session.row, columnId: session.columnId };
   }
+  if (session.kind === "edit") return { kind: "edit", row: session.row };
   return session.kind === "create" ? CREATE : session;
 }
 

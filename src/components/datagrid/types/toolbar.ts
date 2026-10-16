@@ -8,7 +8,7 @@ export type DataGridToolbarProps = {
   /** Row count shown in the pill next to the title. */
   count?: number;
   toolbar?: React.ReactNode;
-  editContainer?: "right" | "bottom" | "modal" | "inline" | "none";
+  editContainer?: "right" | "bottom" | "modal" | "inline" | "row" | "none";
   error: string | Error | null;
   onAddClick: () => void;
   onRetry?: () => void | Promise<void>;

@@ -6,6 +6,7 @@ import type { useGridView } from "../hooks/useGridView";
 import type { DataGridProps } from "../types/grid";
 import { EditInline } from "./containers/EditInline";
 import { GridBody } from "./GridBody";
+import { EditingRow, type EditingRowArgs } from "./table/EditingRow";
 
 /**
  * Unpacks the grid's props, state and view bundles into `GridBody`'s flat prop list —
@@ -46,12 +47,12 @@ export function GridBodySection<TRow extends object, TForm extends object>({
     [expandedRowIds]
   );
 
+  const formOpen = edit.session.kind === "create" || edit.session.kind === "edit";
+
   /* The inline form renders INSIDE the table body, unlike the overlay containers, so it
      travels to `GridBody` as a node rather than living in `GridEditors`. */
   const inlineEditor =
-    view.inlineEditing &&
-    edit.session.kind !== "idle" &&
-    edit.session.kind !== "cell" ? (
+    view.inlineEditing && formOpen ? (
       <EditInline<TRow, TForm>
         open
         mode={edit.formMode}
@@ -65,6 +66,52 @@ export function GridBodySection<TRow extends object, TForm extends object>({
         onSubmit={mutations.handleSubmit}
       />
     ) : undefined;
+
+  /*
+   * Row mode draws the session in the row's own cells, so the body calls back with the
+   * row and the column model it has in hand. The key is the session's serial, not the
+   * seed: a draft chained from Enter reuses the seed and must still start clean.
+   */
+  const { close } = edit;
+  const { focusRow } = state;
+  const renderEditingRow =
+    view.rowEditing && formOpen
+      ? (args: EditingRowArgs<TRow>) => (
+          <EditingRow<TRow, TForm>
+            key={`session-${edit.serial}`}
+            row={args.row}
+            leafCols={args.leafCols}
+            node={args.node}
+            ariaRowIndex={args.ariaRowIndex}
+            seed={edit.createSeed}
+            focusColumnId={edit.focusColumnId}
+            refocusSignal={edit.refusals}
+            columns={props.columns}
+            zodSchema={props.zodSchema}
+            onSubmit={mutations.handleSubmit}
+            onDirtyChange={edit.setDirty}
+            onCancel={() => {
+              close();
+              /* A cancelled edit hands focus back to its row; a dropped draft has none. */
+              if (editingRowKey !== undefined) focusRow(editingRowKey);
+            }}
+          />
+        )
+      : undefined;
+
+  const inBody = view.inlineEditing || view.rowEditing;
+  const isCreating = inBody && edit.session.kind === "create";
+
+  /* Row mode: the draft row's place in the body, by the parent the seed names. */
+  const treeMode = state.tree.enabled;
+  const { draftParentKey } = state;
+  const draft = useMemo(
+    () =>
+      view.rowEditing && isCreating
+        ? { parentKey: draftParentKey, tree: treeMode }
+        : undefined,
+    [view.rowEditing, isCreating, draftParentKey, treeMode]
+  );
 
   return (
     <GridBody<TRow>
@@ -81,9 +128,11 @@ export function GridBodySection<TRow extends object, TForm extends object>({
       selectedRowIds={props.selectable ? selection.selectedIds : undefined}
       onRowClick={onRowClick ? view.handleRowClick : undefined}
       selectedRowId={view.selectedRowId}
-      editingRowId={view.inlineEditing ? editingRowKey : undefined}
+      editingRowId={inBody ? editingRowKey : undefined}
       inlineEditor={inlineEditor}
-      isCreating={view.inlineEditing && edit.session.kind === "create"}
+      renderEditingRow={renderEditingRow}
+      draft={draft}
+      isCreating={isCreating}
       changedRowId={state.changedRowId}
       expandedRowIds={expandedKeys}
       renderExpandedRow={props.renderExpandedRow}
