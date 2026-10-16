@@ -24,6 +24,7 @@ globalThis.ResizeObserver ??= ResizeObserverStub;
 class IntersectionObserverStub implements IntersectionObserver {
   readonly root = null;
   readonly rootMargin = "";
+  readonly scrollMargin = "";
   readonly thresholds: number[] = [];
   observe() {}
   unobserve() {}

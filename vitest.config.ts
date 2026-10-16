@@ -17,7 +17,7 @@ export default defineConfig({
     css: false,
     coverage: {
       provider: "v8",
-      include: ["src/components/datagrid/**"],
+      include: ["src/components/datagrid/**/*.{ts,tsx}"],
       exclude: ["src/components/datagrid/**/*.test.*"],
     },
   },
