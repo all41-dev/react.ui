@@ -25,14 +25,14 @@ export function useGridChrome<TRow extends object, TForm extends object>({
   state,
   activeView,
   getId,
-  cellStartsRowEdit,
+  rowEditTrigger,
 }: {
   props: DataGridProps<TRow, TForm>;
   state: ReturnType<typeof useDataGridState<TRow, TForm>>;
   activeView: ActionView;
   getId: (row: TRow) => string | number | undefined;
-  /** Row mode without `onRowClick`: a click on a row-editable cell opens the session. */
-  cellStartsRowEdit: boolean;
+  /** Row mode: the gesture on a row-editable cell that opens the session. */
+  rowEditTrigger: "click" | "doubleClick" | undefined;
 }) {
   const { edit, filters, grouping, mutations, selection, tree } = state;
   const editContainer = props.editContainer ?? "right";
@@ -134,12 +134,12 @@ export function useGridChrome<TRow extends object, TForm extends object>({
   const { startEdit } = edit;
   const startRowEdit = useMemo(
     () =>
-      cellStartsRowEdit && canCellEdit
+      rowEditTrigger && canCellEdit
         ? (row: unknown, columnId: string) => {
             startEdit(row as TRow, columnId);
           }
         : undefined,
-    [cellStartsRowEdit, canCellEdit, startEdit]
+    [rowEditTrigger, canCellEdit, startEdit]
   );
 
   const contextValue = useMemo<DataGridContextValue>(
@@ -149,6 +149,7 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       startCellEdit: mutations.startCellEditFromCell,
       saveCell: mutations.saveCell,
       startRowEdit,
+      rowEditTrigger: startRowEdit ? rowEditTrigger : undefined,
       getId: getId as (row: unknown) => string | number | undefined,
       rowActions: rowActions as ActionColumnOpts<unknown>,
       view: activeView,
@@ -160,6 +161,7 @@ export function useGridChrome<TRow extends object, TForm extends object>({
       mutations.startCellEditFromCell,
       mutations.saveCell,
       startRowEdit,
+      rowEditTrigger,
       getId,
       rowActions,
       activeView,

@@ -432,8 +432,9 @@ What happens:
 
 - **Click a cell to edit the row.** In a grid without `onRowClick`, a click on any cell
   that has an editor starts the session with that cell's input focused. With `onRowClick`
-  the row click wins and the pill's Edit starts the session. A `cellEdit: true` column
-  keeps its popover instead.
+  the click is the row's, so the user can select a row, and a double-click on the cell
+  starts the session instead; the pill's Edit does too. A `cellEdit: true` column keeps
+  its popover instead.
 - **Enter saves, Esc cancels, Tab walks the editors** and reaches Save after the last
   one. Save and Cancel sit where the action pill was. A click outside the row does
   nothing: a half-typed row stays until it is saved or cancelled.

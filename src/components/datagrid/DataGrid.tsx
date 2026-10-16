@@ -67,8 +67,12 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
     state,
     activeView: view.activeView,
     getId,
-    /* With `onRowClick` the row click wins and the pill's Edit starts the session. */
-    cellStartsRowEdit: view.rowEditing && !onRowClick,
+    /* With `onRowClick` a click is the row's, so a double-click starts the session. */
+    rowEditTrigger: view.rowEditing
+      ? onRowClick
+        ? "doubleClick"
+        : "click"
+      : undefined,
   });
 
   useGridHandle(ref, edit, selection.clear, tree, mutations.startCellEditFromCell);

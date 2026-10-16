@@ -34,10 +34,12 @@ export type DataGridContextValue = {
    */
   saveCell: (row: unknown, columnId: string, value: unknown) => Promise<void>;
   /**
-   * Present in row mode when the grid has no `onRowClick`: a click on a row-editable cell
-   * starts the row session with that column's editor focused.
+   * Present in row mode: a row-editable cell starts the row session with that column's
+   * editor focused, on the gesture `rowEditTrigger` names.
    */
   startRowEdit?: (row: unknown, columnId: string) => void;
+  /** `"click"` without `onRowClick`; `"doubleClick"` with it, so a click still selects. */
+  rowEditTrigger?: "click" | "doubleClick";
   /** The grid's single row-identity rule (`idAccessor` → `id` → `uuid`). */
   getId: (row: unknown) => string | number | undefined;
   /** Row action handlers and labels, read at cell-render time rather than closed over. */

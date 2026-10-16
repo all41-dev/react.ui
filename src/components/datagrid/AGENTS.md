@@ -406,9 +406,13 @@ field react-hook-form does.
     seed; the serial-keyed form mounts clean.
   - Focus: `focusColumnId` on the edit session names the editor to open on; after a
     close, `useDataGridState.rowFocus` → `useRowFocus` focuses the row's first
-    `[data-row-editable]` cell (`tabIndex=-1`, Enter reopens). A click on a row-editable
-    cell goes through `DataGridContext.startRowEdit`, present only when the grid has no
-    `onRowClick`.
+    `[data-row-editable]` cell (`tabIndex=-1`, Enter reopens). A row-editable cell
+    opens the session through `DataGridContext.startRowEdit` on the gesture
+    `rowEditTrigger` names: `"click"` without `onRowClick`, `"doubleClick"` with it, so
+    the click stays the row's.
+  - Save and Cancel are icon buttons on the floating pill; `EditingRow` pads the last
+    data column (`PILL_ROOM`) so the pill never covers its editor. Cell editors carry the
+    form's inset surface and border at rest, so an empty draft field is visible.
   - One session: `useEditSession.dirtyRef` is written by the row form alone, so the
     refusal never applies to the overlay containers.
   - A submit that fails validation focuses the row's first `[aria-invalid]` control

@@ -2,7 +2,24 @@
 
 ## Unreleased
 
-Next release is a minor bump: a fourth edit container puts the editors in the row.
+### Changed
+
+- **A double-click edits a cell in a row-mode grid that has `onRowClick`.** A click
+  stays the row's, so a host can select a row without opening it; the double-click
+  starts the row session with that cell's editor focused. The pill's Edit and Enter on
+  a focused cell still open it. A grid without `onRowClick` still opens on one click.
+
+- **Row editors read as fields.** In a row session every editor has the inset surface
+  and border of a form field, where it used to show them only on focus: an empty field
+  in a draft row looked like a blank cell.
+
+- **Save and Cancel are a compact pill that no longer covers the last column.** Two
+  icon buttons, named "Save" and "Cancel" with Enter and Esc in their titles, and the
+  row's last data column keeps room for them on its right.
+
+## 0.5.4
+
+A fourth edit container puts the editors in the row.
 
 ### Added
 

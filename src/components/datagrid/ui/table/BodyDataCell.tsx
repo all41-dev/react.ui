@@ -11,10 +11,13 @@ import { TreeCell, type TreeNodeState } from "./TreeCell";
 export function BodyDataCell<TRow extends object>({
   c,
   node,
+  className,
 }: {
   c: Cell<TRow, unknown>;
   /** The row's place in the tree. Drawn by the tree column only. */
   node?: TreeNodeState;
+  /** Appended to the cell's own classes. */
+  className?: string;
 }) {
   const ctx = useContext(DataGridContext);
   const { ref: contentRef, truncated, measure } = useIsTruncated<HTMLSpanElement>();
@@ -51,9 +54,10 @@ export function BodyDataCell<TRow extends object>({
   const isSwitchCell = canCellEdit && m?.editor === "switch";
 
   /*
-   * Row mode: the cell would carry an editor in the row session, so a click opens that
-   * session on it. `cellEdit` keeps the popover instead; a form-only field (`visibleInForm:
-   * false`) has no editor in the row, so it opens nothing.
+   * Row mode: the cell would carry an editor in the row session, so a click — or a
+   * double-click when the grid has `onRowClick` — opens that session on it. `cellEdit`
+   * keeps the popover instead; a form-only field (`visibleInForm: false`) has no editor
+   * in the row, so it opens nothing.
    */
   const startRowEdit = ctx?.startRowEdit;
   const canRowEdit =
@@ -62,6 +66,8 @@ export function BodyDataCell<TRow extends object>({
     !!m?.editor &&
     hasAccessorKey &&
     m?.visibleInForm !== false;
+
+  const onDoubleClick = ctx?.rowEditTrigger === "doubleClick";
 
   const openRowEdit = (e: MouseEvent | KeyboardEvent) => {
     // A click on the chevron or a button in the cell is theirs.
@@ -125,7 +131,8 @@ export function BodyDataCell<TRow extends object>({
          row, and Enter reopens it. Every cell in the tab order would be a wall. */
       data-row-editable={canRowEdit || undefined}
       tabIndex={canRowEdit ? -1 : undefined}
-      onClick={canRowEdit ? openRowEdit : undefined}
+      onClick={canRowEdit && !onDoubleClick ? openRowEdit : undefined}
+      onDoubleClick={canRowEdit && onDoubleClick ? openRowEdit : undefined}
       onKeyDown={
         canRowEdit
           ? (e) => {
@@ -148,14 +155,16 @@ export function BodyDataCell<TRow extends object>({
         "h-10 align-middle border-b border-[color-mix(in_srgb,var(--rui-border-default)_65%,transparent)]",
         paddingClass,
         canRowEdit
-          ? "cursor-text outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--rui-focus-ring)]"
+          ? "outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--rui-focus-ring)]"
           : "",
+        canRowEdit && !onDoubleClick ? "cursor-text" : "",
         m?.mono ? "font-mono text-[.75rem] text-muted" : "",
         m?.align === "right"
           ? "text-right"
           : m?.align === "center"
             ? "text-center"
             : "",
+        className ?? "",
       ].join(" ")}
     >
       {/* The indent and the chevron wrap the content rather than replace it, so cell

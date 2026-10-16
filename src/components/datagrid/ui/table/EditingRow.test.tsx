@@ -689,6 +689,32 @@ describe("focus in a row session", () => {
     await startEdit(user, "Ada");
   });
 
+  it("starts the session on a double-click when the grid has onRowClick", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onRowClick = vi.fn();
+    renderPlans({ onRowClick });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    const ada = screen.getByText("Ada").closest("tr")!;
+    await user.dblClick(within(ada).getByText("5").closest("td")!);
+
+    await waitFor(() => expect(editingRow()).not.toBeNull());
+    expect(
+      within(editingRow()!).getByRole("spinbutton", { name: "Quota" })
+    ).toHaveFocus();
+  });
+
+  it("keeps room in the last column for Save and Cancel", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderPlans();
+    const row = await startEdit(user, "Ada");
+
+    const cells = [...row.querySelectorAll<HTMLElement>("[data-col-id]")];
+    expect(cells.at(-1)?.dataset.colId).toBe("note");
+    expect(cells.at(-1)?.className).toContain("!pr-[76px]");
+    expect(cells[0].className).not.toContain("!pr-[76px]");
+  });
+
   it("after a save, focus lands on the saved row's first editable cell, and Enter reopens it", async () => {
     const user = userEvent.setup({ delay: null });
     renderPlans();

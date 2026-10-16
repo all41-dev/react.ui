@@ -19,8 +19,8 @@ const focusClass =
  * text field has. A textarea opts out of the fixed control height. Rich editors carry
  * their own chrome, so they only get the consumer's own class.
  *
- * In a cell the control fills its cell at 28px, with no border or surface of its own
- * until it is focused or invalid: a row of framed inputs would read as a second grid.
+ * In a cell the control fills its cell at 28px on the same inset surface and border, so
+ * an empty field still reads as one: without them a blank draft row looks like no row.
  */
 export function buildEditorClassName({
   editor,
@@ -38,7 +38,7 @@ export function buildEditorClassName({
   if (isRich) return editorClassName;
 
   if (variant === "cell") {
-    const cellClass = `w-full h-7 rounded-control border border-transparent bg-transparent px-1.5 text-[.8125rem] text-body placeholder:text-faint ${focusClass}`;
+    const cellClass = `w-full h-7 rounded-control border border-border-default bg-surface-inset px-1.5 text-[.8125rem] text-body placeholder:text-faint ${focusClass}`;
     const invalidClass = hasError
       ? "border-danger ring-1 ring-danger/40 focus:border-danger"
       : "";

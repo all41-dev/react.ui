@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { Check, X } from "lucide-react";
 import type { Path } from "react-hook-form";
 import type { ZodType } from "zod";
 
@@ -59,6 +60,10 @@ const CELL_BORDER =
 const EDITOR_CELL = `h-10 align-middle px-1.5 ${CELL_BORDER}`;
 const BLANK_CELL = `h-10 align-middle px-3 ${CELL_BORDER}`;
 const SELECT_CELL = `h-10 w-[36px] px-2.5 ${CELL_BORDER}`;
+
+/* The Save/Cancel pill floats over the right end of the row; the last data column keeps
+   that much room so the pill never covers its editor. */
+const PILL_ROOM = "!pr-[76px]";
 
 const ROOT_DRAFT: TreeNodeState = { depth: 0, hasChildren: false, isOpen: false };
 
@@ -220,6 +225,11 @@ export function EditingRow<TRow extends object, TForm extends object>({
     save(!row);
   };
 
+  const hasActions = leafCols.some((c) => c.id === "__actions__");
+  const lastDataId = hasActions
+    ? leafCols.filter((c) => c.id !== "__actions__" && c.id !== "__select__").at(-1)?.id
+    : undefined;
+
   const renderCell = (col: Column<TRow, unknown>) => {
     if (col.id === "__select__") {
       /* Selection is suppressed on the row in session. */
@@ -239,13 +249,14 @@ export function EditingRow<TRow extends object, TForm extends object>({
     const isTreeCell = !!tree && !!node && tree.columnId === col.id;
     const cell = cellById.get(col.id);
     const editorCol = editorById.get(col.id);
+    const room = col.id === lastDataId ? PILL_ROOM : "";
 
     if (!editorCol) {
       /* Edit: the value as the table shows it, tree chrome included. Draft: blank, with
          the indent and the level icon on the tree column. */
-      if (cell) return <BodyDataCell key={col.id} c={cell} node={node} />;
+      if (cell) return <BodyDataCell key={col.id} c={cell} node={node} className={room} />;
       return (
-        <td key={col.id} data-col-id={col.id} className={BLANK_CELL}>
+        <td key={col.id} data-col-id={col.id} className={`${BLANK_CELL} ${room}`}>
           {isTreeCell && (
             <TreeCell rowId="" row={seed ?? {}} node={node} tree={tree} label="new row">
               {null}
@@ -274,7 +285,7 @@ export function EditingRow<TRow extends object, TForm extends object>({
     );
 
     return (
-      <td key={col.id} data-col-id={col.id} className={EDITOR_CELL}>
+      <td key={col.id} data-col-id={col.id} className={`${EDITOR_CELL} ${room}`}>
         {isTreeCell ? (
           <TreeCell
             rowId={row?.id ?? ""}
@@ -325,7 +336,7 @@ export function EditingRow<TRow extends object, TForm extends object>({
 }
 
 const ACTION_BTN =
-  "inline-flex h-[26px] cursor-pointer items-center rounded-control border px-2 text-[.75rem] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-control border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] disabled:cursor-not-allowed disabled:opacity-50";
 
 /**
  * Save and Cancel where the row's action pill sits, on the same floating surface, shown
@@ -349,19 +360,24 @@ function RowEditActionsCell({
       <div className="absolute right-2 top-1/2 z-20 flex -translate-y-1/2 items-center gap-[3px] rounded-lg border border-border-default bg-surface-card p-[3px] shadow-[-10px_0_18px_-12px_rgba(0,0,0,.7),0_2px_6px_-3px_rgba(0,0,0,.5)]">
         <button
           type="button"
+          aria-label="Save"
+          title="Save (Enter)"
+          aria-busy={isSubmitting || undefined}
           onClick={onSave}
           disabled={isSubmitting}
-          className={`${ACTION_BTN} border-transparent bg-accent font-semibold text-accent-contrast hover:bg-accent-hover`}
+          className={`${ACTION_BTN} border-transparent bg-accent text-accent-contrast hover:bg-accent-hover`}
         >
-          {isSubmitting ? "Saving…" : "Save"}
+          <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
         </button>
         <button
           type="button"
+          aria-label="Cancel"
+          title="Cancel (Esc)"
           onClick={onCancel}
           disabled={isSubmitting}
           className={`${ACTION_BTN} border-transparent text-muted hover:border-border-default hover:bg-surface-raised hover:text-body`}
         >
-          Cancel
+          <X className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
     </td>

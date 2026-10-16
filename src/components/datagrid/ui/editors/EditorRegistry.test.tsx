@@ -124,11 +124,11 @@ describe("renderEditor variant: cell", () => {
     expect(checkbox).toBeChecked();
   });
 
-  it("uses the compact class set, with no resting border", () => {
+  it("uses the compact class set, framed so an empty field still reads as one", () => {
     renderEditorWith(NAME, "cell", { name: "" });
     const input = screen.getByRole("textbox", { name: "Name" });
-    expect(input).toHaveClass("h-7", "w-full", "border-transparent");
-    expect(input).not.toHaveClass("h-8", "border-border-default");
+    expect(input).toHaveClass("h-7", "w-full", "border-border-default", "bg-surface-inset");
+    expect(input).not.toHaveClass("h-8", "border-transparent");
   });
 
   it("rings an invalid control and describes the error through an sr-only span", () => {
