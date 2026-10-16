@@ -33,7 +33,7 @@ export function useGridView<TRow extends object>({
     undefined
   );
 
-  const { close: closeEdit } = edit;
+  const { close: closeEdit, release } = edit;
 
   const showCards = hasCard && view === "cards";
 
@@ -72,11 +72,14 @@ export function useGridView<TRow extends object>({
 
   const handleRowClick = useCallback(
     (row: TRow) => {
+      /* Row mode: a click elsewhere is the user moving on. An untouched row closes; a
+         dirty one keeps the click from landing, so two rows never both look current. */
+      if (rowEditing && !release()) return;
       const key = getKey(row);
       setSelectedRowId((prev) => (prev === key ? undefined : key));
       onRowClick?.(row);
     },
-    [getKey, onRowClick]
+    [getKey, onRowClick, rowEditing, release]
   );
 
   return {

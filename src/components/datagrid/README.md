@@ -433,8 +433,11 @@ What happens:
 - **Click a cell to edit the row.** In a grid without `onRowClick`, a click on any cell
   that has an editor starts the session with that cell's input focused. With `onRowClick`
   the click is the row's, so the user can select a row, and a double-click on the cell
-  starts the session instead; the pill's Edit does too. A `cellEdit: true` column keeps
-  its popover instead.
+  starts the session instead, with that value selected so a copy still works. A
+  `cellEdit: true` column keeps its popover instead. The pill's Edit is hidden in row
+  mode until it is reached with Tab: the keyboard's way into a row.
+- **A click on another row lets go of the open one** if nothing was typed. With
+  unsaved changes the click is refused and focus returns to the open row.
 - **Enter saves, Esc cancels, Tab walks the editors** and reaches Save after the last
   one. Save and Cancel sit where the action pill was. A click outside the row does
   nothing: a half-typed row stays until it is saved or cancelled.

@@ -133,6 +133,15 @@ export function BodyDataCell<TRow extends object>({
       tabIndex={canRowEdit ? -1 : undefined}
       onClick={canRowEdit && !onDoubleClick ? openRowEdit : undefined}
       onDoubleClick={canRowEdit && onDoubleClick ? openRowEdit : undefined}
+      /* The browser would select the word under a double-click for a frame before the
+         editor replaces the text; the editor opens with its value selected instead. */
+      onMouseDown={
+        canRowEdit && onDoubleClick
+          ? (e) => {
+              if (e.detail > 1) e.preventDefault();
+            }
+          : undefined
+      }
       onKeyDown={
         canRowEdit
           ? (e) => {

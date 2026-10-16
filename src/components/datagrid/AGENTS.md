@@ -409,7 +409,12 @@ field react-hook-form does.
     `[data-row-editable]` cell (`tabIndex=-1`, Enter reopens). A row-editable cell
     opens the session through `DataGridContext.startRowEdit` on the gesture
     `rowEditTrigger` names: `"click"` without `onRowClick`, `"doubleClick"` with it, so
-    the click stays the row's.
+    the click stays the row's. A double-click opens with the target input's value
+    selected, and `onMouseDown` with `detail > 1` stops the browser's word selection.
+  - A row click goes through `useEditSession.release` first: an untouched create or
+    edit closes, a dirty one bumps `refusals` and the click is dropped.
+  - `EditButton` is `sr-only focus-visible:not-sr-only` in row mode, so the pencil
+    shows only to the keyboard.
   - Save and Cancel are icon buttons on the floating pill; `EditingRow` pads the last
     data column (`PILL_ROOM`) so the pill never covers its editor. Cell editors carry the
     form's inset surface and border at rest, so an empty draft field is visible.

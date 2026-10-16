@@ -59,14 +59,19 @@ export function useRowActions(): ActionColumnOpts<unknown> {
 
 // Icons rather than words — a text button doesn't fit the 26px control. A caller
 // passing `labels` still wins.
+/* Row mode opens a row from its cells, so the pencil is only the keyboard's way in:
+   kept in the tab order and drawn once it has keyboard focus. */
+const KEYBOARD_ONLY = "sr-only focus-visible:not-sr-only";
+
 export const EditButton: FC<{ row: unknown }> = ({ row }) => {
   const opts = useRowActions();
+  const rowMode = !!useContext(DataGridContext)?.rowEditTrigger;
   return (
     <button
       type="button"
       aria-label={opts.editAriaLabel ?? "Edit"}
       title={typeof opts.labels?.edit === "string" ? opts.labels?.edit : "Edit"}
-      className={btnBase}
+      className={rowMode ? `${btnBase} ${KEYBOARD_ONLY}` : btnBase}
       onClick={(e) => {
         e.stopPropagation();
         opts.onEdit?.(row);

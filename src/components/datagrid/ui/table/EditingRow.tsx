@@ -173,8 +173,16 @@ export function EditingRow<TRow extends object, TForm extends object>({
   }, [isDirty, onDirtyChange]);
   useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
 
+  /* Opened by a double-click on a cell: that editor's value starts selected, so the
+     gesture people use to copy a value still copies it. */
+  const selectOnOpen =
+    useContext(DataGridContext)?.rowEditTrigger === "doubleClick" &&
+    focusColumnId !== undefined;
+
   useEffect(() => {
-    if (rowRef.current) editorToFocus(rowRef.current, focusColumnId)?.focus();
+    const target = rowRef.current && editorToFocus(rowRef.current, focusColumnId);
+    target?.focus();
+    if (selectOnOpen && target instanceof HTMLInputElement) target.select();
     // The focus target is fixed at open; a later change of the prop is not a new session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

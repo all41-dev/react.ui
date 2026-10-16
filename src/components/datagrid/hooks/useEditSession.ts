@@ -108,6 +108,22 @@ export function useEditSession<TRow>() {
     setState((s) => ({ session: IDLE, serial: s.serial }));
   }, []);
 
+  /**
+   * Lets go of an open create or edit before something else takes the user's attention:
+   * an untouched one closes, a dirty one stays and is refused like `enter`, so the open
+   * row takes focus back. `true` when nothing is left open.
+   */
+  const release = useCallback(() => {
+    const current = sessionRef.current;
+    if (current.kind !== "create" && current.kind !== "edit") return true;
+    if (dirtyRef.current) {
+      setRefusals((n) => n + 1);
+      return false;
+    }
+    close();
+    return true;
+  }, [close]);
+
   const setDirty = useCallback((dirty: boolean) => {
     dirtyRef.current = dirty;
   }, []);
@@ -127,6 +143,7 @@ export function useEditSession<TRow>() {
     startEdit,
     startCellEdit,
     close,
+    release,
     /** Marks the open form as holding unsaved changes; a dirty form refuses a new session. */
     setDirty,
     /** The row being edited in a form, if any — not the one behind a cell popover. */

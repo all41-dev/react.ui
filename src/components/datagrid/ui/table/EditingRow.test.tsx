@@ -704,6 +704,60 @@ describe("focus in a row session", () => {
     ).toHaveFocus();
   });
 
+  it("opens a double-clicked text cell with its value selected, so a copy still works", async () => {
+    const user = userEvent.setup({ delay: null });
+    renderPlans({ onRowClick: vi.fn() });
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    await user.dblClick(screen.getByText("Ada").closest("td")!);
+
+    await waitFor(() => expect(editingRow()).not.toBeNull());
+    const name = nameField(editingRow()!);
+    expect(name).toHaveFocus();
+    expect([name.selectionStart, name.selectionEnd]).toEqual([0, 3]);
+  });
+
+  it("closes an untouched row when another row is clicked, and selects that one", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onRowClick = vi.fn();
+    renderPlans({ onRowClick });
+    await startEdit(user, "Ada");
+
+    await user.click(screen.getByText("Bo").closest("td")!);
+
+    await waitFor(() => expect(editingRow()).toBeNull());
+    expect(onRowClick).toHaveBeenCalledWith(PLANS[1]);
+    expect(screen.getByText("Bo").closest("tr")).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("keeps a dirty row open when another row is clicked, and takes focus back", async () => {
+    const user = userEvent.setup({ delay: null });
+    const onRowClick = vi.fn();
+    renderPlans({ onRowClick });
+    const row = await startEdit(user, "Ada");
+    await user.type(nameField(row), "x");
+
+    await user.click(screen.getByText("Bo").closest("td")!);
+
+    expect(onRowClick).not.toHaveBeenCalled();
+    expect(editingRow()).toBe(row);
+    await waitFor(() => expect(nameField(row)).toHaveFocus());
+    expect(screen.getByText("Bo").closest("tr")).not.toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+  });
+
+  it("keeps Edit for the keyboard only, since the cells open the row", async () => {
+    renderPlans();
+    await waitFor(() => expect(screen.getByText("Ada")).toBeInTheDocument());
+
+    const edit = within(screen.getByText("Ada").closest("tr")!).getByRole("button", {
+      name: "Edit",
+    });
+    expect(edit).toHaveClass("sr-only", "focus-visible:not-sr-only");
+  });
+
   it("keeps room in the last column for Save and Cancel", async () => {
     const user = userEvent.setup({ delay: null });
     renderPlans();

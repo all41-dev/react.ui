@@ -6,8 +6,18 @@
 
 - **A double-click edits a cell in a row-mode grid that has `onRowClick`.** A click
   stays the row's, so a host can select a row without opening it; the double-click
-  starts the row session with that cell's editor focused. The pill's Edit and Enter on
-  a focused cell still open it. A grid without `onRowClick` still opens on one click.
+  starts the row session with that cell's editor focused and its value selected, so
+  Ctrl+C right after still copies it, and the browser's own word selection no longer
+  flashes first. Enter on a focused cell still opens the row. A grid without
+  `onRowClick` still opens on one click.
+
+- **A click on another row lets go of the open one.** An untouched row closes and the
+  clicked row is selected; a row with unsaved changes stays open, the click does not
+  land, and focus returns to it. Two rows no longer both look current.
+
+- **The pill's Edit is keyboard-only in row mode.** The cells open a row, so the pencil
+  is hidden until it is reached with Tab, which keeps a keyboard way into the row. The
+  same applies to `defaults.EditButton` inside `renderActions`.
 
 - **Row editors read as fields.** In a row session every editor has the inset surface
   and border of a form field, where it used to show them only on focus: an empty field
