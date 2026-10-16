@@ -759,6 +759,21 @@ describe("DataGrid", () => {
   });
 
   describe("columns popover", () => {
+    it("is a row of the View section, named like the toolbar button", async () => {
+      const user = userEvent.setup();
+      renderGrid({ onRetry: vi.fn() });
+      await waitFor(() => expect(screen.getByText("Leanne")).toBeInTheDocument());
+
+      await openOverflowMenu(user);
+      const menu = screen.getByRole("dialog", { name: "More options" });
+      const view = within(menu).getByRole("region", { name: "View" });
+      const trigger = within(view).getByRole("button", { name: "Columns" });
+      expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+      // One command per row: Columns, Reset view and Refresh are siblings in the list.
+      expect(within(view).getByRole("button", { name: "Reset view" })).toBeInTheDocument();
+      expect(within(view).getByRole("button", { name: "Refresh" })).toBeInTheDocument();
+    });
+
     it("hides a column and restores it on reset", async () => {
       const user = userEvent.setup();
       renderGrid();

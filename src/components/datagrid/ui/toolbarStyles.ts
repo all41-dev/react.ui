@@ -22,3 +22,6 @@ export const MENU_ITEM =
   "flex w-full cursor-pointer items-center gap-2 rounded-control px-2 py-1.5 text-left " +
   "text-[.8125rem] text-body outline-none transition-colors hover:bg-surface-inset " +
   "focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)]";
+
+/** A count at the end of a panel row. Muted, so the label stays the loud part. */
+export const MENU_COUNT = "shrink-0 font-mono text-[.6875rem] text-faint tabular-nums";

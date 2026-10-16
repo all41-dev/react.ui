@@ -4,6 +4,14 @@
 
 ### Changed
 
+- **The toolbar's overflow panel is one list.** The view commands sit under a **View**
+  heading, one full-width row each: Expand all and Collapse all in tree mode, Columns,
+  Reset view, Refresh. They used to share two lines in a 236px panel, which wrapped
+  "Reset view" and set the Columns toolbar button beside plain rows. `ColumnsPopover`
+  takes `presentation: "toolbar" | "menu"`; the grid passes `menu`, and the default
+  is the toolbar button as before. Counts inside the panel are a muted number, not the
+  accent pill, which stays on the trigger.
+
 - **A double-click edits a cell in a row-mode grid that has `onRowClick`.** A click
   stays the row's, so a host can select a row without opening it; the double-click
   starts the row session with that cell's editor focused and its value selected, so

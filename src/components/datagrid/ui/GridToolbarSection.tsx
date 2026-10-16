@@ -52,6 +52,7 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
           table={table}
           onReset={gridColumns.resetPrefs}
           forcedHiddenIds={gridColumns.forceHiddenIds}
+          presentation="menu"
         />
       }
       onResetView={resetView}

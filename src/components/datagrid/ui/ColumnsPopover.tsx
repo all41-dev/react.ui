@@ -1,12 +1,12 @@
 import type { Table } from "@tanstack/react-table";
-import { Columns3, RotateCcw } from "lucide-react";
+import { ChevronRight, Columns3, RotateCcw } from "lucide-react";
 import { useId, useRef, useState } from "react";
 
 import { useAnchoredPanel } from "../hooks/useAnchoredPanel";
 import { useColumnOrdering } from "../hooks/useColumnOrdering";
 import { useOutsideDismiss } from "../hooks/useOutsideDismiss";
 import { ColumnRow } from "./toolbar/ColumnRow";
-import { BTN, BTN_OFF, BTN_ON } from "./toolbarStyles";
+import { BTN, BTN_OFF, BTN_ON, MENU_COUNT, MENU_ITEM } from "./toolbarStyles";
 
 const PANEL_WIDTH = 248;
 /** The list caps at 300px plus the reset row — enough to pick a side to open on. */
@@ -24,12 +24,19 @@ export function ColumnsPopover<TRow extends object>({
   table,
   onReset,
   forcedHiddenIds,
+  presentation = "toolbar",
 }: {
   table: Table<TRow>;
   /** Clears persisted sizing/order/visibility back to the column defaults. */
   onReset: () => void;
   /** Columns the viewport hides. Not listed here — the user cannot reveal them. */
   forcedHiddenIds?: readonly string[];
+  /**
+   * `toolbar` is the 30px control with the accent count. `menu` is a full-width row
+   * for the overflow panel: icon, label, a muted count, and a chevron for the dialog
+   * it opens. The accessible name is the same in both.
+   */
+  presentation?: "toolbar" | "menu";
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -44,22 +51,38 @@ export function ColumnsPopover<TRow extends object>({
 
   return (
     <div ref={wrapRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-controls={open ? panelId : undefined}
-        className={[BTN, hiddenCount > 0 || open ? BTN_ON : BTN_OFF].join(" ")}
-      >
-        <Columns3 className="h-3.5 w-3.5" aria-hidden />
-        <span className="hidden sm:inline">Columns</span>
-        {hiddenCount > 0 && (
-          <span className="rounded-full bg-accent px-1.5 font-mono text-[.6875rem] font-semibold leading-4 text-accent-contrast">
-            {hiddenCount}
-          </span>
-        )}
-      </button>
+      {presentation === "menu" ? (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-controls={open ? panelId : undefined}
+          className={`${MENU_ITEM} ${open ? "bg-surface-inset" : ""}`}
+        >
+          <Columns3 className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
+          <span className="flex-1">Columns</span>
+          {hiddenCount > 0 && <span className={MENU_COUNT}>{hiddenCount}</span>}
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-controls={open ? panelId : undefined}
+          className={[BTN, hiddenCount > 0 || open ? BTN_ON : BTN_OFF].join(" ")}
+        >
+          <Columns3 className="h-3.5 w-3.5" aria-hidden />
+          <span className="hidden sm:inline">Columns</span>
+          {hiddenCount > 0 && (
+            <span className="rounded-full bg-accent px-1.5 font-mono text-[.6875rem] font-semibold leading-4 text-accent-contrast">
+              {hiddenCount}
+            </span>
+          )}
+        </button>
+      )}
 
       {open && (
         <div

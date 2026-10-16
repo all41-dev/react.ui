@@ -339,9 +339,12 @@ field react-hook-form does.
 - **Dropdown welded to the field** (`ui/ToolbarOverflowMenu.tsx`): a **caret** trigger flush
   against the search field's right edge, carrying the active-filter count and rotating when
   open. Panel is laid out like Odoo's control panel — **Filter** and **Group by** as two
-  headed columns (one column, 236px, when only one of them exists), then a rule, then the
-  view commands (Columns, Reset view, Refresh). It closes only on Escape, an outside click,
-  or a one-shot command; applying a criterion keeps it open.
+  headed columns (one column, 236px, when only one of them exists), then a rule, then a
+  headed **View** section: Expand all and Collapse all in tree mode, Columns, Reset view,
+  Refresh, one full-width row each. Columns is `ColumnsPopover` in its `menu`
+  presentation (a row with a muted count and a chevron, the same accessible name as the
+  toolbar button). It closes only on Escape, an outside click, or a one-shot command;
+  applying a criterion keeps it open, and so does opening the Columns dialog.
   - The trigger's wrapper must stay a **flex** container while `attached` — `self-stretch`
     does nothing outside one, which drew the button short against a field grown by pills.
   - When the grid has neither search nor facets the trigger stands alone;
@@ -541,11 +544,12 @@ ui/
   GridToolbarSection    Bundles → DataGridToolbar's flat props (wiring only)
   GridBodySection       Bundles → GridBody's flat props, plus the inline editor node
   SearchBar             Field + facet pills + attached trigger slot
-  ToolbarOverflowMenu   The caret menu: Filter | Group by, then view commands
+  ToolbarOverflowMenu   The caret menu: Filter | Group by, then the View section
   toolbar/              ToolbarParts (title, view switch, error banner),
-                        MenuSections, MenuCommandsRow, OverflowTrigger,
+                        MenuSections (Filter, Group by, SectionHead), ViewSection,
+                        OverflowTrigger,
                         ColumnRow, overflowItems.ts (hasOverflowItems)
-  toolbarStyles.ts      BTN / BTN_ON / BTN_OFF / MENU_ITEM, shared by both
+  toolbarStyles.ts      BTN / BTN_ON / BTN_OFF / MENU_ITEM / MENU_COUNT, shared by both
   TableView, CardsView, KanbanView, CardItem, GridStates, SelectionPill
   GridTooltip           The grid's one tooltip instance; swallows Escape while open
                         so the overlay containers don't cancel underneath it.

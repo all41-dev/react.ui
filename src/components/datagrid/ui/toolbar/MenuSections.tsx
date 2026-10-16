@@ -1,10 +1,10 @@
 import { Check, Funnel, FunnelX, Rows3 } from "lucide-react";
 
 import { useRovingRadios } from "../../hooks/useRovingRadios";
-import { MENU_ITEM } from "../toolbarStyles";
+import { MENU_COUNT, MENU_ITEM } from "../toolbarStyles";
 
-/** Odoo-style column heading: says what the group of rows below it does. */
-function SectionHead({
+/** Odoo-style section heading: says what the group of rows below it does. */
+export function SectionHead({
   Icon,
   children,
 }: {
@@ -52,6 +52,8 @@ export function FilterSection({
         aria-checked={!!filtersShown}
         className={`${MENU_ITEM} ${filtersShown ? "text-accent" : ""}`}
       >
+        {/* The width of a row icon, so the label lines up with the rows below. */}
+        <span className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="flex-1">
           Filter row
           <span className="ml-1.5 text-[.6875rem] text-faint">
@@ -78,9 +80,7 @@ export function FilterSection({
         <button type="button" onClick={onClearFilters} className={MENU_ITEM}>
           <FunnelX className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden />
           <span className="flex-1">Clear all</span>
-          <span className="rounded-full bg-accent px-1.5 font-mono text-[.6875rem] font-semibold leading-4 text-accent-contrast">
-            {activeFilterCount}
-          </span>
+          <span className={MENU_COUNT}>{activeFilterCount}</span>
         </button>
       )}
     </section>

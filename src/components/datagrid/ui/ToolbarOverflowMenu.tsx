@@ -2,26 +2,28 @@ import { useId, useRef, useState } from "react";
 
 import { useAnchoredPanel } from "../hooks/useAnchoredPanel";
 import { useOutsideDismiss } from "../hooks/useOutsideDismiss";
-import { MenuCommandsRow } from "./toolbar/MenuCommandsRow";
 import { FilterSection, GroupBySection } from "./toolbar/MenuSections";
 import { OverflowTrigger } from "./toolbar/OverflowTrigger";
 import { hasOverflowItems, type OverflowMenuProps } from "./toolbar/overflowItems";
+import { ViewSection } from "./toolbar/ViewSection";
 
 const WIDE_WIDTH = 400;
 const NARROW_WIDTH = 236;
-/** Filter switch, a capped group list and the bottom row — enough to pick a side. */
-const PANEL_EST_HEIGHT = 300;
+/** Filter switch, a capped group list and the View rows — enough to pick a side. In
+    tree mode the View section runs to five rows under its heading, about 290 in all. */
+const PANEL_EST_HEIGHT = 320;
 /** The two-column layout runs taller: the capped group list plus headings and the
     commands row stack to ~350, and a flip decision made on 300 picks the wrong side. */
 const PANEL_EST_HEIGHT_WIDE = 350;
 
 /**
- * The search bar's dropdown: everything that narrows the data, plus the two view commands.
+ * The search bar's dropdown: everything that narrows the data, plus the view commands.
  *
  * Laid out the way Odoo lays out its control panel — **Filter** and **Group by** side by
  * side under their own headings, so you read the panel by what a thing does rather than
  * down one undifferentiated list. What changes the query sits above the rule; what changes
- * the view (Columns, Refresh) sits below it.
+ * the view (Columns, Reset view, Refresh, the tree commands) sits below it under its own
+ * **View** heading, one command per row.
  *
  * Deliberately not `role="menu"`: the Columns row opens a dialog rather than performing a
  * command, and menu semantics would promise arrow-key command navigation this doesn't have.
@@ -132,7 +134,7 @@ export function ToolbarOverflowMenu({
             </div>
           )}
 
-          <MenuCommandsRow
+          <ViewSection
             columnsControl={columnsControl}
             onResetView={onResetView}
             viewIsDefault={viewIsDefault}
