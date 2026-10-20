@@ -162,8 +162,23 @@ describe("TreePicker — keyboard", () => {
     expect(item("address")).toHaveFocus();
     await user.tab();
     expect(screen.getByRole("button", { name: "Unpair address" })).toHaveFocus();
-    await user.tab();
-    expect(screen.getByRole("button", { name: "after" })).toHaveFocus();
+    // The other rows' actions are mounted but inert, so a browser's Tab skips them;
+    // jsdom does not model inert, so the attribute is what is checked.
+    expect(screen.getByRole("button", { name: "Unpair address" }).closest("[inert]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Unpair name" }).closest("[inert]")).not.toBeNull();
+  });
+
+  it("keeps a row's actions mounted while the pointer moves onto them", async () => {
+    const user = userEvent.setup();
+    const unlink = vi.fn();
+    const rows = ROWS.map((r) =>
+      r.id === "name" ? { ...r, actions: <button type="button" onClick={unlink}>Unpair name</button> } : r
+    );
+    renderPicker({ rows, search: false });
+
+    await user.hover(item("name"));
+    await user.click(screen.getByRole("button", { name: "Unpair name" }));
+    expect(unlink).toHaveBeenCalled();
   });
 
   it("keeps focus in the tree, on the nearest row, when the focused row leaves the list", async () => {

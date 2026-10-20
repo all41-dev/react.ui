@@ -32,7 +32,7 @@ export type TreePickerRow = {
   state?: TreePickerRowState;
   /** Native tooltip. */
   title?: string;
-  /** Trailing controls, shown on hover and on the row that holds the tab stop. */
+  /** Trailing controls: live on the hovered row and the one holding the tab stop, inert elsewhere. */
   actions?: ReactNode;
 };
 

@@ -257,9 +257,10 @@ export function TreePicker({
             }
             const state = row.state ?? "idle";
             const isTabStop = row.id === tabStopId;
-            // Actions are in the DOM only where they can be reached: the row under the
-            // pointer and the row that holds the tab stop, so Tab never walks the rest.
-            const showActions = !!row.actions && (hoveredId === row.id || isTabStop);
+            // Every row keeps its actions mounted, so a press that begins on one is
+            // never cut short; they are inert except on the row under the pointer
+            // and the row that holds the tab stop, so Tab never walks the rest.
+            const actionsLive = hoveredId === row.id || isTabStop;
             return (
               <li
                 key={row.id}
@@ -349,8 +350,9 @@ export function TreePicker({
                     {row.tag}
                   </span>
                 )}
-                {showActions && (
+                {row.actions && (
                   <span
+                    inert={actionsLive ? undefined : true}
                     onClick={stop}
                     onKeyDown={stop}
                     className={`flex flex-none items-center gap-1 ${row.tag ? "" : "ml-auto"} opacity-0 group-hover:opacity-100 group-focus-within:opacity-100`}

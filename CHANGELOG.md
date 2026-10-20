@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Changed
+
+- **A row's actions in `TreePicker` stay mounted.** They used to exist only on the hovered
+  row and the one holding the tab stop, so a press that lost the hover mid-way cut the
+  click short. Every row now keeps its actions in the DOM, inert except on those two rows,
+  so Tab still skips them and assistive tech does not list them.
+
 ### Added
 
 - **`TreePicker`.** A compact tree list driven by a flat, parent-linked row list: search
