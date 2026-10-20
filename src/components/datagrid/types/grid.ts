@@ -43,6 +43,12 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   ) => Promise<TRow> | TRow;
   onDelete?: (row: TRow) => Promise<void> | void;
   className?: string;
+  /**
+   * Takes the full height of its container and scrolls the rows inside it. Without it
+   * the body grows with its rows up to 70% of the viewport. The container needs a
+   * definite height: a flex item that is allowed to shrink (`min-h-0`) or a set height.
+   */
+  fill?: boolean;
   toolbar?: ReactNode;
   isLoading?: boolean;
   /**

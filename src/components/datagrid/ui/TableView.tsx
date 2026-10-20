@@ -6,6 +6,7 @@ import { useVirtualRows, type DraftPlacement } from "../hooks/useVirtualRows";
 import type { RenderEditingRow } from "./table/EditingRow";
 import { GridBodies } from "./table/GridBodies";
 import { GridTable } from "./table/GridTable";
+import { bodyHeightClass } from "./bodyHeight";
 import type { GroupBucket } from "../types/grouping";
 
 type TableViewProps<TRow extends object> = {
@@ -37,6 +38,8 @@ type TableViewProps<TRow extends object> = {
   expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
   changedRowId?: string;
+  /** Scroll inside the container's height rather than up to 70% of the viewport. */
+  fill?: boolean;
 };
 
 export function TableView<TRow extends object>({
@@ -61,6 +64,7 @@ export function TableView<TRow extends object>({
   expandedRowIds,
   renderExpandedRow,
   changedRowId,
+  fill,
 }: TableViewProps<TRow>) {
   const { ref: wrapperRef, width: containerW } =
     useContainerWidth<HTMLDivElement>();
@@ -101,7 +105,7 @@ export function TableView<TRow extends object>({
      */
     <div
       ref={wrapperRef}
-      className="relative isolate max-h-[70vh] w-full overflow-x-auto overflow-y-auto"
+      className={`relative isolate w-full overflow-x-auto overflow-y-auto ${bodyHeightClass(fill)}`}
     >
       <GridTable
         table={table}

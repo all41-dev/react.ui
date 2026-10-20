@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **`fill` on `DataGrid`.** The grid takes its container's height and its rows scroll
+  inside, instead of the body growing up to 70% of the viewport. The table, cards and
+  kanban views share the rule. Without `fill` nothing changes. The sandbox's
+  **DataGrid fill** tab shows both side by side.
+
 ### Changed
 
 - **The toolbar's overflow panel is one list.** The view commands sit under a **View**

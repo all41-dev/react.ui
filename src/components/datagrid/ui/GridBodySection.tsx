@@ -136,6 +136,7 @@ export function GridBodySection<TRow extends object, TForm extends object>({
       changedRowId={state.changedRowId}
       expandedRowIds={expandedKeys}
       renderExpandedRow={props.renderExpandedRow}
+      fill={props.fill}
     />
   );
 }

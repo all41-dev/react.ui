@@ -99,6 +99,7 @@ export function DataGrid<TRow extends object, TForm extends object = TRow>(
             "flex min-h-0 min-w-0 flex-col overflow-hidden rounded-surface",
             "border border-border-default bg-surface-card shadow-[var(--elev-2)]",
             "font-sans text-[.8125rem] text-body",
+            gridProps.fill && "h-full",
             gridProps.className,
           ]
             .filter(Boolean)

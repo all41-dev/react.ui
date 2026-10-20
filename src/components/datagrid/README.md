@@ -609,6 +609,21 @@ object is accepted.
 
 ---
 
+## Height
+
+The body grows with its rows up to 70% of the viewport, then scrolls. Pass `fill` to have
+the grid take its container's height instead, with the rows scrolling inside; the toolbar
+and footer stay put. The container needs a definite height: a set height, or a flex item
+allowed to shrink (`min-h-0`) in a parent that has one.
+
+```tsx
+<div className="flex min-h-0 flex-1 flex-col">
+  <DataGrid fill columns={columns} zodSchema={schema} initialData={rows} />
+</div>
+```
+
+---
+
 ## Loading and error states
 
 Pass `isLoading` and the grid shows skeleton rows on first load, or a spinner overlay

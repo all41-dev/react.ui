@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, type ReactNode } from "react";
 import { useContainerWidth } from "../hooks/useContainerWidth";
 import { CardsEmpty, CardsSkeleton } from "./CardsPlaceholders";
+import { bodyHeightClass } from "./bodyHeight";
 import { CardItem } from "./CardItem";
 
 type CardsViewProps<TRow extends object> = {
@@ -18,6 +19,8 @@ type CardsViewProps<TRow extends object> = {
   onRowClick?: (row: TRow) => void;
   expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
+  /** Scroll inside the container's height rather than up to 70% of the viewport. */
+  fill?: boolean;
 };
 
 /** Matches the spec's `minmax(268px, 1fr)` grid, in numbers the virtualizer can use. */
@@ -49,6 +52,7 @@ export function CardsView<TRow extends object>({
   onRowClick,
   expandedRowIds,
   renderExpandedRow,
+  fill,
 }: CardsViewProps<TRow>) {
   /* Sorted, not filtered. TanStack's pipeline is core → filtered → sorted → paginated,
      so reaching past the page slice has to start from the sorted model — the filtered
@@ -89,7 +93,7 @@ export function CardsView<TRow extends object>({
   return (
     <div
       ref={scrollRef}
-      className="max-h-[70vh] overflow-y-auto bg-surface-inset p-3.5 scrollbar"
+      className={`overflow-y-auto bg-surface-inset p-3.5 scrollbar ${bodyHeightClass(fill)}`}
     >
       <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualizer.getVirtualItems().map((vi) => (

@@ -2,6 +2,7 @@ import type { Row } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRef, type ReactNode } from "react";
 import type { GroupBucket } from "../types/grouping";
+import { bodyHeightClass } from "./bodyHeight";
 import { CardItem } from "./CardItem";
 
 type KanbanViewProps<TRow extends object> = {
@@ -12,6 +13,8 @@ type KanbanViewProps<TRow extends object> = {
   onRowClick?: (row: TRow) => void;
   expandedRowIds?: ReadonlySet<string>;
   renderExpandedRow?: (row: TRow) => ReactNode;
+  /** Scroll inside the container's height rather than up to 70% of the viewport. */
+  fill?: boolean;
 };
 
 const ESTIMATED_CARD_HEIGHT = 170;
@@ -25,9 +28,10 @@ export function KanbanView<TRow extends object>({
   onRowClick,
   expandedRowIds,
   renderExpandedRow,
+  fill,
 }: KanbanViewProps<TRow>) {
   return (
-    <div className="flex max-h-[70vh] gap-3 overflow-x-auto bg-surface-inset p-3.5 scrollbar">
+    <div className={`flex gap-3 overflow-x-auto bg-surface-inset p-3.5 scrollbar ${bodyHeightClass(fill)}`}>
       {groups.map((group) => (
         <KanbanColumn
           key={group.key}

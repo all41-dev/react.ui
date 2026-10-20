@@ -42,6 +42,8 @@ type GridBodyProps<TRow extends object> = {
   renderExpandedRow?: (row: TRow) => ReactNode;
   /** The row a write just landed on, flashed so the change is locatable. */
   changedRowId?: string;
+  /** The body takes the grid's free height and each view scrolls inside it. */
+  fill?: boolean;
 };
 
 /**
@@ -76,10 +78,13 @@ export function GridBody<TRow extends object>({
   expandedRowIds,
   renderExpandedRow,
   changedRowId,
+  fill,
 }: GridBodyProps<TRow>) {
   return (
     <div
-      className="relative overflow-x-auto overflow-y-visible isolate w-full"
+      className={`relative isolate w-full overflow-x-auto overflow-y-visible ${
+        fill ? "flex min-h-0 flex-1 flex-col" : ""
+      }`}
       aria-busy={isLoading}
     >
       {loadingShown && table.getCoreRowModel().rows.length > 0 && (
@@ -99,6 +104,7 @@ export function GridBody<TRow extends object>({
           onRowClick={onRowClick}
           expandedRowIds={expandedRowIds}
           renderExpandedRow={renderExpandedRow}
+          fill={fill}
         />
       ) : showCards ? (
         <CardsView
@@ -112,6 +118,7 @@ export function GridBody<TRow extends object>({
           onRowClick={onRowClick}
           expandedRowIds={expandedRowIds}
           renderExpandedRow={renderExpandedRow}
+          fill={fill}
         />
       ) : (
         <TableView
@@ -136,6 +143,7 @@ export function GridBody<TRow extends object>({
           expandedRowIds={expandedRowIds}
           renderExpandedRow={renderExpandedRow}
           changedRowId={changedRowId}
+          fill={fill}
         />
       )}
     </div>
