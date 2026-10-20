@@ -4,6 +4,13 @@
 
 ### Added
 
+- **`TreePicker`.** A compact tree list driven by a flat, parent-linked row list: search
+  that keeps a match's ancestors, expand and collapse (controlled or not), per row an
+  icon by kind, a name in a tone, a tag, a dot, a dim state, `armed` and `selected`
+  states, trailing actions, and a `group` row that is a heading. One tab stop; the
+  arrows walk the visible rows, Enter and Space pick. The sandbox's **Tree picker** tab
+  pairs rows across two of them.
+
 - **`fill` on `DataGrid`.** The grid takes its container's height and its rows scroll
   inside, instead of the body growing up to 70% of the viewport. The table, cards and
   kanban views share the rule. Without `fill` nothing changes. The sandbox's

@@ -89,3 +89,11 @@ export type { KeyValueTone } from "./components/KeyValue";
  * signatures into the published API — every change to one becomes a breaking change.
  * `RecordForm` is the public form: the same parts behind a prop set that is meant to hold.
  */
+export { TreePicker } from "./components/treePicker/TreePicker";
+export type { TreePickerProps } from "./components/treePicker/TreePicker";
+export type {
+  TreePickerRow,
+  TreePickerKind,
+  TreePickerTone,
+  TreePickerRowState,
+} from "./components/treePicker/treeRows";
