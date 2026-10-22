@@ -11,6 +11,11 @@
 
 ### Added
 
+- **`guides` on `TreePicker`.** A vertical line per ancestor level, at that level's chevron
+  column and through the row's full height, so the rows under one parent read as one
+  unbroken line from the parent down. On by default; `guides={false}` draws none. The
+  sandbox's **Tree picker** tab has a switch for it.
+
 - **`TreePicker`.** A compact tree list driven by a flat, parent-linked row list: search
   that keeps a match's ancestors, expand and collapse (controlled or not), per row an
   icon by kind, a name in a tone, a tag, a dot, a dim state, `armed` and `selected`

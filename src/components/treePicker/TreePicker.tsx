@@ -48,6 +48,8 @@ export type TreePickerProps = {
   emptyLabel?: string;
   /** The list scrolls inside the host's height instead of growing. */
   fill?: boolean;
+  /** A vertical line per ancestor level through every nested row; on by default. */
+  guides?: boolean;
   className?: string;
 };
 
@@ -83,6 +85,7 @@ export function TreePicker({
   header,
   emptyLabel = "Nothing to show",
   fill = false,
+  guides = true,
   className = "",
 }: TreePickerProps) {
   // Uncontrolled expansion is kept as what was closed, so a container that arrives
@@ -288,7 +291,7 @@ export function TreePicker({
                 onMouseEnter={() => setHoveredId(row.id)}
                 onMouseLeave={() => setHoveredId((cur) => (cur === row.id ? null : cur))}
                 style={{ paddingLeft: INDENT_BASE_PX + v.depth * INDENT_PX }}
-                className={`group flex h-7 cursor-pointer items-center gap-1.5 rounded-control pr-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] ${
+                className={`group relative flex h-7 cursor-pointer items-center gap-1.5 rounded-control pr-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-[var(--rui-focus-ring)] ${
                   state === "selected"
                     ? "bg-accent-subtle"
                     : state === "armed"
@@ -296,6 +299,18 @@ export function TreePicker({
                       : "hover:bg-surface-raised"
                 } ${row.dim ? "opacity-40" : ""}`}
               >
+                {/* One line per ancestor level, at that level's chevron centre, the row's full
+                    height, so the rows under one parent draw one unbroken line. */}
+                {guides &&
+                  Array.from({ length: v.depth }, (_, i) => (
+                    <span
+                      key={i}
+                      data-guide=""
+                      aria-hidden="true"
+                      className="pointer-events-none absolute top-0 bottom-0 w-px bg-border-default"
+                      style={{ left: INDENT_BASE_PX + i * INDENT_PX + 8 }}
+                    />
+                  ))}
                 {v.hasChildren ? (
                   <button
                     type="button"

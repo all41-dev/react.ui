@@ -42,6 +42,7 @@ export function TreePickerDemo() {
   const [pairs, setPairs] = useState<Record<string, string>>({ total: "TOTAL" });
   const [armed, setArmed] = useState<{ side: Side; id: string } | null>(null);
   const [note, setNote] = useState("Click a field, then its counterpart on the other side.");
+  const [guides, setGuides] = useState(true);
 
   const targetOf = pairs;
   const sourceOf = useMemo(
@@ -158,9 +159,15 @@ export function TreePickerDemo() {
       </div>
 
       <section className="rounded-surface border border-border-default bg-surface-card p-4">
-        <p className="mb-3 text-xs text-muted" aria-live="polite">
-          {note}
-        </p>
+        <div className="mb-3 flex items-center gap-4">
+          <p className="m-0 min-w-0 flex-1 text-xs text-muted" aria-live="polite">
+            {note}
+          </p>
+          <label className="flex flex-none items-center gap-1.5 text-xs text-muted">
+            <input type="checkbox" checked={guides} onChange={(e) => setGuides(e.target.checked)} />
+            Guide lines
+          </label>
+        </div>
         <div className="grid h-80 grid-cols-2 gap-4">
           <div className="min-h-0 rounded-control border border-border-default bg-surface-inset/40 p-2">
             <TreePicker
@@ -169,6 +176,7 @@ export function TreePickerDemo() {
               label="Source record"
               header={header("Source record", "source")}
               searchPlaceholder="Find a source field…"
+              guides={guides}
               fill
             />
           </div>
@@ -179,6 +187,7 @@ export function TreePickerDemo() {
               label="Target record"
               header={header("Target record", "target")}
               searchPlaceholder="Find a target field…"
+              guides={guides}
               fill
             />
           </div>

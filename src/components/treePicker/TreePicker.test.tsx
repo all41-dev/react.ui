@@ -291,3 +291,21 @@ describe("TreePicker — search", () => {
     expect(screen.queryByRole("searchbox")).toBeNull();
   });
 });
+
+describe("TreePicker — guides", () => {
+  const guidesOn = (el: HTMLElement) => el.querySelectorAll("[data-guide]").length;
+
+  it("draws one line per ancestor level on a nested row, none on a root or a group heading", () => {
+    renderPicker();
+    expect(guidesOn(item("address"))).toBe(0);
+    expect(guidesOn(item("street"))).toBe(1);
+    expect(guidesOn(item("lat"))).toBe(2);
+    expect(guidesOn(screen.getByText("Not in the schema"))).toBe(0);
+    expect(guidesOn(item("ghost"))).toBe(1);
+  });
+
+  it("draws none with guides off", () => {
+    renderPicker({ guides: false });
+    expect(guidesOn(item("lat"))).toBe(0);
+  });
+});
