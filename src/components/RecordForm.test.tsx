@@ -225,3 +225,30 @@ describe("RecordForm — keyboard", () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalled());
   });
 });
+
+describe("RecordForm — a select following another field", () => {
+  it("lists the choices of the value picked in the other select", async () => {
+    const user = userEvent.setup({ delay: null });
+    const PLANS: Record<string, string[]> = { gold: ["Annual", "Lifetime"], silver: ["Monthly"] };
+    // The Note field turned into a Plan select over the picked tier.
+    const plan: WithMeta<Row, Form> = {
+      accessorKey: "note",
+      header: "Plan",
+      meta: {
+        label: "Plan",
+        editor: "select",
+        options: (form) => (PLANS[form.tier] ?? []).map((p) => ({ value: p, label: p })),
+      },
+    };
+    const columns = [...COLUMNS.slice(0, -1), plan];
+    renderForm({ columns });
+
+    const planSelect = screen.getByLabelText("Plan");
+    const names = () => [...planSelect.querySelectorAll("option")].map((o) => o.textContent);
+    expect(names()).toEqual(["Select…", "Annual", "Lifetime"]);
+
+    await user.selectOptions(screen.getByLabelText("Tier"), "silver");
+
+    expect(names()).toEqual(["Select…", "Monthly"]);
+  });
+});

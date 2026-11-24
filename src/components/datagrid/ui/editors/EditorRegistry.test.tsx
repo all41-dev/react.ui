@@ -247,6 +247,54 @@ describe("renderEditor section variants", () => {
   });
 });
 
+describe("renderEditor select options from the form", () => {
+  /** Tiers by the row's `active` flag: an inactive row cannot be gold. */
+  const TIER_BY_ACTIVE: WithMeta<Row, Form> = {
+    accessorKey: "tier",
+    header: "Tier",
+    meta: {
+      label: "Tier",
+      editor: "select",
+      options: (form) => (form.active ? TIERS : TIERS.filter((t) => t.value !== "gold")),
+    },
+  };
+
+  function renderWithForm(defaultValues: Form) {
+    let form: UseFormReturn<Form> | undefined;
+    render(
+      <Harness
+        column={TIER_BY_ACTIVE}
+        defaultValues={defaultValues}
+        onForm={(f) => {
+          form = f;
+        }}
+      />
+    );
+    return { setValue: (name: string, value: unknown) => act(() => form!.setValue(name, value)) };
+  }
+
+  const optionNames = () => screen.getAllByRole("option").map((o) => o.textContent);
+
+  it("evaluates the function against the form's values", () => {
+    renderWithForm({ tier: "silver", active: true });
+    expect(optionNames()).toEqual(["Select…", "Gold", "Silver"]);
+  });
+
+  it("follows a change to another field", () => {
+    const { setValue } = renderWithForm({ tier: "silver", active: true });
+
+    setValue("active", false);
+
+    expect(optionNames()).toEqual(["Select…", "Silver"]);
+    expect(screen.getByRole("combobox", { name: "Tier" })).toHaveValue("silver");
+  });
+
+  it("keeps a static list as it is", () => {
+    renderEditorWith(TIER, undefined, { tier: "gold" });
+    expect(optionNames()).toEqual(["Select…", "Gold", "Silver"]);
+  });
+});
+
 describe("renderEditor", () => {
   it("renders nothing for a column without an accessor key", () => {
     const column = { id: "computed", header: "Computed" } as WithMeta<Row, Form>;

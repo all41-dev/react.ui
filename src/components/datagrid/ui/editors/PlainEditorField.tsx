@@ -11,6 +11,7 @@ import { useTooltipId } from "../tooltipContext";
 import { CellFieldError } from "./CellFieldError";
 import { FieldChrome } from "./FieldChrome";
 import { FieldHint } from "./FieldHint";
+import { FormOptions } from "./FormOptions";
 import {
   buildDescribedBy,
   buildEditorClassName,
@@ -103,13 +104,26 @@ export function PlainEditorField<TRow extends object, TForm extends FieldValues>
           Object.assign(forwarded, cellErrorTooltipProps(tooltipId, errorMsg));
         }
 
-        if (editor === "select") {
-          forwarded.options = meta.options ?? [];
+        const { options } = meta;
+        if (editor === "select" && typeof options !== "function") {
+          forwarded.options = options ?? [];
         }
 
-        const rendered = (
-          <Field {...forwarded} value={field.value ?? ""} onChange={field.onChange} />
-        );
+        const rendered =
+          editor === "select" && typeof options === "function" ? (
+            <FormOptions control={control} options={options}>
+              {(resolved) => (
+                <Field
+                  {...forwarded}
+                  options={resolved}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                />
+              )}
+            </FormOptions>
+          ) : (
+            <Field {...forwarded} value={field.value ?? ""} onChange={field.onChange} />
+          );
         /* The rich editors are code-split, so they need a boundary; the fallback holds
            the field's height so the form doesn't jump as one arrives. */
         const input = isRich ? (

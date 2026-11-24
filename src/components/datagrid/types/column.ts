@@ -44,7 +44,13 @@ export type ColumnMeta<TRow extends object, TForm extends object = TRow> = {
    * `CodeDiagnosticSource`. Anything else is forwarded untouched.
    */
   editorProps?: Record<string, unknown>;
-  options?: Option[];
+  /**
+   * A select's choices. A function is re-run on every change anywhere in the form, so the
+   * list can follow another field; keep it cheap and pure. As with `hint`, a cell-edit
+   * popover hands it only its own field. A value missing from the list shows as the
+   * placeholder while the form still holds it, so return it too when it must stay visible.
+   */
+  options?: Option[] | ((formValues: TForm) => Option[]);
   /** Click-to-edit popover on the cell itself; needs `editor` to be set too. */
   cellEdit?: boolean;
   /** Aggregate shown on group header rows (and as subtree roll-ups in tree mode). */

@@ -11,6 +11,15 @@
 
 ### Added
 
+- **A select's `options` as a function of the form.** `meta.options` takes
+  `(formValues) => Option[]` beside a plain list, re-run on every change in the form, so a
+  select can follow another field (the entities of the module picked, the plans of the tier
+  picked), in the grid's edit form and in `RecordForm`. A value missing from the list shows
+  as the placeholder while the form still holds it, so a function returns the current value
+  too when it must stay visible. A cell-edit popover hands it only its own field, as with
+  `hint`. The sandbox's users form shows it: Status drops Pending while Role is Admin.
+  A consumer reading `meta.options` as an array now narrows it first.
+
 - **`guides` on `TreePicker`.** A vertical line per ancestor level, at that level's chevron
   column and through the row's full height, so the rows under one parent read as one
   unbroken line from the parent down. On by default; `guides={false}` draws none. The

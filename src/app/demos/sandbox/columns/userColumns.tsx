@@ -15,6 +15,13 @@ const STATUSES = [
   { label: "Pending", value: "pending" },
 ];
 
+/* An admin is confirmed on creation, so Pending is no choice for one. The current status
+   stays listed, so a row already pending still shows it after the role changes. */
+const statusesFor = (form: Partial<DemoForm>) =>
+  STATUSES.filter(
+    (s) => s.value !== "pending" || form.role !== "Admin" || form.status === "pending"
+  );
+
 export const userColumns: WithMeta<DemoRow, DemoForm>[] = [
   {
     accessorKey: "name",
@@ -65,10 +72,11 @@ export const userColumns: WithMeta<DemoRow, DemoForm>[] = [
     accessorKey: "status",
     header: "Status",
     cell: ({ getValue }) => <StatusBadge value={getValue()} />,
+    // `options` as a function — the list follows the Role picked in the same form.
     meta: {
       editor: "select",
-      description: "Pending accounts have not confirmed their email yet.",
-      options: STATUSES,
+      description: "Pending accounts have not confirmed their email yet. Never for an admin.",
+      options: statusesFor,
       filter: { type: "select", options: STATUSES },
       formLayout: { order: 5 },
     },
