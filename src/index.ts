@@ -89,6 +89,13 @@ export { DisclosureButton, chipClass } from "./components/DisclosureButton";
 export type { DisclosureButtonProps } from "./components/DisclosureButton";
 export { SegmentedSwitch } from "./components/SegmentedSwitch";
 export type { SegmentOption } from "./components/SegmentedSwitch";
+export { SplitPane } from "./components/split/SplitPane";
+export type { SplitPaneProps } from "./components/split/SplitPane";
+export { SplitRow } from "./components/split/SplitRow";
+export type { SplitRowProps } from "./components/split/SplitRow";
+export { usePaneOrder } from "./components/split/usePaneOrder";
+export type { PaneOrder, PaneOrderOptions } from "./components/split/usePaneOrder";
+export { readSplitRatios, writeSplitRatios } from "./components/split/splitRatio";
 
 /*
  * Keep `EditFormBody`, `getRowId`, `FormLayout`, `computeDefaults` and `toTooltipText`

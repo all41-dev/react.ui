@@ -18,6 +18,19 @@
 
 ### Added
 
+- **`SplitPane`, `SplitRow` and `usePaneOrder`.** `SplitPane` divides a box between its
+  children, stacked or side by side, through dividers that are separators: a drag or the
+  arrow keys move the boundary between the two open panes around one (Shift for a longer
+  step, Home and End to a minimum), Enter or a double-click puts every pane back. Shares
+  are `sizes` in order, controlled or remembered under `storageKey`; `mins` are pixels a
+  pane keeps; a pane named in `collapsed` folds to its own content and its divider goes.
+  `usePaneOrder` holds the order of a row of panes, changed by dragging a pane's grip onto
+  another pane or by the arrow keys on the grip, and `SplitRow` draws that row: shares by
+  pane name, so a pane keeps its width through a move, the dragged pane dimmed and the
+  landing edge marked on its target. `readSplitRatios` and `writeSplitRatios` keep named
+  shares under one key for a host that controls them. The sandbox's **Split panes** tab
+  shows them.
+
 - **`IconButton`, `InfoHint`, `DisclosureButton` and `SegmentedSwitch`.** A named square
   icon button (`sm`, `md`); an info icon keeping a sentence in its tooltip; a bordered
   toggle with `aria-expanded`, a dot for unsaved work and `chipClass` for a chip beside
