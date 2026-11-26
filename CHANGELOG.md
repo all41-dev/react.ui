@@ -18,6 +18,14 @@
 
 ### Added
 
+- **The JSON inspector.** `JsonInspectorProvider` owns one drawer per app; a `JsonButton`
+  (`label`, `chip` or `icon`) or `useJsonInspector().open(target)` opens it on a
+  `JsonTarget`: a title, an optional kind line, and a value shown as formatted JSON when
+  it is an object and as it is, in the `language` named, when it is a string. The drawer
+  is a modal dialog with Copy, the line count and the size; Escape, the scrim or its
+  button closes it and focus returns to the opener. A `JsonButton` stops its click, so it
+  is safe inside a row that reacts to one. The sandbox's **JSON inspector** tab shows it.
+
 - **`LazyCodeView` and `LazyCodeEditor`.** The code view and the code editor behind a
   dynamic import, from the root entry: the engine loads on first render, with a
   placeholder once the loading delay has passed (`fallback` replaces it). The
