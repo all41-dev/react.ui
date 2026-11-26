@@ -24,6 +24,7 @@ export function ColumnsPopover<TRow extends object>({
   table,
   onReset,
   forcedHiddenIds,
+  leadColumnId,
   presentation = "toolbar",
 }: {
   table: Table<TRow>;
@@ -31,6 +32,8 @@ export function ColumnsPopover<TRow extends object>({
   onReset: () => void;
   /** Columns the viewport hides. Not listed here — the user cannot reveal them. */
   forcedHiddenIds?: readonly string[];
+  /** The tree column: listed, and never moved off the first slot. */
+  leadColumnId?: string;
   /**
    * `toolbar` is the 30px control with the accent count. `menu` is a full-width row
    * for the overflow panel: icon, label, a muted count, and a chevron for the dialog
@@ -42,9 +45,10 @@ export function ColumnsPopover<TRow extends object>({
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
   const panelStyle = useAnchoredPanel(open, wrapRef, PANEL_WIDTH, PANEL_EST_HEIGHT);
-  const { columns, visibleCount, hiddenCount, move } = useColumnOrdering(
+  const { columns, visibleCount, hiddenCount, move, slot } = useColumnOrdering(
     table,
-    forcedHiddenIds
+    forcedHiddenIds,
+    leadColumnId
   );
 
   useOutsideDismiss(open, wrapRef, () => setOpen(false));
@@ -97,15 +101,15 @@ export function ColumnsPopover<TRow extends object>({
           className="z-50 flex w-[248px] flex-col rounded-surface border border-border-default bg-surface-card p-1.5 shadow-[var(--elev-3)] animate-pop-in"
         >
           <div className="min-h-0 max-h-[300px] overflow-y-auto scrollbar">
-            {columns.map((col, i) => (
+            {columns.map((col) => (
               <ColumnRow
                 key={col.id}
                 column={col}
                 /* Never let the user hide the last column standing — the grid would be
                    an empty rectangle with no way back except Reset layout. */
                 canHide={col.getCanHide() && !(col.getIsVisible() && visibleCount === 1)}
-                isFirst={i === 0}
-                isLast={i === columns.length - 1}
+                isFirst={slot(col.id)?.isFirst ?? true}
+                isLast={slot(col.id)?.isLast ?? true}
                 onMove={move}
               />
             ))}

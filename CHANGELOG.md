@@ -4,12 +4,29 @@
 
 ### Changed
 
+- **A stored column order no longer moves the grid's structural columns.** The select
+  column leads and the action column trails whatever order is stored, so a layout saved
+  for another column set cannot leave the row actions mid-table. A configured
+  `tree.columnId` leads the data columns the same way; the Columns popover lists it and
+  offers no move on it or past it. `useColumnPrefs` takes the lead column as a fifth
+  argument.
+
 - **A row's actions in `TreePicker` stay mounted.** They used to exist only on the hovered
   row and the one holding the tab stop, so a press that lost the hover mid-way cut the
   click short. Every row now keeps its actions in the DOM, inert except on those two rows,
   so Tab still skips them and assistive tech does not list them.
 
 ### Added
+
+- **`IconButton`, `InfoHint`, `DisclosureButton` and `SegmentedSwitch`.** A named square
+  icon button (`sm`, `md`); an info icon keeping a sentence in its tooltip; a bordered
+  toggle with `aria-expanded`, a dot for unsaved work and `chipClass` for a chip beside
+  it; a `radiogroup` of side-by-side options with one tab stop, busy and disabled options,
+  arrows that choose or only move (`activateOnArrow`), and a `trailing` control in the
+  same box. The sandbox's **Buttons & hints** tab shows them.
+
+- **`info` on `DataGrid`.** A sentence of explanation behind an info icon after the
+  title, for what `subtitle` would say at length.
 
 - **A select's `options` as a function of the form.** `meta.options` takes
   `(formValues) => Option[]` beside a plain list, re-run on every change in the form, so a

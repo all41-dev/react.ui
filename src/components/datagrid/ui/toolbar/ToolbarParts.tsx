@@ -1,15 +1,18 @@
 import { LayoutGrid, List, X } from "lucide-react";
 
+import { InfoHint } from "../../../InfoHint";
 import type { GridView } from "../../types/toolbar";
 
-/** Title, row-count pill and subtitle — the left half of the toolbar row. */
+/** Title, info hint, row-count pill and subtitle — the left half of the toolbar row. */
 export function ToolbarTitle({
   title,
   subtitle,
+  info,
   count,
 }: {
   title: string;
   subtitle?: string;
+  info?: string;
   count?: number;
 }) {
   return (
@@ -17,6 +20,7 @@ export function ToolbarTitle({
       <h2 className="whitespace-nowrap text-[.9375rem] font-semibold text-body">
         {title}
       </h2>
+      {info && <InfoHint text={info} place="bottom" />}
       {typeof count === "number" && (
         <span className="rounded-full bg-surface-inset px-[7px] py-px font-mono text-[.6875rem] font-semibold leading-normal text-muted">
           {count}

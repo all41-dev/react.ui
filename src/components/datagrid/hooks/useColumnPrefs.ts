@@ -22,12 +22,14 @@ const NO_DEFAULT_HIDDEN: string[] = [];
  * `defaultHiddenIds` are the columns that start hidden — see `meta.visibleInTable`.
  * `forceHiddenIds` are hidden regardless of what the user chose, for as long as they are
  * passed — see `meta.hideOnMobile`. Neither is ever written to storage.
+ * `leadColumnId` stays first among the data columns whatever order is stored.
  */
 export function useColumnPrefs(
   storageKey: string,
   allColumnIds: string[],
   defaultHiddenIds: string[] = NO_DEFAULT_HIDDEN,
-  forceHiddenIds: string[] = NO_DEFAULT_HIDDEN
+  forceHiddenIds: string[] = NO_DEFAULT_HIDDEN,
+  leadColumnId?: string
 ) {
   const [prefs, setPrefs] = useState<ColumnPrefs>(() => safeLoad(storageKey));
   /* The storage key whose preferences the user has actually changed. Nothing is written
@@ -45,8 +47,8 @@ export function useColumnPrefs(
   }
 
   const normalizedOrder = useMemo(
-    () => normalizeOrder(prefs.columnOrder || [], allColumnIds),
-    [prefs.columnOrder, allColumnIds]
+    () => normalizeOrder(prefs.columnOrder || [], allColumnIds, leadColumnId),
+    [prefs.columnOrder, allColumnIds, leadColumnId]
   );
 
   const columnVisibility = useMemo(
@@ -81,7 +83,7 @@ export function useColumnPrefs(
     [storageKey]
   );
 
-  const handlers = useColumnPrefsHandlers(updatePrefs, allColumnIds);
+  const handlers = useColumnPrefsHandlers(updatePrefs, allColumnIds, leadColumnId);
 
   /* The entry is dropped rather than overwritten with the defaults: the two load
      identically, and removing writes nothing for a grid that was never stored. Un-marked

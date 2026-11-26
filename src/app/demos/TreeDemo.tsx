@@ -266,6 +266,7 @@ export function TreeDemo() {
         ref={grid}
         title="Organisation"
         subtitle="tree mode · row editing"
+        info="A click selects a row; a double-click on a cell opens the row's editors in place."
         columns={columns}
         zodSchema={schema}
         initialData={units}

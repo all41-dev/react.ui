@@ -20,7 +20,10 @@ export type TreeConfig<TRow extends object = object> = {
    * or an id no row has makes the row a root.
    */
   parentKey: RowField<TRow>;
-  /** Column carrying the indent and the chevron. Default: the first visible data column. */
+  /**
+   * Column carrying the indent and the chevron. Default: the first visible data column.
+   * A configured column leads the data columns: no stored or chosen order moves it.
+   */
   columnId?: string;
   /** Which nodes start open. Default `"roots"`. */
   defaultOpen?: "roots" | "all" | "none";

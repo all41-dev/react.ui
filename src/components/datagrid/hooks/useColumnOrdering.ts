@@ -12,10 +12,14 @@ const FIXED_IDS = new Set(["__select__", "__actions__"]);
  * visibility, so a checkbox for one would report "hidden", accept a click, write a
  * preference and change nothing on screen. Dropping them also keeps `hiddenCount` — the
  * trigger's badge — reporting only what the user actually hid.
+ *
+ * `leadColumnId` (the configured tree column) is listed, so it can still be hidden, and
+ * holds the first slot: `isHeld` tells the popover to offer no move on it or past it.
  */
 export function useColumnOrdering<TRow extends object>(
   table: Table<TRow>,
-  forcedHiddenIds: readonly string[] = []
+  forcedHiddenIds: readonly string[] = [],
+  leadColumnId?: string
 ) {
   /* Both kinds hold their slot in `columnOrder` and stay out of the popover's list — the
      injected columns because they are structural, the forced ones because the viewport
@@ -26,8 +30,10 @@ export function useColumnOrdering<TRow extends object>(
   const allColumns = table.getAllLeafColumns().filter((c) => !isPinned(c.id));
   // `getAllLeafColumns` is definition order; the popover has to show render order.
   const order = table.getState().columnOrder;
-  const movable = order.filter((id) => !isPinned(id));
-  const ordered = movable
+  const listed = order.filter((id) => !isPinned(id));
+  const isHeld = (id: string) => id === leadColumnId;
+  const movable = listed.filter((id) => !isHeld(id));
+  const ordered = listed
     .map((id) => allColumns.find((c) => c.id === id))
     .filter((c): c is Column<TRow, unknown> => !!c);
   /*
@@ -54,8 +60,22 @@ export function useColumnOrdering<TRow extends object>(
     const swapped = [...movable];
     [swapped[from], swapped[to]] = [swapped[to], swapped[from]];
     let k = 0;
-    table.setColumnOrder(order.map((id) => (isPinned(id) ? id : swapped[k++])));
+    table.setColumnOrder(
+      order.map((id) => (isPinned(id) || isHeld(id) ? id : swapped[k++]))
+    );
   };
 
-  return { columns, visibleCount, hiddenCount: columns.length - visibleCount, move };
+  /** Where a column stands among those that can move; `null` for one that cannot. */
+  const slot = (columnId: string): { isFirst: boolean; isLast: boolean } | null => {
+    const at = movable.indexOf(columnId);
+    return at === -1 ? null : { isFirst: at === 0, isLast: at === movable.length - 1 };
+  };
+
+  return {
+    columns,
+    visibleCount,
+    hiddenCount: columns.length - visibleCount,
+    move,
+    slot,
+  };
 }

@@ -1099,3 +1099,16 @@ describe("DataGrid", () => {
     });
   });
 });
+
+describe("DataGrid — info", () => {
+  it("keeps the sentence behind an icon after the title, and draws none without it", () => {
+    const { unmount } = renderGrid({ info: "Every user of the tenant." });
+    const hint = screen.getByRole("button", { name: "Every user of the tenant." });
+    expect(hint).toHaveTextContent("");
+    expect(hint.previousElementSibling).toHaveTextContent("Users");
+    unmount();
+
+    renderGrid();
+    expect(screen.queryByRole("button", { name: "Every user of the tenant." })).toBeNull();
+  });
+});

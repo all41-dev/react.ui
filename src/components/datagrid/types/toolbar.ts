@@ -5,6 +5,7 @@ export type GridView = "list" | "cards";
 export type DataGridToolbarProps = {
   title: string;
   subtitle?: string;
+  info?: string;
   /** Row count shown in the pill next to the title. */
   count?: number;
   toolbar?: React.ReactNode;

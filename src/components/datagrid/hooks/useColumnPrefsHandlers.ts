@@ -14,7 +14,8 @@ import type { ColumnPrefs } from "./columnPrefsStorage";
  */
 export function useColumnPrefsHandlers(
   updatePrefs: (update: (p: ColumnPrefs) => ColumnPrefs) => void,
-  allColumnIds: string[]
+  allColumnIds: string[],
+  leadColumnId?: string
 ) {
   const onColumnSizingChange = useCallback(
     (updater: Updater<Record<string, number>>) => {
@@ -49,11 +50,11 @@ export function useColumnPrefsHandlers(
         ...p,
         columnOrder:
           typeof updater === "function"
-            ? updater(normalizeOrder(p.columnOrder || [], allColumnIds))
+            ? updater(normalizeOrder(p.columnOrder || [], allColumnIds, leadColumnId))
             : updater,
       }));
     },
-    [allColumnIds, updatePrefs]
+    [allColumnIds, leadColumnId, updatePrefs]
   );
 
   return { onColumnSizingChange, onColumnVisibilityChange, onColumnOrderChange };

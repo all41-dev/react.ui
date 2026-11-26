@@ -16,6 +16,7 @@ export type { GridView };
 export const DataGridToolbar = memo(function DataGridToolbar({
   title,
   subtitle,
+  info,
   count,
   toolbar,
   editContainer = "right",
@@ -100,7 +101,7 @@ export const DataGridToolbar = memo(function DataGridToolbar({
           `z-10` the sticky footer, being a later sibling at the same level, drew over
           them. */}
       <div className="relative z-20 flex flex-wrap items-center justify-between gap-2.5 border-b border-border-default bg-surface-card px-3.5 py-[11px]">
-        <ToolbarTitle title={title} subtitle={subtitle} count={count} />
+        <ToolbarTitle title={title} subtitle={subtitle} info={info} count={count} />
 
         {/* Controls. Deliberately no `flex-wrap`: secondary controls live in the overflow
             menu precisely so this stays one line at any width. `flex-1` so the search bar

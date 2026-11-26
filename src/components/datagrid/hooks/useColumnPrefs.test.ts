@@ -83,11 +83,57 @@ describe("useColumnPrefs", () => {
       );
       const { result } = renderHook(() => useColumnPrefs("dg:a", IDS));
       expect(result.current.state.columnOrder).toEqual([
+        "__select__",
         "email",
         "name",
-        "__select__",
         "__actions__",
       ]);
+    });
+
+    /*
+     * A layout stored for another column set: the action column was last then, and the
+     * column added since is appended after it.
+     */
+    it("keeps the action column last and the select column first, whatever is stored", () => {
+      localStorage.setItem(
+        "dg:a",
+        JSON.stringify({ v: 1, columnOrder: ["name", "__actions__", "__select__"] })
+      );
+      const { result } = renderHook(() => useColumnPrefs("dg:a", IDS));
+      expect(result.current.state.columnOrder).toEqual([
+        "__select__",
+        "name",
+        "email",
+        "__actions__",
+      ]);
+    });
+
+    it("keeps the lead column first among the data columns", () => {
+      localStorage.setItem(
+        "dg:a",
+        JSON.stringify({ v: 1, columnOrder: ["__select__", "name", "email", "__actions__"] })
+      );
+      const { result } = renderHook(() =>
+        useColumnPrefs("dg:a", IDS, undefined, undefined, "email")
+      );
+      expect(result.current.state.columnOrder).toEqual([
+        "__select__",
+        "email",
+        "name",
+        "__actions__",
+      ]);
+
+      act(() =>
+        result.current.handlers.onColumnOrderChange(["name", "email", "__actions__", "__select__"])
+      );
+      expect(result.current.state.columnOrder[1]).toBe("email");
+    });
+
+    it("ignores a lead column the grid does not have", () => {
+      const { result } = renderHook(() =>
+        useColumnPrefs("dg:a", IDS, undefined, undefined, "gone")
+      );
+      expect(result.current.state.columnOrder).toEqual(IDS);
     });
 
     it("never loses or duplicates a column", () => {
@@ -116,7 +162,7 @@ describe("useColumnPrefs", () => {
 
     rerender({ key: "dg:b" });
     expect(result.current.state.columnVisibility).toEqual({ name: false });
-    expect(result.current.state.columnOrder[0]).toBe("email");
+    expect(result.current.state.columnOrder[1]).toBe("email");
   });
 
   describe("default-hidden columns", () => {

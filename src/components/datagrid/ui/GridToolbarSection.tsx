@@ -33,6 +33,7 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
     <DataGridToolbar
       title={props.title ?? "Data"}
       subtitle={props.subtitle}
+      info={props.info}
       count={count}
       toolbar={props.toolbar}
       editContainer={props.editContainer ?? "right"}
@@ -52,6 +53,7 @@ export function GridToolbarSection<TRow extends object, TForm extends object>({
           table={table}
           onReset={gridColumns.resetPrefs}
           forcedHiddenIds={gridColumns.forceHiddenIds}
+          leadColumnId={gridColumns.leadColumnId}
           presentation="menu"
         />
       }

@@ -5,16 +5,36 @@ import type { ColumnPrefs } from "./columnPrefsStorage";
  * column list is taken into account.
  */
 
-/* The order the table actually renders: stored ids that still exist, then every id the
-   store has never seen, in declaration order. */
+const SELECT_ID = "__select__";
+const ACTIONS_ID = "__actions__";
+
+/**
+ * The order the table actually renders: stored ids that still exist, then every id the
+ * store has never seen, in declaration order.
+ *
+ * Three columns hold their slot whatever the stored order says: the select column
+ * leads, `leadColumnId` (the configured tree column) leads the data columns, and the
+ * action column trails. A layout stored for another column set would otherwise leave
+ * the row actions mid-table and the tree's indent off the first column.
+ */
 export function normalizeOrder(
   order: string[],
-  allColumnIds: string[]
+  allColumnIds: string[],
+  leadColumnId?: string
 ): string[] {
   const known = new Set(allColumnIds);
   const kept = order.filter((id) => known.has(id));
   const missing = allColumnIds.filter((id) => !kept.includes(id));
-  return [...kept, ...missing];
+  const head = [SELECT_ID, leadColumnId].filter(
+    (id): id is string => id !== undefined && known.has(id)
+  );
+  const tail = known.has(ACTIONS_ID) ? [ACTIONS_ID] : [];
+  const held = new Set([...head, ...tail]);
+  return [
+    ...head,
+    ...[...kept, ...missing].filter((id) => !held.has(id)),
+    ...tail,
+  ];
 }
 
 /**

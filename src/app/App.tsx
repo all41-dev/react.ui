@@ -14,6 +14,7 @@ import { TabsDemo } from "./demos/TabsDemo";
 import { TreePickerDemo } from "./demos/TreePickerDemo";
 import { StatesDemo } from "./demos/StatesDemo";
 import { BadgesDemo } from "./demos/BadgesDemo";
+import { ButtonsDemo } from "./demos/ButtonsDemo";
 
 type DemoTab =
   | "datagrid"
@@ -23,6 +24,7 @@ type DemoTab =
   | "treepicker"
   | "states"
   | "badges"
+  | "buttons"
   | "toaster"
   | "tooltip"
   | "loading";
@@ -36,6 +38,7 @@ const TABS: TabItem<DemoTab>[] = [
   { key: "treepicker", label: "Tree picker" },
   { key: "states", label: "Empty & error states" },
   { key: "badges", label: "Badge & key–value" },
+  { key: "buttons", label: "Buttons & hints" },
   { key: "toaster", label: "Toaster" },
   { key: "tooltip", label: "Tooltip" },
   { key: "loading", label: "Loading" },
@@ -49,6 +52,7 @@ const DEMOS: Record<DemoTab, () => React.JSX.Element> = {
   treepicker: TreePickerDemo,
   states: StatesDemo,
   badges: BadgesDemo,
+  buttons: ButtonsDemo,
   toaster: ToasterDemo,
   tooltip: TooltipDemo,
   loading: LoadingDemo,

@@ -17,6 +17,8 @@ export type DataGridProps<TRow extends object, TForm extends object = TRow> = {
   title?: string;
   /** Faint one-liner rendered next to the title. */
   subtitle?: string;
+  /** A sentence of explanation, kept behind an info icon after the title. */
+  info?: string;
   /** Toolbar search across all columns. Default true. */
   searchable?: boolean;
   /** Title of the empty state ("No data" when omitted). */

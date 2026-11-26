@@ -82,6 +82,13 @@ export { CountBadge } from "./components/CountBadge";
 export type { CountBadgeTone } from "./components/CountBadge";
 export { KeyValue } from "./components/KeyValue";
 export type { KeyValueTone } from "./components/KeyValue";
+export { IconButton } from "./components/IconButton";
+export type { IconButtonProps } from "./components/IconButton";
+export { InfoHint } from "./components/InfoHint";
+export { DisclosureButton, chipClass } from "./components/DisclosureButton";
+export type { DisclosureButtonProps } from "./components/DisclosureButton";
+export { SegmentedSwitch } from "./components/SegmentedSwitch";
+export type { SegmentOption } from "./components/SegmentedSwitch";
 
 /*
  * Keep `EditFormBody`, `getRowId`, `FormLayout`, `computeDefaults` and `toTooltipText`

@@ -103,6 +103,7 @@ export function useDataGridState<TRow extends object, TForm extends object>(
     selectable: props.selectable ?? false,
     hasRowActions,
     storageKey: userKey,
+    leadColumnId: props.tree?.columnId,
   });
 
   const table = useDataGridTable<TRow, TForm>({

@@ -34,6 +34,8 @@ type Params<TRow extends object, TForm extends object> = {
   /** Whether an action column is worth rendering at all. */
   hasRowActions: boolean;
   storageKey: string;
+  /** The configured tree column, held first among the data columns. */
+  leadColumnId?: string;
 };
 
 /**
@@ -51,6 +53,7 @@ export function useGridColumns<TRow extends object, TForm extends object>({
   selectable,
   hasRowActions,
   storageKey,
+  leadColumnId,
 }: Params<TRow, TForm>) {
   /*
    * A column declaring `meta.filter` gets the matching filter function attached here.
@@ -108,7 +111,8 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     storageKey,
     allColumnIds,
     defaultHiddenIds,
-    forceHiddenIds
+    forceHiddenIds,
+    leadColumnId
   );
 
   const orderedColumns = useMemo(() => {
@@ -130,5 +134,6 @@ export function useGridColumns<TRow extends object, TForm extends object>({
     prefsAreDefault: isDefault,
     /** Hidden by the viewport, not by the user — the Columns popover leaves these out. */
     forceHiddenIds,
+    leadColumnId,
   };
 }
