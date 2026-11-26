@@ -18,6 +18,18 @@
 
 ### Added
 
+- **`LazyCodeView` and `LazyCodeEditor`.** The code view and the code editor behind a
+  dynamic import, from the root entry: the engine loads on first render, with a
+  placeholder once the loading delay has passed (`fallback` replaces it). The
+  `code-editor` entry keeps the two for a consumer that splits its own chunks.
+
+- **`DelayedRender` and `LoadingClockContext`.** `DelayedRender` withholds its children
+  for the loading delay, for a Suspense fallback. A host that times a wait of its own (a
+  router, a navigation) provides a `LoadingClock`, `{ since, settled() }`: an indicator
+  that mounts already loading while the clock is not settled counts its delay from
+  `since`, so a code chunk followed by a data read is one wait. `useLoadingIndicator`
+  reads it, and so does the grid's own skeleton. Without a provider nothing changes.
+
 - **`LocationTrail`.** Where the viewer is, breadcrumb-shaped and without links: an
   ordered list labelled "Location", its segments between chevrons, the last one
   `aria-current="location"`. A segment is a label or a `node` (a popover trigger, a

@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { LoadingScreen } from "../../components/LoadingScreen";
 import { Skeleton } from "../../components/Skeleton";
 import { useLoadingIndicator } from "../../hooks/useLoadingIndicator";
+import { LoadingClockContext } from "../../hooks/loadingClock";
+import { DelayedRender } from "../../components/DelayedRender";
+import { LazyCodeEditor, LazyCodeView } from "../../components/LazyCode";
 import { Segmented } from "./sandbox/ui/controls";
 
 const BUTTON =
@@ -95,9 +98,66 @@ export function LoadingDemo() {
           )}
         </div>
       )}
+
+      <LazyCodeSection />
     </div>
   );
 }
+
+const SAMPLE = JSON.stringify({ customer: { id: 7, name: "Contoso" }, paid: true }, null, 2);
+
+/**
+ * The code view and editor behind a dynamic import. Each is rendered on request, so the
+ * first press loads the engine; `DelayedRender` keeps the placeholder back for the delay.
+ */
+function LazyCodeSection() {
+  const [shown, setShown] = useState<"view" | "editor" | null>(null);
+  const [body, setBody] = useState("return obj.customer.name;");
+  const [clockAt, setClockAt] = useState<number | null>(null);
+
+  return (
+    <section className="rounded-surface border border-border-default bg-surface-card p-4">
+      <h3 className="mb-3 text-[.6875rem] font-bold uppercase tracking-[.06em] text-faint">
+        LazyCodeView, LazyCodeEditor, DelayedRender
+      </h3>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[.8125rem]">
+        <button type="button" className={LAZY_BUTTON} onClick={() => setShown("view")}>
+          Render the view
+        </button>
+        <button type="button" className={LAZY_BUTTON} onClick={() => setShown("editor")}>
+          Render the editor
+        </button>
+        <button type="button" className={LAZY_BUTTON} onClick={() => setShown(null)}>
+          Unmount
+        </button>
+      </div>
+      <div className="min-h-24 rounded-control border border-border-default">
+        {shown === "view" && <LazyCodeView value={SAMPLE} language="json" aria-label="Sample record" />}
+        {shown === "editor" && (
+          <LazyCodeEditor value={body} onChange={setBody} language="javascript" rows={4} aria-label="Function body" />
+        )}
+      </div>
+
+      <p className="mb-2 mt-5 text-[.8125rem] text-muted">
+        Under a <code>LoadingClockContext</code> an indicator counts its delay from the clock: this one
+        mounts 200 ms into a wait and shows 50 ms later, not 250.
+      </p>
+      <button type="button" className={LAZY_BUTTON} onClick={() => setClockAt(Date.now() - 200)}>
+        Mount 200 ms into a wait
+      </button>
+      {clockAt !== null && (
+        <LoadingClockContext key={clockAt} value={{ since: clockAt, settled: () => false }}>
+          <DelayedRender>
+            <Skeleton className="mt-3 h-4 w-60 rounded-md" />
+          </DelayedRender>
+        </LoadingClockContext>
+      )}
+    </section>
+  );
+}
+
+const LAZY_BUTTON =
+  "h-8 cursor-pointer rounded-control border border-border-default px-3 text-[.8125rem] hover:bg-surface-raised";
 
 /**
  * A fake load of a chosen length against the hook's defaults (250 ms delay, 400 ms

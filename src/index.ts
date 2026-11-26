@@ -8,6 +8,9 @@ export { LoadingScreen } from "./components/LoadingScreen";
 export type { LoadingScreenVariant } from "./components/LoadingScreen";
 export { Skeleton } from "./components/Skeleton";
 export { useLoadingIndicator } from "./hooks/useLoadingIndicator";
+export { LoadingClockContext } from "./hooks/loadingClock";
+export type { LoadingClock } from "./hooks/loadingClock";
+export { DelayedRender } from "./components/DelayedRender";
 export type { LoadingIndicatorOptions } from "./hooks/useLoadingIndicator";
 export { Markdown } from "./components/Markdown";
 export type { MarkdownProps } from "./components/Markdown";
@@ -38,6 +41,9 @@ export { useConfirm } from "./components/datagrid/hooks/useConfirm";
  */
 export type { CodeEditorProps } from "./components/datagrid/ui/editors/CodeEditor";
 export type { CodeViewProps } from "./components/CodeView";
+// These two reach the engine through a dynamic import, so they are safe here.
+export { LazyCodeView, LazyCodeEditor } from "./components/LazyCode";
+export type { LazyCodeViewProps, LazyCodeEditorProps } from "./components/LazyCode";
 /*
  * Engine-neutral on purpose: a consumer writes completion and diagnostic sources against
  * these shapes, never against CodeMirror's, so the editor's engine stays swappable and
