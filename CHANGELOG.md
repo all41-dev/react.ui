@@ -18,6 +18,13 @@
 
 ### Added
 
+- **`LocationTrail`.** Where the viewer is, breadcrumb-shaped and without links: an
+  ordered list labelled "Location", its segments between chevrons, the last one
+  `aria-current="location"`. A segment is a label or a `node` (a popover trigger, a
+  heading), may be `mono`, and with `minWidth` collapses below the `md` or `lg`
+  breakpoint. `strip` is a row of its own, `bar` sits in a toolbar. The sandbox's
+  **Location trail** tab shows it.
+
 - **Hooks and helpers with no markup of their own.** `useFlyoutDialog` gives a floating
   panel a dialog's behaviour: the focus remembered and restored, a `data-autofocus`
   element or the first focusable focused on opening, Tab wrapping at both ends, Escape and

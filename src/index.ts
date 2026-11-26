@@ -96,6 +96,8 @@ export type { SplitRowProps } from "./components/split/SplitRow";
 export { usePaneOrder } from "./components/split/usePaneOrder";
 export type { PaneOrder, PaneOrderOptions } from "./components/split/usePaneOrder";
 export { readSplitRatios, writeSplitRatios } from "./components/split/splitRatio";
+export { LocationTrail } from "./components/LocationTrail";
+export type { LocationTrailProps, TrailSegment } from "./components/LocationTrail";
 export { useFlyoutDialog } from "./hooks/useFlyoutDialog";
 export { useCssBreakpoint } from "./hooks/useCssBreakpoint";
 export { copyText } from "./utils/clipboard";

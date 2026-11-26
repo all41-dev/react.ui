@@ -17,6 +17,7 @@ import { BadgesDemo } from "./demos/BadgesDemo";
 import { ButtonsDemo } from "./demos/ButtonsDemo";
 import { SplitDemo } from "./demos/SplitDemo";
 import { HelpersDemo } from "./demos/HelpersDemo";
+import { TrailDemo } from "./demos/TrailDemo";
 
 type DemoTab =
   | "datagrid"
@@ -29,6 +30,7 @@ type DemoTab =
   | "buttons"
   | "split"
   | "helpers"
+  | "trail"
   | "toaster"
   | "tooltip"
   | "loading";
@@ -45,6 +47,7 @@ const TABS: TabItem<DemoTab>[] = [
   { key: "buttons", label: "Buttons & hints" },
   { key: "split", label: "Split panes" },
   { key: "helpers", label: "Hooks & helpers" },
+  { key: "trail", label: "Location trail" },
   { key: "toaster", label: "Toaster" },
   { key: "tooltip", label: "Tooltip" },
   { key: "loading", label: "Loading" },
@@ -61,6 +64,7 @@ const DEMOS: Record<DemoTab, () => React.JSX.Element> = {
   buttons: ButtonsDemo,
   split: SplitDemo,
   helpers: HelpersDemo,
+  trail: TrailDemo,
   toaster: ToasterDemo,
   tooltip: TooltipDemo,
   loading: LoadingDemo,
