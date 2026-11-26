@@ -38,6 +38,8 @@ const libExternal = [
   /^@lezer\//,
   /^prettier$/,
   /^prettier\//,
+  // The cron parser, a dependency reached only through the `cron` entry.
+  /^cronstrue$/,
 ]
 
 // https://vite.dev/config/
@@ -51,13 +53,14 @@ export default defineConfig(({ mode }) => {
       build: {
         lib: {
           /*
-           * Two entries so the standalone code editor is its own import path. Bundling
+           * The standalone code editor is its own import path, as are the cron readers. Bundling
            * it into the main entry would hand every consumer the CodeMirror engine;
            * the grid itself reaches the editor through a dynamic import.
            */
           entry: {
             'react-ui': 'src/index.ts',
             'code-editor': 'src/code-editor.ts',
+            cron: 'src/cron.ts',
           },
           name: 'ReactUI',
           formats: ['es', 'cjs'],

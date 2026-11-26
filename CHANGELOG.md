@@ -18,6 +18,20 @@
 
 ### Added
 
+- **Hooks and helpers with no markup of their own.** `useFlyoutDialog` gives a floating
+  panel a dialog's behaviour: the focus remembered and restored, a `data-autofocus`
+  element or the first focusable focused on opening, Tab wrapping at both ends, Escape and
+  a press outside closing it. `useCssBreakpoint` reads a CSS breakpoint off a sentinel
+  element the rule shows, for a layout that differs in structure. `copyText` writes to the
+  clipboard and falls back to the legacy command off https. `sortTree` puts a flat,
+  parent-linked list depth-first with siblings in name order (`byName`). `idEq` and `toId`
+  compare and read ids as text. `humanizeCode`, `humanizeDuration`, `relativeTime` and
+  `formatDateTime` read a code, a span and a timestamp as prose.
+
+- **A `cron` entry.** `humanizeCron` and `isCron` are at `@all41-dev/react.ui/cron`, so
+  their parser (`cronstrue`, now a dependency) reaches only a consumer who reads a
+  schedule. The sandbox's **Hooks & helpers** tab shows them all.
+
 - **`SplitPane`, `SplitRow` and `usePaneOrder`.** `SplitPane` divides a box between its
   children, stacked or side by side, through dividers that are separators: a drag or the
   arrow keys move the boundary between the two open panes around one (Shift for a longer

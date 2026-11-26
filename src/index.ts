@@ -96,6 +96,13 @@ export type { SplitRowProps } from "./components/split/SplitRow";
 export { usePaneOrder } from "./components/split/usePaneOrder";
 export type { PaneOrder, PaneOrderOptions } from "./components/split/usePaneOrder";
 export { readSplitRatios, writeSplitRatios } from "./components/split/splitRatio";
+export { useFlyoutDialog } from "./hooks/useFlyoutDialog";
+export { useCssBreakpoint } from "./hooks/useCssBreakpoint";
+export { copyText } from "./utils/clipboard";
+export { sortTree, byName } from "./utils/sortTree";
+export { idEq, toId } from "./utils/id";
+// The cron readers are at `@all41-dev/react.ui/cron`, with their parser.
+export { humanizeCode, humanizeDuration, relativeTime, formatDateTime } from "./utils/humanize";
 
 /*
  * Keep `EditFormBody`, `getRowId`, `FormLayout`, `computeDefaults` and `toTooltipText`
